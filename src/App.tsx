@@ -4,7 +4,7 @@
  * [POS]: src 的合成层，编排背景与前景，被 main.tsx 挂载
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Ferrofluid from './components/Ferrofluid';
 import ShinyText from './components/ShinyText';
 import { LINES } from './i18n/lines';
@@ -17,6 +17,27 @@ export default function App() {
   const [idx, setIdx] = useState(0);
   const [show, setShow] = useState(false);
   const idxRef = useRef(0);
+
+  // ---- auto-fit：量出单行自然宽度，缩放到刚好铺满可用宽度 ----
+  const slotRef = useRef<HTMLDivElement>(null); // 可用宽度基准
+  const lineRef = useRef<HTMLDivElement>(null); // 待缩放的单行
+  const [fit, setFit] = useState(1);
+
+  useLayoutEffect(() => {
+    const slot = slotRef.current;
+    const el = lineRef.current;
+    if (!slot || !el) return;
+    const measure = () => {
+      el.style.transform = 'scale(1)'; // 先复位再量自然宽度
+      const natural = el.scrollWidth;
+      const avail = slot.clientWidth;
+      setFit(natural > 0 ? Math.min(1, avail / natural) : 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(slot);
+    return () => ro.disconnect();
+  }, [idx]);
 
   // 首帧点亮，避免闪现
   useEffect(() => {
@@ -45,29 +66,38 @@ export default function App() {
       <div className="pointer-events-none absolute inset-0">
         <Ferrofluid
           scale={3}
-          speed={0.1}
+          speed={0.04}
           colors={['#ffffff', '#ffffff', '#ffffff']}
           flowDirection="down"
           mouseInteraction={false}
         />
       </div>
 
-      {/* ---- 前景：中央那一行会呼吸、会发光的标语 ---- */}
-      <main className="absolute inset-0 flex items-center justify-center px-[8vw]">
+      {/* ---- 前景：中央那一行会呼吸、会发光的标语（强制单行，自动缩放铺满） ---- */}
+      <main className="absolute inset-0 flex items-center justify-center px-[6vw]">
         <div
-          key={idx}
-          lang={line.lang}
-          dir={line.dir ?? 'ltr'}
-          className="max-w-[40ch] text-center transition-opacity duration-[1100ms] ease-in-out"
+          ref={slotRef}
+          className="w-full max-w-[64rem] transition-opacity duration-[1100ms] ease-in-out"
           style={{ opacity: show ? 1 : 0 }}
         >
-          <ShinyText
-            text={line.t}
-            speed={4}
-            color="#8a8a8a"
-            shineColor="#ffffff"
-            className="text-[clamp(1.35rem,4.5vw,2.6rem)] font-light leading-snug tracking-[0.01em]"
-          />
+          <div className="flex justify-center">
+            <div
+              ref={lineRef}
+              key={idx}
+              lang={line.lang}
+              dir={line.dir ?? 'ltr'}
+              className="whitespace-nowrap"
+              style={{ transform: `scale(${fit})`, transformOrigin: 'center' }}
+            >
+              <ShinyText
+                text={line.t}
+                speed={4}
+                color="#8a8a8a"
+                shineColor="#ffffff"
+                className="text-[clamp(1.5rem,5vw,3rem)] font-light tracking-[0.01em]"
+              />
+            </div>
+          </div>
         </div>
       </main>
 
