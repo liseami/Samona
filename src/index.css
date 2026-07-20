@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* ============ 基底：一片纯粹的黑 ============ */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  overflow: hidden;
+  /* 覆盖 20 国字形：拉丁 / CJK / 阿拉伯 / 泰文 / 天城文，交由系统字体优雅回退 */
+  font-family: -apple-system, "Helvetica Neue", "Segoe UI", "PingFang SC",
+    "Hiragino Sans", "Noto Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

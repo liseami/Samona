@@ -1,15 +1,21 @@
 # Samona - 人类唯一需要的 AI 应用
 
-静态单页 · 原生 HTML + CSS + JS · 零依赖 · Cloudflare Pages 托管
+Bun + Vite + React 18 + TypeScript + Tailwind CSS v4 · WebGL(OGL) 背景 · Motion 文字动效 · Cloudflare Pages 托管
 
 <directory>
-(根目录即全部) - 单文件静态站点，无构建步骤，CF Pages 直出
+src/ - 全部前端源码 (2 子目录: components 组件层, i18n 语言数据)
 </directory>
 
 <config>
-index.html - 唯一入口：中央一行文字在 20 国语言间淡入淡出轮换，标语「人类唯一需要的 AI 应用」
-.gitignore - 忽略系统与编辑器杂物
+index.html - Vite 入口模板，挂载点 #root
+vite.config.ts - Vite 配置：@vitejs/plugin-react + @tailwindcss/vite 插件式集成
+tsconfig.json - TS 严格模式，bundler 解析，react-jsx
+package.json - 依赖清单与脚本 (dev/build/preview)，bun 管理
 </config>
+
+<deploy>
+Cloudflare Pages：构建命令 `bun run build`，输出目录 `dist`，Node 18+
+</deploy>
 
 法则: 极简·稳定·导航·版本精确
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
