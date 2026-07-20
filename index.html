@@ -10,7 +10,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Samona</title>
-  <meta name="description" content="The only AI humanity will ever need." />
+  <meta name="description" content="The only AI app humanity will ever need." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='6' fill='white'/%3E%3C/svg%3E" />
   <style>
     /* ============ 基底：一片纯粹的黑 ============ */
@@ -83,26 +83,26 @@
     // ============ 20 国语言 · 同一句话 ============
     // 每条记录：{ 文本, 语言标签, 文字方向 }。lang 交给浏览器选形，dir 处理阿拉伯语从右向左。
     const LINES = [
-      { t: "The only AI humanity will ever need.",            lang: "en" },
-      { t: "人类唯一需要的 AI。",                              lang: "zh" },
-      { t: "La única IA que la humanidad necesitará.",         lang: "es" },
-      { t: "मानवता को जिस एकमात्र AI की ज़रूरत होगी।",          lang: "hi" },
-      { t: "الذكاء الاصطناعي الوحيد الذي ستحتاجه البشرية.",     lang: "ar", dir: "rtl" },
-      { t: "A única IA de que a humanidade precisará.",        lang: "pt" },
-      { t: "Единственный ИИ, который понадобится человечеству.", lang: "ru" },
-      { t: "人類が必要とする唯一のAI。",                        lang: "ja" },
-      { t: "La seule IA dont l'humanité aura besoin.",         lang: "fr" },
-      { t: "Die einzige KI, die die Menschheit je brauchen wird.", lang: "de" },
-      { t: "인류에게 필요한 유일한 AI.",                        lang: "ko" },
-      { t: "L'unica IA di cui l'umanità avrà bisogno.",        lang: "it" },
-      { t: "İnsanlığın ihtiyaç duyacağı tek yapay zekâ.",      lang: "tr" },
-      { t: "Trí tuệ nhân tạo duy nhất nhân loại cần.",         lang: "vi" },
-      { t: "AI เดียวที่มนุษยชาติต้องการ",                       lang: "th" },
-      { t: "Satu-satunya AI yang dibutuhkan umat manusia.",    lang: "id" },
-      { t: "De enige AI die de mensheid ooit nodig heeft.",    lang: "nl" },
-      { t: "Jedyna SI, jakiej ludzkość będzie potrzebować.",   lang: "pl" },
-      { t: "Єдиний ШІ, який знадобиться людству.",             lang: "uk" },
-      { t: "Η μόνη ΤΝ που θα χρειαστεί ποτέ η ανθρωπότητα.",    lang: "el" },
+      { t: "The only AI app humanity will ever need.",                  lang: "en" },
+      { t: "人类唯一需要的 AI 应用。",                                   lang: "zh" },
+      { t: "La única app de IA que la humanidad necesitará.",           lang: "es" },
+      { t: "मानवता को जिस एकमात्र AI ऐप की ज़रूरत होगी।",                 lang: "hi" },
+      { t: "تطبيق الذكاء الاصطناعي الوحيد الذي ستحتاجه البشرية.",         lang: "ar", dir: "rtl" },
+      { t: "O único app de IA de que a humanidade precisará.",          lang: "pt" },
+      { t: "Единственное ИИ-приложение, которое понадобится человечеству.", lang: "ru" },
+      { t: "人類が必要とする唯一のAIアプリ。",                            lang: "ja" },
+      { t: "La seule app d'IA dont l'humanité aura besoin.",            lang: "fr" },
+      { t: "Die einzige KI-App, die die Menschheit je brauchen wird.",  lang: "de" },
+      { t: "인류에게 필요한 유일한 AI 앱.",                              lang: "ko" },
+      { t: "L'unica app di IA di cui l'umanità avrà bisogno.",          lang: "it" },
+      { t: "İnsanlığın ihtiyaç duyacağı tek yapay zekâ uygulaması.",    lang: "tr" },
+      { t: "Ứng dụng AI duy nhất mà nhân loại cần.",                    lang: "vi" },
+      { t: "แอป AI เดียวที่มนุษยชาติต้องการ",                            lang: "th" },
+      { t: "Satu-satunya aplikasi AI yang dibutuhkan umat manusia.",    lang: "id" },
+      { t: "De enige AI-app die de mensheid ooit nodig heeft.",         lang: "nl" },
+      { t: "Jedyna aplikacja SI, jakiej ludzkość będzie potrzebować.",  lang: "pl" },
+      { t: "Єдиний ШІ-застосунок, який знадобиться людству.",           lang: "uk" },
+      { t: "Η μόνη εφαρμογή ΤΝ που θα χρειαστεί ποτέ η ανθρωπότητα.",    lang: "el" },
     ];
 
     const line = document.getElementById("line");
