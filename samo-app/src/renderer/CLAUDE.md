@@ -1,13 +1,13 @@
 # renderer/
 > L2 | 父级: ../../CLAUDE.md
 
-五张页面共用一套样式与 Tailwind 主题：`index.html` 是应用壳（三层：icon navi + 模块侧栏 + 面板 + 停靠的对话卡，带 preload），`overlay.html` 是 ⌘T 命令面板（跑在透明子窗口里），`launcher.html` 是右下角药丸（透明小子窗口），`chat.html` 是 AI 面板浮窗（不透明子窗口），`agent.html` 是 agent 光标层（透明、点击穿透的子窗口，盖在网页上），`newtab.html` 是新标签页（无 preload 的普通网页）。渲染层从不持有真相：主进程推快照，组件只读镜像；所有动作经 store.send 变成 Command，需要返回值的经 store.query。
+五张页面共用一套样式与 Tailwind 主题：`index.html` 是应用壳（三层：icon navi + 模块侧栏 + 面板 + 停靠的对话卡，带 preload），`overlay.html` 是壳弹层页——⌘T 命令面板与用户菜单（跑在透明子窗口里：所有要压在网页之上还能交互的壳弹层都住这里），`launcher.html` 是右下角药丸（透明小子窗口），`chat.html` 是 AI 面板浮窗（不透明子窗口），`agent.html` 是 agent 光标层（透明、点击穿透的子窗口，盖在网页上），`newtab.html` 是新标签页（无 preload 的普通网页）。渲染层从不持有真相：主进程推快照，组件只读镜像；所有动作经 store.send 变成 Command，需要返回值的经 store.query。
 
 设计体系：配色是用户的 oklch 中性灰 shadcn 令牌（light/dark 由 html.dark 切换，跟随系统）；阴影、圆角、密度取自 Laper index.css——淡雅平阴影 + Apple squircle（corner-shape + Safari fallback）+ 压缩字号阶（xs10/sm12/base13/lg14）；结构取自 Laper ProjectEditorShell：页面底 `bg-sidebar`，一行 `gap-2 pt-2 pb-2 pl-0 pr-2` 里是 rail、侧栏卡、面板卡，两张卡同为 SoftPanel（`bg-panel rounded-2xl border shadow-sm`）；三级梯度 sidebar(底) < panel(卡) < card(浮起的行)；网页视图内缩 1px 叠在面板卡上露出边线。图标全部来自 Laper 的 Pika 库（icons/）。
 
 ## 成员清单
 index.html: 壳页模板（CSP 放行 Google Fonts；Montserrat/Inter 按主题切换）。
-overlay.html: 命令面板页模板。
+overlay.html: 壳弹层页模板（命令面板 + 用户菜单）。
 newtab.html: 新标签页模板。
 src/main.tsx: 壳页引导——bindBridge() 订阅主进程，挂载 App。
 src/App.tsx: 合成层（根 drag、面板体 no-drag：Chromium 先查可拖拽区再查子视图，网页所在区域若是 drag 就永远收不到鼠标）——一行三卡：NavRail | 侧栏卡（Header + 当前模块侧栏，Resizer 在右缘空档）| 面板卡（模块的 PanelHeader + 面板体）| 停靠时的对话卡（dock-in 入场，DockResizer）；折叠态侧栏卡消失，Header 成为面板卡之上的控制条；写入 html.dark 与 --identity。
