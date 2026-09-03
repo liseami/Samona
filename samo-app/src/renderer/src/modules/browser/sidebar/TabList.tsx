@@ -13,6 +13,7 @@ import { selectActiveTabId, send, useBrowser, useIdentityFolders, useIdentityTab
 import { FolderRow } from './FolderRow';
 import { TabItem } from './TabItem';
 import { Tip } from '../../../components/ui/tooltip';
+import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 
 export function TabList() {
   const identityId = useBrowser((s) => s.snapshot?.activeIdentityId ?? 0);
@@ -54,7 +55,7 @@ export function TabList() {
         </div>
       )}
 
-      <div ref={setNodeRef} className={cn('flex flex-1 flex-col gap-0.5 rounded-lg transition-colors', isOver && 'bg-accent/30')}>
+      <div ref={setNodeRef} className={cn('flex flex-1 flex-col gap-0.5 rounded-2xl transition-colors', isOver && 'bg-accent/30')}>
         <SortableContext items={loose.map((t) => tabDragId(t.id))} strategy={verticalListSortingStrategy}>
           {loose.map((tab) => (
             <TabItem key={tab.id} tab={tab} active={tab.id === activeId} />
@@ -63,7 +64,7 @@ export function TabList() {
         <button
           type="button"
           onClick={() => send({ type: 'palette.open', mode: 'newTab' })}
-          className="no-drag flex h-8 shrink-0 items-center gap-2 rounded-lg border border-transparent pl-2 pr-1 text-base text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent/66 hover:text-foreground"
+          className={sidebarButtonClass({ className: 'no-drag h-8 shrink-0 gap-2 pl-2 pr-1 text-base text-muted-foreground hover:text-foreground' })}
         >
           <Plus size={15} className="shrink-0" />
           <span>New Tab</span>

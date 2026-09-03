@@ -11,6 +11,7 @@ import { tabTitle, type Tab } from '@shared/model';
 import { parseDndId, tabDragId } from '../../../lib/dnd';
 import { cn } from '../../../lib/utils';
 import { send } from '../../../store/browser';
+import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 import { Tip } from '../../../components/ui/tooltip';
 import { Favicon } from './Favicon';
 import { useDragging } from './BrowserSidebar';
@@ -24,7 +25,7 @@ export function IconGrid({ containerId, tabs, activeId, emptyLabel }: { containe
   return (
     <div
       ref={setNodeRef}
-      className={cn('no-drag mx-2 mb-1 grid gap-1.5 rounded-lg p-0.5 transition-colors', isOver && 'bg-accent/30')}
+      className={cn('no-drag mx-2 mb-1 grid gap-1.5 rounded-2xl p-0.5 transition-colors', isOver && 'bg-accent/30')}
       style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(44px, 1fr))' }}
     >
       <SortableContext items={tabs.map((t) => tabDragId(t.id))} strategy={rectSortingStrategy}>
@@ -32,7 +33,7 @@ export function IconGrid({ containerId, tabs, activeId, emptyLabel }: { containe
           <Cell key={tab.id} tab={tab} active={tab.id === activeId} />
         ))}
       </SortableContext>
-      {tabs.length === 0 && <div className="col-span-full h-9 rounded-lg border border-dashed border-border text-center text-xs leading-9 text-muted-foreground">{emptyLabel}</div>}
+      {tabs.length === 0 && <div className="col-span-full h-9 rounded-2xl border border-dashed border-border text-center text-xs leading-9 text-muted-foreground">{emptyLabel}</div>}
     </div>
   );
 }
@@ -55,12 +56,7 @@ function Cell({ tab, active }: { tab: Tab; active: boolean }) {
           e.preventDefault();
           send({ type: 'menu.tab', tabId: tab.id });
         }}
-        className={cn(
-          'flex h-9 items-center justify-center rounded-lg border transition-colors duration-200',
-          active ? 'border-border bg-card shadow-sm' : 'border-transparent bg-background/40 hover:bg-sidebar-accent/66',
-          isDragging && 'opacity-50',
-          tab.discarded && !active && 'opacity-60',
-        )}
+        className={sidebarButtonClass({ active, className: cn('h-9 justify-center', isDragging && 'opacity-50', tab.discarded && !active && 'opacity-60') })}
       >
         <Favicon tab={tab} size={18} />
       </button>

@@ -97,7 +97,7 @@ export function Palette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-4" role="dialog" aria-modal="true">
       <div className="laper-backdrop-fade absolute inset-0 bg-foreground/40" onMouseDown={close} />
       <div className="laper-dialog-pop absolute top-1/2 left-1/2 w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
         {/* ---- 输入行 ---- */}

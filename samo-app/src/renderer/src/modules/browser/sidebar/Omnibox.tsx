@@ -18,7 +18,7 @@ export function Omnibox() {
       <button
         type="button"
         onClick={() => send({ type: 'palette.open', mode: tab && shown ? 'editUrl' : 'newTab' })}
-        className="flex h-8 w-full items-center gap-2 rounded-lg border border-border bg-input pl-2.5 pr-2 text-left transition-colors duration-200 hover:bg-accent/40"
+        className="flex h-8 w-full items-center gap-2 rounded-2xl border border-border bg-input pl-2.5 pr-2 text-left transition-colors duration-300 ease-out hover:border-primary/40"
       >
         {secure ? <Lock size={12} className="shrink-0 text-muted-foreground" /> : <Search size={13} className="shrink-0 text-muted-foreground" />}
         <span className={shown ? 'min-w-0 flex-1 truncate text-base text-foreground' : 'min-w-0 flex-1 truncate text-base text-muted-foreground'}>{shown || 'Search or enter URL'}</span>

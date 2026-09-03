@@ -31,5 +31,5 @@ export function Resizer() {
     target.addEventListener('pointerup', up);
   };
 
-  return <div onPointerDown={onPointerDown} className="no-drag absolute top-0 -right-2 z-10 h-full w-2 cursor-col-resize" />;
+  return <div onPointerDown={onPointerDown} className="no-drag absolute top-0 -right-2 z-1 h-full w-2 cursor-col-resize" />;
 }

@@ -10,6 +10,7 @@ import { MODULE_ICON } from '../icons';
 import { cn } from '../lib/utils';
 import { send, useBrowser } from '../store/browser';
 import { Tip } from '../components/ui/tooltip';
+import { sidebarButtonClass } from '../components/ui/sidebar-button';
 import logo from '../assets/logo.png';
 
 export function NavRail() {
@@ -26,7 +27,7 @@ export function NavRail() {
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
         className={cn(
-          'absolute inset-y-0 left-0 z-40 flex flex-col rounded-r-2xl transition-[width,background-color,box-shadow] duration-150 ease-snap',
+          'absolute inset-y-0 left-0 z-5 flex flex-col rounded-r-2xl transition-[width,background-color,box-shadow] duration-150 ease-snap',
           'no-drag',
           expanded ? 'w-60 border border-border bg-panel shadow-lg' : 'w-10 bg-sidebar',
         )}
@@ -47,10 +48,7 @@ export function NavRail() {
                 key={m.id}
                 type="button"
                 onClick={() => select(m.id)}
-                className={cn(
-                  'flex h-8 w-full shrink-0 items-center rounded-2xl border text-left transition-colors duration-300 ease-out',
-                  isActive ? 'border-border bg-card shadow-sm' : 'border-transparent hover:bg-sidebar-accent/66',
-                )}
+                className={sidebarButtonClass({ active: isActive, className: 'h-8 w-full shrink-0' })}
               >
                 <span className="flex w-8 shrink-0 items-center justify-center">
                   <Icon size={18} className={isActive ? 'text-foreground' : 'text-muted-foreground'} />

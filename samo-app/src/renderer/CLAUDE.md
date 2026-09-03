@@ -11,7 +11,7 @@ overlay.html: 命令面板页模板。
 newtab.html: 新标签页模板。
 src/main.tsx: 壳页引导——bindBridge() 订阅主进程，挂载 App。
 src/App.tsx: 合成层——一行三卡：NavRail | 侧栏卡（Header + 当前模块侧栏，Resizer 在右缘空档）| 面板卡（模块渲染）；折叠态侧栏卡消失，Header 成为面板卡之上的控制条；写入 html.dark 与 --identity。
-src/styles.css: 设计令牌与全局规则（见上）。
+src/styles.css: 设计令牌与全局规则（见上）；洗色（border/accent/muted/input）的深浅照搬 Laper 的相对关系；层级表：1 卡内热区、2 Popover、3 Tooltip、4 命令面板、5 NavRail 展开层（永远最高），卡片不设 z。
 src/assets/logo.png: rail 顶部的应用标（build/icon.png 的 128px 版）。
 src/vite-env.d.ts: vite/client 类型引用（静态资源 import）。
 src/store/browser.ts: zustand 镜像——snapshot 与壳内一次性请求（rename/identityEditor）；send()/query()；bindBridge()；选择器与 memo 化的 useIdentityTabs/useFavorites/useIdentityFolders。

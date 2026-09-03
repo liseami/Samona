@@ -11,6 +11,7 @@ import { tabTitle, type Tab } from '@shared/model';
 import { tabDragId } from '../../../lib/dnd';
 import { cn } from '../../../lib/utils';
 import { send, useBrowser } from '../../../store/browser';
+import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 import { Favicon } from './Favicon';
 import { InlineEdit } from './InlineEdit';
 
@@ -38,12 +39,7 @@ export function TabItem({ tab, active, indent = false }: { tab: Tab; active: boo
         e.preventDefault();
         send({ type: 'menu.tab', tabId: tab.id });
       }}
-      className={cn(
-        'group no-drag flex h-8 cursor-default items-center gap-2 rounded-lg border py-1 pl-2 pr-1 text-base transition-colors duration-200',
-        active ? 'border-border bg-card shadow-sm' : 'border-transparent hover:bg-sidebar-accent/66',
-        isDragging && 'opacity-50',
-        indent && 'ml-4',
-      )}
+      className={sidebarButtonClass({ active, className: cn('group no-drag h-8 gap-2 py-1 pl-2 pr-1 text-base', isDragging && 'opacity-50', indent && 'ml-4') })}
     >
       <Favicon tab={tab} />
       {renaming ? (

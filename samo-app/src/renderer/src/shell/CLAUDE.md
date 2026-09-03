@@ -8,7 +8,7 @@
 ## 成员清单
 Header.tsx: 侧栏卡的 h-12 头部（border-b）——WindowControls + 侧栏折叠/展开 + 当前模块的头部动作；双击空白处缩放窗口；折叠态成为面板卡之上的控制条。
 WindowControls.tsx: 自绘红绿灯——12px 圆点、8px 间距、组悬停显示符号、窗口失焦变灰；关闭/最小化/全屏，⌥点击绿灯 = 最大化。
-NavRail.tsx: 模块导航——40px 列与页面底同色，顶部 h-12 logo 行（assets/logo.png）与侧栏卡头部对齐；悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影，选中即收回；无 overflow-hidden、折叠态无边框（Laper 的两条教训）。
+NavRail.tsx: 模块导航（z-5，全应用最高层）——40px 列与页面底同色，顶部 h-12 logo 行（assets/logo.png）与侧栏卡头部对齐；悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影，选中即收回；无 overflow-hidden、折叠态无边框（Laper 的两条教训）。
 Resizer.tsx: 侧栏卡与面板卡之间 8px 空档上的拖拽热区（rAF 节流写回 layout.sidebar）。
 EdgePeek.tsx: 折叠态 rail 与面板卡之间空档上的贴边条（悬停 peek）。
 

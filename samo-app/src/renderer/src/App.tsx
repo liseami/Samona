@@ -55,7 +55,7 @@ export default function App() {
               </div>
               <Resizer />
             </div>
-            <div className={`relative z-10 h-full min-w-0 flex-1 overflow-hidden ${SOFT_PANEL}`}>
+            <div className={`relative h-full min-w-0 flex-1 overflow-hidden ${SOFT_PANEL}`}>
               <def.Panel />
             </div>
           </>

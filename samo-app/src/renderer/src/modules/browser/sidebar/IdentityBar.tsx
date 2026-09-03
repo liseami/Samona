@@ -14,6 +14,7 @@ import { send, useBrowser } from '../../../store/browser';
 import { Button } from '../../../components/ui/button';
 import { Tip } from '../../../components/ui/tooltip';
 import { DownloadsPopover } from './DownloadsPopover';
+import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 
 export function IdentityBar() {
   const identities = useBrowser((s) => s.snapshot?.identities ?? []);
@@ -31,7 +32,7 @@ export function IdentityBar() {
           <button
             type="button"
             onClick={() => send({ type: 'identity.create', name: `Identity ${identities.length + 1}`, edit: true })}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-transparent text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent/66 hover:text-foreground"
+            className={sidebarButtonClass({ className: 'h-8 w-8 shrink-0 justify-center text-muted-foreground hover:text-foreground' })}
           >
             <Plus size={14} />
           </button>
@@ -65,12 +66,10 @@ function Pip({ identity, active }: { identity: Identity; active: boolean }) {
           e.preventDefault();
           send({ type: 'menu.identity', identityId: identity.id });
         }}
-        className={cn(
-          'relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors duration-200',
-          active ? 'border-border bg-card text-foreground shadow-sm' : 'border-transparent text-muted-foreground hover:bg-sidebar-accent/66 hover:text-foreground',
-          isDragging && 'opacity-50',
-          isOver && !isDragging && 'border-primary bg-accent/60',
-        )}
+        className={sidebarButtonClass({
+          active,
+          className: cn('relative h-8 w-8 shrink-0 justify-center', active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground', isDragging && 'opacity-50', isOver && !isDragging && 'border-primary bg-accent/60'),
+        })}
       >
         <Icon size={15} color={active ? IDENTITY_COLOR_HEX[identity.color] : undefined} />
         <AgentBadge identity={identity} />

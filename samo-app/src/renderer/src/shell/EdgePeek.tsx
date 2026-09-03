@@ -7,5 +7,5 @@
 import { send } from '../store/browser';
 
 export function EdgePeek() {
-  return <div className="absolute top-14 bottom-0 -left-2 z-30 w-2 cursor-e-resize" onMouseEnter={() => send({ type: 'layout.peek', peek: true })} />;
+  return <div className="absolute top-14 bottom-0 -left-2 z-1 w-2 cursor-e-resize" onMouseEnter={() => send({ type: 'layout.peek', peek: true })} />;
 }

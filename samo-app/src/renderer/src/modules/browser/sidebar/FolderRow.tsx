@@ -11,6 +11,7 @@ import { IDENTITY_COLOR_HEX, type Folder, type Tab } from '@shared/model';
 import { folderContainerId, folderHeadId, tabDragId } from '../../../lib/dnd';
 import { cn } from '../../../lib/utils';
 import { send, useBrowser } from '../../../store/browser';
+import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 import { InlineEdit } from './InlineEdit';
 import { TabItem } from './TabItem';
 
@@ -35,11 +36,7 @@ export function FolderRow({ folder, tabs, activeId }: { folder: Folder; tabs: Ta
           e.preventDefault();
           send({ type: 'menu.folder', folderId: folder.id });
         }}
-        className={cn(
-          'no-drag flex h-7 cursor-default items-center gap-1.5 rounded-lg border border-transparent pl-1 pr-2 text-base transition-colors duration-200 hover:bg-sidebar-accent/66',
-          head.isOver && 'border-primary bg-accent/60',
-          folder.collapsed && containsActive && 'text-foreground',
-        )}
+        className={sidebarButtonClass({ active: folder.collapsed && containsActive, className: cn('no-drag h-8 gap-1.5 pl-2 pr-2 text-base', head.isOver && 'border-primary bg-accent/60') })}
       >
         <ChevronRight size={13} className={cn('shrink-0 text-muted-foreground transition-transform duration-200', !folder.collapsed && 'rotate-90')} />
         <FolderIcon size={14} className="shrink-0" color={color ?? 'var(--muted-foreground)'} />
@@ -58,7 +55,7 @@ export function FolderRow({ folder, tabs, activeId }: { folder: Folder; tabs: Ta
         <span className="text-xs text-muted-foreground">{tabs.length}</span>
       </div>
       {!folder.collapsed && (
-        <div ref={body.setNodeRef} className={cn('flex flex-col gap-0.5 rounded-lg', body.isOver && 'bg-accent/30')}>
+        <div ref={body.setNodeRef} className={cn('flex flex-col gap-0.5 rounded-2xl', body.isOver && 'bg-accent/30')}>
           <SortableContext items={tabs.map((t) => tabDragId(t.id))} strategy={verticalListSortingStrategy}>
             {tabs.map((tab) => (
               <TabItem key={tab.id} tab={tab} active={tab.id === activeId} indent />

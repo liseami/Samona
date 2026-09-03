@@ -18,7 +18,7 @@ export function TooltipContent({ className, sideOffset = 8, ...props }: TooltipP
       <TooltipPrimitive.Content
         sideOffset={sideOffset}
         className={cn(
-          'laper-tooltip-motion z-[2147483647] flex max-w-[280px] flex-col rounded-md bg-popover px-2.5 py-1.5 text-sm text-popover-foreground shadow-md outline outline-border',
+          'laper-tooltip-motion z-3 flex max-w-[280px] flex-col rounded-md bg-popover px-2.5 py-1.5 text-sm text-popover-foreground shadow-md outline outline-border',
           className,
         )}
         {...props}
