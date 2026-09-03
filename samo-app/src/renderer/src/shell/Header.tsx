@@ -25,7 +25,7 @@ export function Header({ collapsed = false }: { collapsed?: boolean }) {
       <WindowControls />
       <div className="w-1" />
       <Tip label={collapsed ? 'Show sidebar ⌘S' : 'Hide sidebar ⌘S'}>
-        <Button size="icon" className="no-drag" onClick={() => send({ type: 'layout.sidebar', collapsed: !collapsed })}>
+        <Button variant="icon" className="no-drag text-muted-foreground" onClick={() => send({ type: 'layout.sidebar', collapsed: !collapsed })}>
           {collapsed ? <SidebarOpen size={15} /> : <SidebarClose size={15} />}
         </Button>
       </Tip>

@@ -5,7 +5,7 @@ shadcn 形态的原子组件，基于 @radix-ui 分包（与 Laper 一致），�
 
 ## 成员清单
 sidebar-button.tsx: sidebarButton（cva）/ sidebarButtonClass——全应用唯一的「可选行」语言（Laper SidebarButton）：rounded-2xl、常驻 border、选中 = bg-card + border-border + shadow-sm、悬停 sidebar-accent/66、300ms ease-out；rail 项、标签行、文件夹头、网格格、身份 pip 全部只用它。
-button.tsx: Button + buttonVariants（cva）——variant: default/secondary/ghost/outline/destructive；size: sm/md/icon/iconSm；asChild 经 Radix Slot。
+button.tsx: Button——设计系统的「魂」，逐 class 复刻 Laper/Kumo：variant primary/info/warning/danger（强调钮：底 token+30% 白、ring token+10% 黑、EmphasisEffect 受光层 token+15% 白 → token + 顶部 1px 内高光、hover 提亮并 1.02 缩放、按压 0.98）与 secondary/ghost/outline/selected/icon/dashed（平钮，无阴影）；size small/medium/large（h-7/8/9，padding 随图标变）；loading 走扫光基元；禁用点击摇晃；根元素 isolate 把内层 z 关在按钮里；asChild 经 Radix Slot。
 input.tsx: Input——h-8、bg-input，聚焦 primary 边框 + 3px 柔光（Laper glow-input）。
 tooltip.tsx: TooltipProvider/Tooltip/TooltipTrigger/TooltipContent 与一行式 Tip——浅色表面（bg-popover + outline-border + shadow-md），600ms 延迟，z-3。
 popover.tsx: Popover/PopoverTrigger/PopoverAnchor/PopoverContent——菜单表面契约，z-2。

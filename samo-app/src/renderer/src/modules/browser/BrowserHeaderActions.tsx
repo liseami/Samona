@@ -14,17 +14,17 @@ export function BrowserHeaderActions() {
   return (
     <>
       <Tip label="Back ⌘[">
-        <Button size="icon" className="no-drag" disabled={!tab?.canGoBack} onClick={() => send({ type: 'tab.back' })}>
+        <Button variant="icon" className="no-drag text-muted-foreground" disabled={!tab?.canGoBack} onClick={() => send({ type: 'tab.back' })}>
           <ArrowLeft size={15} />
         </Button>
       </Tip>
       <Tip label="Forward ⌘]">
-        <Button size="icon" className="no-drag" disabled={!tab?.canGoForward} onClick={() => send({ type: 'tab.forward' })}>
+        <Button variant="icon" className="no-drag text-muted-foreground" disabled={!tab?.canGoForward} onClick={() => send({ type: 'tab.forward' })}>
           <ArrowRight size={15} />
         </Button>
       </Tip>
       <Tip label={tab?.loading ? 'Stop' : 'Reload ⌘R'}>
-        <Button size="icon" className="no-drag" disabled={!tab} onClick={() => send({ type: tab?.loading ? 'tab.stop' : 'tab.reload' })}>
+        <Button variant="icon" className="no-drag text-muted-foreground" disabled={!tab} onClick={() => send({ type: tab?.loading ? 'tab.stop' : 'tab.reload' })}>
           {tab?.loading ? <Close size={15} /> : <Refresh size={14} />}
         </Button>
       </Tip>

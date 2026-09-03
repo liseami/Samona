@@ -19,7 +19,7 @@ export function DownloadsPopover() {
     <Popover>
       <Tip label="Downloads">
         <PopoverTrigger asChild>
-          <Button size="icon" className="relative">
+          <Button variant="icon" className="relative text-muted-foreground">
             <DownloadIcon size={15} />
             {busy && <span className="absolute top-1 right-1 h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />}
           </Button>
@@ -28,7 +28,7 @@ export function DownloadsPopover() {
       <PopoverContent className="w-72 p-2" side="top">
         <div className="mb-1 flex items-center justify-between px-1">
           <span className="text-sm font-semibold">Downloads</span>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-muted-foreground" onClick={() => send({ type: 'download.clear' })} disabled={downloads.every((d) => d.state === 'progressing')}>
+          <Button variant="ghost" size="small" className="h-6 px-2 text-muted-foreground" onClick={() => send({ type: 'download.clear' })} disabled={downloads.every((d) => d.state === 'progressing')}>
             Clear
           </Button>
         </div>
@@ -55,13 +55,13 @@ function Row({ d }: { d: Download }) {
           {d.filename}
         </button>
         <Tip label="Show in Finder">
-          <Button size="iconSm" onClick={() => send({ type: 'download.reveal', id: d.id })}>
+          <Button variant="icon" className="h-6 w-6 text-muted-foreground" onClick={() => send({ type: 'download.reveal', id: d.id })}>
             <FolderOpen size={12} />
           </Button>
         </Tip>
         {d.state === 'progressing' && (
           <Tip label="Cancel">
-            <Button size="iconSm" onClick={() => send({ type: 'download.cancel', id: d.id })}>
+            <Button variant="icon" className="h-6 w-6 text-muted-foreground" onClick={() => send({ type: 'download.cancel', id: d.id })}>
               <Close size={12} />
             </Button>
           </Tip>

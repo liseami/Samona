@@ -16,7 +16,7 @@ export function AgentBanner() {
     <div className="no-drag mx-2 mb-1 flex items-center gap-2 rounded-lg border border-border bg-card px-2 py-1.5 text-sm shadow-xs">
       {delegated ? <Hand size={13} className="shrink-0 text-orange-500" /> : <Bot size={13} className="shrink-0 text-identity" />}
       <span className="min-w-0 flex-1 truncate text-foreground">{delegated ? 'You are in control' : (identity.agentState ?? 'Agent is working…')}</span>
-      <Button variant="secondary" size="sm" className="h-6 px-2" onClick={() => send({ type: delegated ? 'identity.handBack' : 'identity.takeControl', identityId: identity.id })}>
+      <Button variant="secondary" size="small" className="h-6 px-2" onClick={() => send({ type: delegated ? 'identity.handBack' : 'identity.takeControl', identityId: identity.id })}>
         {delegated ? 'Hand back' : 'Take control'}
       </Button>
     </div>

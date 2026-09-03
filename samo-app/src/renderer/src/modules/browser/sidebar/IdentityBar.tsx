@@ -40,7 +40,7 @@ export function IdentityBar() {
       </div>
       <DownloadsPopover />
       <Tip label="Developer tools ⌥⌘I">
-        <Button size="icon" onClick={() => send({ type: 'shell.openDevTools' })}>
+        <Button variant="icon" className="text-muted-foreground" onClick={() => send({ type: 'shell.openDevTools' })}>
           <Bug size={14} />
         </Button>
       </Tip>

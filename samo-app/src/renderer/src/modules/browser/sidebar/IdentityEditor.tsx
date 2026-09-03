@@ -81,7 +81,7 @@ export function IdentityEditor({ children }: { children: ReactNode }) {
           <div className="mt-3 flex items-center justify-between">
             <Button
               variant="outline"
-              size="sm"
+              size="small"
               disabled={identities.length <= 1}
               className="text-destructive hover:border-destructive hover:text-destructive"
               onClick={() => {
@@ -90,7 +90,7 @@ export function IdentityEditor({ children }: { children: ReactNode }) {
             >
               Delete
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
+            <Button variant="secondary" size="small" onClick={() => setOpen(false)}>
               Done
             </Button>
           </div>

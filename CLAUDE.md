@@ -6,7 +6,7 @@ Bun 1.3 workspaces 单仓 · samo-app: Electron 44 + electron-vite 5 + React 19 
 samo-app/ - Samo 浏览器本体，Electron 桌面应用 (src/main 主进程, src/preload 桥, src/renderer React 壳与新标签页, src/shared 三方契约)
 samo-web/ - 落地页，20 国语言轮换的极简标语，Cloudflare Pages 托管 (src/components, src/i18n)
 packages/samo-agent/ - `samo-browser` CLI：任何 AI agent 经它驱动 Samo；ego-browser-v2 提供全部 helper，本包只做网关客户端与 `globalThis.ego` 宿主
-reference/ - 只读参考仓（git 忽略）：ego-lite（agent 浏览器 harness）、phibrowser-mac（macOS 原生壳与 UI 设计）
+reference/ - 只读参考仓（git 忽略）：ego-lite（agent 浏览器 harness）、phibrowser-mac（macOS 原生壳与 UI 设计）、kumo（Cloudflare Kumo：按钮受光配方与文档站陈列形态的源头）
 </directory>
 
 <config>

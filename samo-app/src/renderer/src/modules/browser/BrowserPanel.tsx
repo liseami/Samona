@@ -17,7 +17,7 @@ export function BrowserPanel() {
     <div className="flex h-full w-full flex-col items-center justify-center px-6 py-12 text-center">
       <div className="mb-2 text-lg font-medium text-foreground">{identity?.name ?? ''}</div>
       <div className="mb-5 max-w-80 text-sm leading-relaxed text-muted-foreground">This identity is empty. Open something to get started.</div>
-      <Button variant="default" size="md" onClick={() => send({ type: 'palette.open', mode: 'newTab' })} className="no-drag">
+      <Button variant="primary" size="medium" onClick={() => send({ type: 'palette.open', mode: 'newTab' })} className="no-drag">
         <Plus size={14} /> New Tab <Kbd className="ml-1 border-primary-foreground/30 bg-transparent text-primary-foreground/80">⌘T</Kbd>
       </Button>
     </div>

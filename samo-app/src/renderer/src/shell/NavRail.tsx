@@ -40,7 +40,7 @@ export function NavRail() {
           <span className={cn('truncate pl-1 text-base font-semibold text-foreground transition-opacity duration-100', expanded ? 'opacity-100' : 'opacity-0')}>Samo</span>
         </div>
         <nav className={cn('flex min-h-0 flex-1 flex-col gap-1 pl-2 pt-1', expanded ? 'pr-2' : 'pr-0')}>
-          {MODULES.map((m) => {
+          {MODULES.filter((m) => !m.dev || import.meta.env.DEV).map((m) => {
             const Icon = MODULE_ICON[m.id];
             const isActive = m.id === active;
             const button = (

@@ -118,10 +118,11 @@ export interface Download {
 
 // ============ 模块：Samo 是「身份 × 模块」的应用，浏览器只是第一个模块 ============
 export const MODULES = [
-  { id: 'browser', label: 'Browser', ready: true },
-  { id: 'mail', label: 'Mail', ready: false },
-  { id: 'knowledge', label: 'Knowledge', ready: false },
-  { id: 'drive', label: 'Drive', ready: false },
+  { id: 'browser', label: 'Browser', ready: true, dev: false },
+  { id: 'mail', label: 'Mail', ready: false, dev: false },
+  { id: 'knowledge', label: 'Knowledge', ready: false, dev: false },
+  { id: 'drive', label: 'Drive', ready: false, dev: false },
+  { id: 'design', label: 'Design', ready: true, dev: true }, // 仅开发环境可见：设计系统组件陈列
 ] as const;
 export type ModuleId = (typeof MODULES)[number]['id'];
 

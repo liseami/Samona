@@ -10,6 +10,8 @@ import { BrowserSidebar } from './browser/sidebar/BrowserSidebar';
 import { BrowserPanel } from './browser/BrowserPanel';
 import { BrowserHeaderActions } from './browser/BrowserHeaderActions';
 import { PlaceholderPanel, PlaceholderSidebar } from './placeholder/Placeholder';
+import { DesignSidebar } from './design/DesignSidebar';
+import { DesignPanel } from './design/DesignPanel';
 
 export interface ModuleDef {
   id: ModuleId;
@@ -29,4 +31,5 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDef> = {
   mail: placeholder('mail', 'Mail', 'One inbox per identity. Coming soon.'),
   knowledge: placeholder('knowledge', 'Knowledge', 'Everything you read, kept and searchable. Coming soon.'),
   drive: placeholder('drive', 'Drive', 'Your files, next to your apps. Coming soon.'),
+  design: { id: 'design', Sidebar: DesignSidebar, Panel: DesignPanel },
 };

@@ -56,6 +56,15 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
   --identity: #3a6ff8; /* 运行时由 App 写入活动 Identity 的强调色，仅用于小面积点缀 */
+  --info: #3b82f6;
+  --warning: #f59e0b;
+  /* 扫光三参数（Laper 2026-07-27 归一）：峰值 / 起边 / 止边 / 时长，全站流光只有这一档 */
+  --shimmer-tint: #ffffff;
+  --shimmer-peak: 9%;
+  --shimmer-edge-in: 12%;
+  --shimmer-edge-out: 88%;
+  --shimmer-duration: 2.6s;
+  --laper-etch-highlight: rgba(255, 255, 255, 0.52);
   color-scheme: light;
 }
 
@@ -105,6 +114,7 @@
   --shadow-inset: inset 0 0 1.5px 0.5px rgba(255, 255, 255, 0.08);
   --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.35), 0 0 1px 0 rgba(0, 0, 0, 0.25);
   --shadow-dropdown: 0 4px 16px 0 rgba(0, 0, 0, 0.5), 0 2px 6px 0 rgba(0, 0, 0, 0.35);
+  --laper-etch-highlight: transparent;
   color-scheme: dark;
 }
 
@@ -143,6 +153,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-identity: var(--identity);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -351,6 +363,45 @@
 }
 .laper-backdrop-fade {
   animation: laper-backdrop-fade var(--duration-motion-fast) var(--ease-standard) both;
+}
+
+/* ---- 按钮：禁用点击摇晃 + 加载流光（Laper 唯一的扫光基元） ---- */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+@keyframes laper-shimmer-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.laper-shimmer-band {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent var(--shimmer-edge-in), color-mix(in srgb, var(--shimmer-tint) var(--shimmer-peak), transparent) 50%, transparent var(--shimmer-edge-out));
+  animation: laper-shimmer-sweep var(--shimmer-duration) linear infinite;
 }
 
 /* ---- 滚动条（Laper：5px，常显，随 muted-foreground 混色） ---- */
