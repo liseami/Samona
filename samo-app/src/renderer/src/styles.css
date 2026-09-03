@@ -6,9 +6,9 @@
 :root {
   --background: oklch(0.9551 0 0);
   --foreground: oklch(0.3211 0 0);
-  --card: oklch(0.9702 0 0);
+  --card: oklch(0.992 0 0);
   --card-foreground: oklch(0.3211 0 0);
-  --popover: oklch(0.9702 0 0);
+  --popover: oklch(0.992 0 0);
   --popover-foreground: oklch(0.3211 0 0);
   --primary: oklch(0.4891 0 0);
   --primary-foreground: oklch(1 0 0);
@@ -28,7 +28,7 @@
   --chart-3: oklch(0.6534 0 0);
   --chart-4: oklch(0.7316 0 0);
   --chart-5: oklch(0.8078 0 0);
-  --panel: oklch(0.9702 0 0); /* 三级梯度：sidebar(页面底) < panel(内容面板) < card(卡片)；面板靠色阶浮起 */
+  --panel: oklch(0.9702 0 0); /* 三级梯度（Laper 首页）：sidebar(应用的底，rail 所在) < panel(侧栏卡片与面板) < card(浮起的行/卡) */
   --sidebar: oklch(0.937 0 0);
   --sidebar-foreground: oklch(0.3211 0 0);
   --sidebar-primary: oklch(0.4891 0 0);
@@ -61,9 +61,9 @@
 .dark {
   --background: oklch(0.2178 0 0);
   --foreground: oklch(0.8853 0 0);
-  --card: oklch(0.2435 0 0);
+  --card: oklch(0.27 0 0);
   --card-foreground: oklch(0.8853 0 0);
-  --popover: oklch(0.2435 0 0);
+  --popover: oklch(0.27 0 0);
   --popover-foreground: oklch(0.8853 0 0);
   --primary: oklch(0.7058 0 0);
   --primary-foreground: oklch(0.2178 0 0);

@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip
- * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；底部品牌标
+ * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip，../assets/logo.png
+ * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；顶部 h-12 logo 行与侧栏卡头部对齐
  * [POS]: shell 的第一层：切换「维度」（浏览器 / 邮件 / 知识库 / 网盘）；模块的侧栏与面板由 modules/registry 决定
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,6 +10,7 @@ import { MODULE_ICON } from '../icons';
 import { cn } from '../lib/utils';
 import { send, useBrowser } from '../store/browser';
 import { Tip } from '../components/ui/tooltip';
+import logo from '../assets/logo.png';
 
 export function NavRail() {
   const active = useBrowser((s) => s.snapshot?.layout.module ?? 'browser');
@@ -26,10 +27,18 @@ export function NavRail() {
         onMouseLeave={() => setExpanded(false)}
         className={cn(
           'absolute inset-y-0 left-0 z-40 flex flex-col rounded-r-2xl transition-[width,background-color,box-shadow] duration-150 ease-snap',
+          'no-drag',
           expanded ? 'w-60 border border-border bg-panel shadow-lg' : 'w-10 bg-sidebar',
         )}
       >
-        <nav className={cn('flex min-h-0 flex-1 flex-col gap-1 pl-2 pt-2', expanded ? 'pr-2' : 'pr-0')}>
+        {/* ---- logo 行：h-12 与侧栏卡头部同高（Laper：mt-px h-12 pl-2） ---- */}
+        <div className="mt-px flex h-12 shrink-0 items-center pl-2 pr-0">
+          <span className="flex w-8 shrink-0 items-center justify-center">
+            <img src={logo} alt="" width={24} height={24} className="size-6 select-none" draggable={false} />
+          </span>
+          <span className={cn('truncate pl-1 text-base font-semibold text-foreground transition-opacity duration-100', expanded ? 'opacity-100' : 'opacity-0')}>Samo</span>
+        </div>
+        <nav className={cn('flex min-h-0 flex-1 flex-col gap-1 pl-2 pt-1', expanded ? 'pr-2' : 'pr-0')}>
           {MODULES.map((m) => {
             const Icon = MODULE_ICON[m.id];
             const isActive = m.id === active;
@@ -61,13 +70,6 @@ export function NavRail() {
             );
           })}
         </nav>
-        {/* ---- 底部品牌标：rail 的锚点 ---- */}
-        <div className="flex shrink-0 items-center gap-2 pl-2 pb-2 pt-1">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-[11px] font-semibold text-primary-foreground">S</span>
-          </span>
-          <span className={cn('truncate text-sm font-medium text-muted-foreground transition-opacity duration-100', expanded ? 'opacity-100' : 'opacity-0')}>Samo</span>
-        </div>
       </div>
     </div>
   );

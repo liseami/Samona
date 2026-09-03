@@ -1,12 +1,11 @@
 /**
- * [INPUT]: 依赖 react，@shared/model 的 IDENTITY_COLOR_HEX/RAIL_WIDTH，./store/browser 的 useBrowser/selectActiveIdentity，./shell/{Header,NavRail,EdgePeek,Resizer}，./modules/registry 的 MODULE_REGISTRY，./components/ui/tooltip 的 TooltipProvider，./lib/utils 的 cn
- * [OUTPUT]: 对外提供 App 根组件：三层壳——左列（Header → NavRail | 当前模块的侧栏）+ 右侧面板（bg-panel + rounded-xl + border/50，浏览器模块时网页视图内缩 1px 叠在其上）；折叠态 Header 横贯整窗、rail 仍在；写入 html.dark 与 --identity
+ * [INPUT]: 依赖 react，@shared/model 的 IDENTITY_COLOR_HEX，./store/browser 的 useBrowser/selectActiveIdentity，./shell/{Header,NavRail,EdgePeek,Resizer}，./modules/registry 的 MODULE_REGISTRY，./components/ui/tooltip 的 TooltipProvider，./lib/utils 的 cn
+ * [OUTPUT]: 对外提供 App 根组件：Laper ProjectEditorShell 结构——页面底 bg-sidebar，一行 gap-2 pt-2 pb-2 pl-0 pr-2：NavRail（与底同色）| 侧栏卡（SoftPanel：Header h-12 + 模块侧栏）| 面板卡（SoftPanel，浏览器模块时网页视图内缩 1px 叠在其上）；折叠态侧栏卡消失，控制条横在面板卡之上；写入 html.dark 与 --identity
  * [POS]: renderer 壳的合成层；Samo = 身份 × 模块，浏览器只是 MODULE_REGISTRY 里的一项
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect } from 'react';
-import { IDENTITY_COLOR_HEX, RAIL_WIDTH } from '@shared/model';
-import { cn } from './lib/utils';
+import { IDENTITY_COLOR_HEX } from '@shared/model';
 import { selectActiveIdentity, useBrowser } from './store/browser';
 import { Header } from './shell/Header';
 import { NavRail } from './shell/NavRail';
@@ -14,6 +13,9 @@ import { EdgePeek } from './shell/EdgePeek';
 import { Resizer } from './shell/Resizer';
 import { MODULE_REGISTRY } from './modules/registry';
 import { TooltipProvider } from './components/ui/tooltip';
+
+/** Laper SoftPanel：所有卡片同一质感 */
+const SOFT_PANEL = 'rounded-2xl border border-border bg-panel shadow-sm';
 
 export default function App() {
   const snapshot = useBrowser((s) => s.snapshot);
@@ -33,31 +35,31 @@ export default function App() {
   const def = MODULE_REGISTRY[snapshot.layout.module];
   return (
     <TooltipProvider delayDuration={600} skipDelayDuration={300}>
-      {/* ---- Laper MainLayout：整窗底色 = sidebar 色；左列 = Header + (NavRail | 模块侧栏)；右侧面板靠色阶与 1px 边线浮起 ---- */}
-      <div className="flex h-full w-full bg-sidebar">
+      {/* ---- 页面底：bg-sidebar；顶部 pt-2 的空档也是窗口拖拽区 ---- */}
+      <div className="drag flex h-full w-full gap-2 bg-sidebar pt-2 pb-2 pl-0 pr-2">
+        <NavRail />
         {collapsed ? (
-          <>
+          <div className="relative flex min-w-0 flex-1 flex-col gap-2">
             <Header collapsed />
-            <div className="flex h-full w-10 shrink-0 flex-col pt-10">
-              <NavRail />
-            </div>
             <EdgePeek />
-          </>
-        ) : (
-          <div className="relative flex h-full shrink-0 flex-col" style={{ width: RAIL_WIDTH + snapshot.layout.sidebarWidth }}>
-            <Header />
-            <div className="flex min-h-0 flex-1">
-              <NavRail />
-              <def.Sidebar />
+            <div className={`min-h-0 flex-1 overflow-hidden ${SOFT_PANEL}`}>
+              <def.Panel />
             </div>
-            <Resizer />
           </div>
+        ) : (
+          <>
+            <div className="relative h-full min-h-0 shrink-0" style={{ width: snapshot.layout.sidebarWidth }}>
+              <div className={`flex h-full flex-col overflow-hidden ${SOFT_PANEL}`}>
+                <Header />
+                <def.Sidebar />
+              </div>
+              <Resizer />
+            </div>
+            <div className={`relative z-10 h-full min-w-0 flex-1 overflow-hidden ${SOFT_PANEL}`}>
+              <def.Panel />
+            </div>
+          </>
         )}
-        <div className={cn('relative z-10 min-w-0 flex-1 py-2 pr-2', collapsed ? 'pl-2 pt-10' : 'pl-0')}>
-          <div className="h-full w-full overflow-hidden rounded-xl border border-border/50 bg-panel shadow-sm">
-            <def.Panel />
-          </div>
-        </div>
       </div>
     </TooltipProvider>
   );

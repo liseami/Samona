@@ -7,7 +7,7 @@
 
 export function PlaceholderSidebar({ label }: { label: string }) {
   return (
-    <div data-panel="sidebar" className="flex h-full min-w-0 flex-1 flex-col px-2 pt-1">
+    <div data-panel="sidebar" className="no-drag flex min-h-0 min-w-0 flex-1 flex-col px-2 pt-1">
       <div className="px-2 pt-3.5 pb-3 text-base font-normal text-foreground">{label}</div>
       <div className="flex flex-col gap-1">
         {[72, 56, 64, 48].map((w, i) => (

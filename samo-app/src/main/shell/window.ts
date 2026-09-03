@@ -8,11 +8,11 @@ import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 
 import { DEFAULT_LAYOUT, RAIL_WIDTH, type Layout } from '@shared/model';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 
-// ============ 几何常量（源自 Laper MainLayout：外层 py-2 pr-2，面板 rounded-xl + 1px 边线） ============
-const GUTTER = 8; // 上/下/右
+// ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
+const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
 const PANEL_BORDER = 1; // 网页视图内缩 1px，露出壳画的面板边线
-const CONTENT_RADIUS = 12 - PANEL_BORDER; // 面板 rounded-xl = 12，视图内缩后 11
-const COLLAPSED_TOP = 32; // 折叠时给顶部让出拖拽/交通灯一行（壳侧 pt-10 = 8 + 32）
+const CONTENT_RADIUS = 13; // 面板 rounded-2xl ≈ 13.6，视图内缩 1px 后取 13
+const COLLAPSED_TOP = 48; // 折叠时顶部是 h-12 的控制条（红绿灯 + 展开 + 导航）
 
 export interface ShellWindowOptions {
   preloadPath: string;
@@ -89,11 +89,11 @@ export class ShellWindow {
     this.applyBounds();
   }
 
-  /** 内容区矩形：rail 列 + 侧栏之右（侧栏自带内边距即间隙）、上下右留 GUTTER、再内缩 1px 边线的面板（Laper 的「面板浮在 sidebar 色上」） */
+  /** 内容区矩形：rail 40 → gap 8 → 侧栏卡（宽 sidebarWidth）→ gap 8 → 面板卡；上下右留 8；再内缩 1px 边线（Laper ProjectEditorShell 的一行三卡） */
   contentBounds(): Rectangle {
     const { width, height } = this.win.getContentBounds();
     const collapsed = this.layout.sidebarCollapsed;
-    const left = RAIL_WIDTH + (collapsed ? GUTTER : this.layout.sidebarWidth) + PANEL_BORDER;
+    const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER) + PANEL_BORDER;
     const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER;
     return {
       x: left,

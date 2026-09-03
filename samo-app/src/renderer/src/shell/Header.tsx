@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 ../icons 的 SidebarClose/SidebarOpen，../store/browser 的 useBrowser/send，../components/ui/{button,tooltip}，../lib/utils 的 cn，./WindowControls，../modules/registry 的 MODULE_REGISTRY
- * [OUTPUT]: 对外提供 Header 组件：40px 拖拽行——自绘红绿灯 + 侧栏折叠/展开 + 当前模块的头部动作（浏览器：后退/前进/刷新）；双击空白处缩放窗口
- * [POS]: shell 的顶行；展开态嵌在左列（rail + 侧栏）顶部，折叠态绝对定位横贯整窗
+ * [OUTPUT]: 对外提供 Header 组件：侧栏卡的 h-12 头部行（Laper PanelHeader：border-b）——自绘红绿灯 + 侧栏折叠/展开 + 当前模块的头部动作（浏览器：后退/前进/刷新）；双击空白处缩放窗口；折叠态成为面板卡之上的独立控制条
+ * [POS]: shell 的顶行；红绿灯与侧栏图标、翻页刷新在同一条 48px 基线上
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { SidebarClose, SidebarOpen } from '../icons';
@@ -17,7 +17,7 @@ export function Header({ collapsed = false }: { collapsed?: boolean }) {
   const Actions = MODULE_REGISTRY[module].HeaderActions;
   return (
     <div
-      className={cn('drag flex h-10 shrink-0 items-center gap-0.5 pr-2 pl-3', collapsed && 'absolute inset-x-0 top-0 z-30')}
+      className={cn('drag flex h-12 shrink-0 items-center gap-0.5 pr-2 pl-3', collapsed ? 'rounded-2xl' : 'border-b border-border')}
       onDoubleClick={(e) => {
         if (e.target === e.currentTarget) send({ type: 'window.zoom', fullscreen: false });
       }}

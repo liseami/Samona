@@ -62,7 +62,7 @@ export function BrowserSidebar() {
   return (
     <div
       data-panel="sidebar"
-      className="flex h-full min-w-0 flex-1 flex-col bg-sidebar text-sidebar-foreground"
+      className="no-drag flex min-h-0 min-w-0 flex-1 flex-col bg-transparent text-sidebar-foreground"
       onWheel={onWheel}
       onMouseLeave={() => peeking && send({ type: 'layout.peek', peek: false })}
     >

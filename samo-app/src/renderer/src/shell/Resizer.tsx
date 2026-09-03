@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 useRef，../../store/browser 的 send/useBrowser，@shared/model 的 SIDEBAR_MIN/MAX
- * [OUTPUT]: 对外提供 Resizer 组件：侧栏右缘 5px 拖拽热区，rAF 节流地把宽度写回主进程（主进程随之重排 WebContentsView）
+ * [OUTPUT]: 对外提供 Resizer 组件：侧栏卡与面板卡之间 8px 空档上的拖拽热区，rAF 节流地把宽度写回主进程（主进程随之重排 WebContentsView）
  * [POS]: renderer/components/sidebar 的几何控制点；宽度真相在主进程 store.layout
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,5 +31,5 @@ export function Resizer() {
     target.addEventListener('pointerup', up);
   };
 
-  return <div onPointerDown={onPointerDown} className="no-drag absolute top-0 right-0 z-10 h-full w-1.5 cursor-col-resize transition-colors hover:bg-border" />;
+  return <div onPointerDown={onPointerDown} className="no-drag absolute top-0 -right-2 z-10 h-full w-2 cursor-col-resize" />;
 }

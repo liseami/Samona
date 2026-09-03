@@ -83,5 +83,5 @@ function Pip({ identity, active }: { identity: Identity; active: boolean }) {
 function AgentBadge({ identity }: { identity: Identity }) {
   if (identity.ownership === 'user') return null;
   const color = identity.ownership === 'agentDelegatedToUser' ? 'bg-orange-500' : identity.agentState ? 'bg-emerald-500' : 'bg-muted-foreground';
-  return <span className={cn('absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-sidebar', color)} />;
+  return <span className={cn('absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-panel', color)} />;
 }
