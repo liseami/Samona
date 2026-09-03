@@ -13,7 +13,10 @@ import { Fab } from './Fab';
 import { bindChat, chatSend, useChat } from './store';
 
 const PILL = CHAT_DEFAULTS.launcherPill;
-const BLEED = CHAT_DEFAULTS.bleed; // 窗口比内容四周各大出的阴影呼吸区
+const BLEED = CHAT_DEFAULTS.bleed; // 展开态窗口比面板四周各大出的阴影呼吸区
+const BLEED_PILL = CHAT_DEFAULTS.bleedPill; // 收起态药丸四周的呼吸区
+/** 窗口是药丸尺寸还是面板尺寸，决定当前 bleed */
+const bleedFor = (winWidth: number) => (winWidth <= PILL.width + BLEED_PILL * 2 + 2 ? BLEED_PILL : BLEED);
 // 开合是确定性补间（Laper：禁 spring 禁回弹）：开 gentle/drawer 慢显，关 quick/standard 快收
 const OPEN = `${DUR.gentle}ms ${EASE_CSS.drawer}`;
 const CLOSE = `${DUR.quick}ms ${EASE_CSS.standard}`;
@@ -24,13 +27,16 @@ export function ChatShell() {
   const mode = snap?.mode ?? 'closed';
   const expanded = mode === 'floating';
   // 内容尺寸 = 窗口减去四周 bleed；窗口尺寸变化（主进程放大/缩小窗口）时那一帧不播过渡，避免基底突变与 transform 过渡打架
-  const [size, setSize] = useState({ w: window.innerWidth - BLEED * 2, h: window.innerHeight - BLEED * 2 });
+  const [bleed, setBleed] = useState(bleedFor(window.innerWidth));
+  const [size, setSize] = useState({ w: window.innerWidth - bleedFor(window.innerWidth) * 2, h: window.innerHeight - bleedFor(window.innerWidth) * 2 });
   const [resizing, setResizing] = useState(false);
   useEffect(() => {
     let raf = 0;
     const onResize = () => {
+      const b = bleedFor(window.innerWidth);
       setResizing(true);
-      setSize({ w: window.innerWidth - BLEED * 2, h: window.innerHeight - BLEED * 2 });
+      setBleed(b);
+      setSize({ w: window.innerWidth - b * 2, h: window.innerHeight - b * 2 });
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => requestAnimationFrame(() => setResizing(false)));
     };
@@ -59,7 +65,7 @@ export function ChatShell() {
       {/* 外壳：恒以内容尺寸渲染（四周留 bleed 给阴影），收起 = 非均匀 scale 到药丸矩形（锚点右下） */}
       <div
         className="absolute origin-bottom-right"
-        style={{ inset: BLEED, transform: expandedNow ? 'none' : `scale(${sx}, ${sy})`, transition: `transform ${transition}` }}
+        style={{ inset: bleed, transform: expandedNow ? 'none' : `scale(${sx}, ${sy})`, transition: `transform ${transition}` }}
       >
         {/* 面板底纹 + 阴影：收起时淡出，免得非均匀缩放的圆角与阴影从药丸四角露出来 */}
         <div

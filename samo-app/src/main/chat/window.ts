@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/Rectangle，@shared/chat 的 CHAT_DEFAULTS，../shell/window 的 ShellWindow
- * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮层——主窗口的透明、无边框子窗口，药丸（收起态）与面板（展开态）同宿其中，Laper AIFloatingPanelShell 的窗口版。窗口 = 内容矩形（面板或药丸）四周各加 bleed 的阴影呼吸区：展开时窗口是面板 + bleed，收起时窗口缩到药丸 + bleed，两态都整窗接收鼠标；ensure/fitExpanded/fitCollapsed/setContentBounds/restBounds/defaultBounds/rememberBounds/clampIntoParent/showAt/hide/show/focus/send/window
+ * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮层——主窗口的透明、无边框子窗口，药丸（收起态）与面板（展开态）同宿其中，Laper AIFloatingPanelShell 的窗口版。窗口 = 内容矩形（面板或药丸）四周各加阴影呼吸区：展开时窗口是面板 + bleed，收起时窗口缩到药丸 + bleedPill，两态都整窗接收鼠标；药丸永远钉在主窗口右下角，面板尺寸记住、位置永远从角落长出；ensure/fitExpanded/fitCollapsed/setContentBounds/restBounds/pillBounds/currentPillBounds/bounds/defaultBounds/rememberBounds/showAt/hide/show/focus/send/window
  * [POS]: chat 模块的浮动承载。透明窗口意味着没有原生阴影（页内 box-shadow）与原生缩放（页内边缘热区 → chat.setBounds）；换来的是药丸 ↔ 面板在同一文档里用 scaleX/scaleY 变形、锚点天然对齐。收起后把窗口缩到药丸，而不是靠 setIgnoreMouseEvents 的悬停切换——普通窗口的输入路径最可靠
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,15 +13,14 @@ export interface ChatWindowOptions {
   chatUrl: string;
 }
 
-const B = CHAT_DEFAULTS.bleed;
-/** 内容矩形 ↔ 窗口矩形（四周各加阴影呼吸区） */
-export const expand = (r: Rectangle): Rectangle => ({ x: r.x - B, y: r.y - B, width: r.width + B * 2, height: r.height + B * 2 });
-const shrink = (r: Rectangle): Rectangle => ({ x: r.x + B, y: r.y + B, width: r.width - B * 2, height: r.height - B * 2 });
+/** 内容矩形 ↔ 窗口矩形（四周各加阴影呼吸区：面板 bleed，药丸 bleedPill） */
+export const expand = (r: Rectangle, b: number = CHAT_DEFAULTS.bleed): Rectangle => ({ x: r.x - b, y: r.y - b, width: r.width + b * 2, height: r.height + b * 2 });
+const shrink = (r: Rectangle, b: number = CHAT_DEFAULTS.bleed): Rectangle => ({ x: r.x + b, y: r.y + b, width: r.width - b * 2, height: r.height - b * 2 });
 
 export class ChatWindow {
   private win: BaseWindow | null = null;
   private view: WebContentsView | null = null;
-  private lastBounds: Rectangle | null = null; // 展开态面板的安放位（内容矩形）
+  private lastSize: { width: number; height: number } | null = null; // 面板尺寸会被记住；位置永远锚在主窗口右下角（药丸也在那里）
   private expanded = false;
   private hidden = false; // 停靠时整窗隐藏
 
@@ -31,9 +30,7 @@ export class ChatWindow {
   ) {
     const parent = shell.win;
     parent.on('resize', () => {
-      if (this.expanded) return;
-      if (this.lastBounds) this.clampIntoParent();
-      else this.fitCollapsed(); // 从未挪过：药丸跟着主窗口右下角走
+      if (!this.expanded) this.fitCollapsed(); // 药丸跟着主窗口右下角走
     });
     parent.on('minimize', () => this.win?.hide());
     parent.on('hide', () => this.win?.hide());
@@ -62,45 +59,55 @@ export class ChatWindow {
     this.expanded = true;
     this.window()?.setBounds(expand(this.restBounds()));
   }
-  /** 收起：页内变形结束后再把窗口缩到药丸 + bleed（编舞者负责延时） */
+  /** 收起：窗口缩到主窗口右下角的药丸 + bleedPill（页内变形与飞行由编舞者安排） */
   fitCollapsed(): void {
     this.expanded = false;
-    this.window()?.setBounds(expand(this.pillBounds()));
+    this.window()?.setBounds(expand(this.pillBounds(), CHAT_DEFAULTS.bleedPill));
   }
 
-  /** 面板安放位（内容矩形） */
+  /** 面板安放位（内容矩形）：尺寸记住的，位置永远锚在主窗口右下角——药丸在哪，面板就从哪长出来 */
   restBounds(): Rectangle {
-    return this.lastBounds ?? this.defaultBounds();
+    const d = this.defaultBounds();
+    if (!this.lastSize) return d;
+    const parent = this.shell.win.getContentBounds();
+    const width = Math.min(this.lastSize.width, parent.width - CHAT_DEFAULTS.launcherMargin * 2);
+    const height = Math.min(this.lastSize.height, parent.height - CHAT_DEFAULTS.launcherMargin * 2);
+    return { x: d.x + d.width - width, y: d.y + d.height - height, width, height };
   }
-  /** 药丸矩形：钉在面板安放位的右下角 */
+  /** 药丸矩形：主窗口内容区右下角，留 launcherMargin */
   pillBounds(): Rectangle {
-    const r = this.restBounds();
+    const parent = this.shell.win.getContentBounds();
+    const m = CHAT_DEFAULTS.launcherMargin;
     const { width, height } = CHAT_DEFAULTS.launcherPill;
-    return { x: r.x + r.width - width, y: r.y + r.height - height, width, height };
+    return { x: parent.x + parent.width - width - m, y: parent.y + parent.height - height - m, width, height };
   }
-  /** 页内拖拽缩放：内容矩形 → 记为安放位并应用 */
+  /** 当前窗口对应的药丸矩形（面板可能被拖到别处：药丸先在面板右下角出现，再飞回主窗口角落） */
+  currentPillBounds(): Rectangle {
+    const b = this.bounds();
+    const { width, height } = CHAT_DEFAULTS.launcherPill;
+    if (!b) return this.pillBounds();
+    return { x: b.x + b.width - width, y: b.y + b.height - height, width, height };
+  }
+  /** 页内拖拽缩放：内容矩形 → 应用并记住尺寸 */
   setContentBounds(bounds: Rectangle): void {
     if (!this.expanded) return;
-    const w = Math.max(CHAT_DEFAULTS.minWidth, Math.round(bounds.width));
-    const h = Math.max(CHAT_DEFAULTS.minHeight, Math.round(bounds.height));
-    this.lastBounds = { x: Math.round(bounds.x), y: Math.round(bounds.y), width: w, height: h };
-    this.window()?.setBounds(expand(this.lastBounds));
+    const width = Math.max(CHAT_DEFAULTS.minWidth, Math.round(bounds.width));
+    const height = Math.max(CHAT_DEFAULTS.minHeight, Math.round(bounds.height));
+    this.lastSize = { width, height };
+    this.window()?.setBounds(expand({ x: Math.round(bounds.x), y: Math.round(bounds.y), width, height }));
   }
-  /** 展开态当前窗口 → 记住面板安放位（拖动窗口后） */
+  /** 展开态：记住面板尺寸 */
   rememberBounds(): void {
     const win = this.window();
-    if (win && this.expanded && win.isVisible()) this.lastBounds = shrink(win.getBounds());
+    if (win && this.expanded && win.isVisible()) {
+      const { width, height } = shrink(win.getBounds());
+      this.lastSize = { width, height };
+    }
   }
-  /** 收起态：把安放位挪到药丸能完整落在主窗口内容区之内 */
-  clampIntoParent(): void {
-    const p = this.shell.win.getContentBounds();
-    const m = CHAT_DEFAULTS.launcherMargin;
-    const r = this.restBounds();
-    const pill = this.pillBounds();
-    const dx = Math.min(Math.max(pill.x, p.x + m), p.x + p.width - pill.width - m) - pill.x;
-    const dy = Math.min(Math.max(pill.y, p.y + m), p.y + p.height - pill.height - m) - pill.y;
-    if (dx || dy) this.lastBounds = { ...r, x: r.x + dx, y: r.y + dy };
-    this.fitCollapsed();
+  /** 当前展开态窗口的内容矩形 */
+  bounds(): Rectangle | null {
+    const win = this.window();
+    return win ? shrink(win.getBounds(), this.expanded ? CHAT_DEFAULTS.bleed : CHAT_DEFAULTS.bleedPill) : null;
   }
 
   show(): void {
@@ -140,7 +147,7 @@ export class ChatWindow {
       fullscreenable: false,
       roundedCorners: false,
       show: false,
-      ...expand(this.expanded ? this.restBounds() : this.pillBounds()),
+      ...(this.expanded ? expand(this.restBounds()) : expand(this.pillBounds(), CHAT_DEFAULTS.bleedPill)),
       title: 'Samo AI',
     });
     const view = new WebContentsView({

@@ -67,7 +67,8 @@ export const CHAT_DEFAULTS = {
   viewportInset: 48, // 最大不超过主窗口 - 48
   launcherPill: { width: 130, height: 44 }, // Laper FAB 药丸：收起时浮窗整体 scale 到这个尺寸（锚点右下）
   launcherMargin: 24, // 浮窗（与药丸）距主窗口右下 1.5rem
-  bleed: 24, // 透明窗口比内容（面板/药丸）四周各大出的阴影呼吸区
+  bleed: 24, // 展开态：透明窗口比面板四周各大出的阴影呼吸区
+  bleedPill: 12, // 收起态：药丸四周的阴影呼吸区（越小越不挡网页）
   minWidth: 320, // 浮窗最小几何（页内拖拽边缘缩放的下限）
   minHeight: 420,
   dockWidth: 380,

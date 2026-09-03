@@ -94,6 +94,7 @@ export interface Tab {
   customTitle: string | null; // 用户重命名；显示时优先
   favicon: string | null;
   pinned: boolean; // 身份内固定（用户的「App」位）
+  appId?: string | null; // 应用维度打开的应用标签：不进浏览器侧栏、不改浏览器的活动标签，只在应用维度呈现
   loading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;

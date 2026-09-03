@@ -382,6 +382,16 @@ export class BrowserStore {
     if (this.activeAppId && !apps.some((a) => a.id === this.activeAppId)) this.activeAppId = null;
     this.emit();
   }
+  /** 某应用在某身份里的标签 */
+  appTab(appId: string, identityId = this._activeSpaceId): Tab | undefined {
+    return this.tabsInIdentity(identityId).find((t) => t.appId === appId);
+  }
+  setTabApp(tabId: string, appId: string | null): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.appId === appId) return;
+    tab.appId = appId;
+    this.emit();
+  }
   setActiveApp(id: string | null): void {
     if (this.activeAppId === id) return;
     this.activeAppId = id;

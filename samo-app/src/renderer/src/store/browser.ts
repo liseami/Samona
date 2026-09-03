@@ -84,7 +84,7 @@ export const selectActiveTab = (s: BrowserState): Tab | undefined => {
 /** 活动 Identity 的标签（派生数组必须 memo：zustand 选择器返回新引用会触发无限重渲染） */
 export function useIdentityTabs(): Tab[] {
   const snapshot = useBrowser((s) => s.snapshot);
-  return useMemo(() => (snapshot ? snapshot.tabs.filter((t) => t.identityId === snapshot.activeIdentityId) : []), [snapshot]);
+  return useMemo(() => (snapshot ? snapshot.tabs.filter((t) => t.identityId === snapshot.activeIdentityId && !t.appId) : []), [snapshot]); // 应用维度的标签不进浏览器侧栏
 }
 export function useFavorites(): Tab[] {
   const snapshot = useBrowser((s) => s.snapshot);

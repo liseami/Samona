@@ -35,7 +35,7 @@ export function TabOverview() {
   const allTabs = useBrowser((s) => s.snapshot?.tabs);
   const activeTabId = useBrowser((s) => s.snapshot?.activeTabIdByIdentity[identityId] ?? null);
   const thumbs = useOverview((s) => s.thumbs);
-  const tabs = useMemo(() => (allTabs ?? []).filter((t) => t.identityId === identityId), [allTabs, identityId]);
+  const tabs = useMemo(() => (allTabs ?? []).filter((t) => t.identityId === identityId && !t.appId), [allTabs, identityId]);
 
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && closeOverview();

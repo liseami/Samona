@@ -4,7 +4,7 @@
  * [POS]: chat 模块的动画指挥。Laper 里 FAB 与面板是同一节点靠 scaleX/scaleY 变形，Samo 把这个节点放进一张透明子窗口，于是变形保持页内、锚点天然对齐；只有停靠需要跨宿主，才用窗口几何动画
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { ChatMode, ChatSnapshot } from '@shared/chat';
+import { CHAT_DEFAULTS, type ChatMode, type ChatSnapshot } from '@shared/chat';
 import { DUR, EASE } from '@shared/motion';
 import { expand } from './window';
 import { animateBounds } from '../shell/animate';
@@ -59,9 +59,18 @@ export class ChatChoreographer {
       this.chatWindow.focus();
     } else if (from === 'floating' && to === 'closed') {
       this.chatWindow.rememberBounds();
+      const here = this.chatWindow.currentPillBounds(); // 面板此刻右下角的药丸位
       await sleep(DUR.quick + 40); // 页内先播面板 → 药丸
       if (!alive()) return;
-      this.chatWindow.clampIntoParent(); // 再把窗口缩到药丸（含收回主窗口内）
+      const win = this.chatWindow.window();
+      if (!win) return;
+      this.chatWindow.fitCollapsed();
+      const home = win.getBounds();
+      const there = expand(here, CHAT_DEFAULTS.bleedPill);
+      if (there.x !== home.x || there.y !== home.y) {
+        win.setBounds(there); // 先出现在面板角落，再飞回主窗口角落
+        await animateBounds(win, home, { duration: DUR.base, ease: EASE.settle, signal });
+      }
     } else if (from === 'floating' && to === 'docked') {
       this.chatWindow.rememberBounds();
       const win = this.chatWindow.window();
@@ -79,7 +88,7 @@ export class ChatChoreographer {
     } else if (from === 'docked' && to === 'closed') {
       this.shell.setDock(0);
       this.chatWindow.showAt(this.chatWindow.restBounds());
-      this.chatWindow.clampIntoParent();
+      this.chatWindow.fitCollapsed();
     } else if (from === 'closed' && to === 'docked') {
       this.chatWindow.hide();
       this.shell.setDock(snap.dockWidth);

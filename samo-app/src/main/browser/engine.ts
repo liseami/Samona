@@ -33,7 +33,8 @@ export class BrowserEngine {
   ) {
     store.subscribe((snap) => {
       window.setLayout({ ...snap.layout, sidebarCollapsed: snap.layout.sidebarCollapsed && !snap.sidebarPeek });
-      window.setContentVisible((snap.layout.module === 'browser' || snap.layout.module === 'apps') && !snap.layout.overview); // 标签矩阵打开时网页让位
+      this.present(); // 每个维度呈现自己的标签：浏览器 = 身份的活动标签，应用 = 当前应用的标签，其余 = 无
+      window.setContentVisible(!snap.layout.overview); // 标签矩阵打开时网页让位
       this.reconcileBackground();
     });
   }
@@ -65,14 +66,29 @@ export class BrowserEngine {
 
   /** 从落盘状态恢复后：只加载当前 Identity 的活动标签，其余保持冷态 */
   wake(): void {
-    const active = this.store.activeTab();
-    if (active) this.activateTab(active.id);
-    else this.window.setContentView(null);
+    this.present();
+  }
+
+  /** 当前维度该呈现哪个标签：浏览器 = 身份的活动标签；应用 = 当前应用在本身份里的标签；其他维度 = 无 */
+  private presentedTabId(): string | null {
+    const { module } = this.store.getLayout();
+    if (module === 'browser') return this.store.activeTabId();
+    if (module === 'apps') {
+      const appId = this.store.currentAppId;
+      return appId ? (this.store.appTab(appId)?.id ?? null) : null;
+    }
+    return null;
+  }
+  /** 把该呈现的标签放进内容视图槽位（幂等） */
+  present(): void {
+    const id = this.presentedTabId();
+    const view = id ? this.ensureLoaded(id) : null;
+    if (view !== this.window.currentContentView) this.window.setContentView(view);
   }
 
   // ============ Tab：创建与激活 ============
   createTab(
-    input: { url?: string; identityId?: number | null; partition?: string; pinned?: boolean; folderId?: string | null; activate?: boolean; index?: number; customTitle?: string | null } = {},
+    input: { url?: string; identityId?: number | null; partition?: string; pinned?: boolean; folderId?: string | null; activate?: boolean; index?: number; customTitle?: string | null; appId?: string } = {},
   ): Tab {
     const identityId = input.identityId === undefined ? this.store.activeIdentityId : input.identityId;
     const url = input.url ? this.publicUrl(input.url) : NEW_TAB_URL;
@@ -95,6 +111,7 @@ export class BrowserEngine {
       muted: false,
       lastActiveAt: 0,
       createdAt: Date.now(),
+      appId: input.appId ?? null,
     };
     this.store.addTab(tab, input.index);
     if (input.activate ?? true) this.activateTab(tab.id);
@@ -106,11 +123,18 @@ export class BrowserEngine {
   activateTab(tabId: string): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
-    const view = this.ensureLoaded(tabId);
+    this.ensureLoaded(tabId);
     const identityId = tab.identityId ?? this.store.activeIdentityId;
     this.store.setActiveIdentity(identityId);
-    this.store.setActiveTab(identityId, tabId);
-    this.window.setContentView(view);
+    if (tab.appId) {
+      // 应用标签：在应用维度里呈现，不改浏览器的活动标签
+      this.store.setActiveApp(tab.appId);
+      if (this.store.getLayout().module !== 'apps') this.store.setLayout({ module: 'apps' });
+    } else {
+      this.store.setActiveTab(identityId, tabId);
+      if (this.store.getLayout().module !== 'browser') this.store.setLayout({ module: 'browser' });
+    }
+    this.present();
   }
 
   /** 只在标签所属 Identity 内选中它：Identity 正在展示则切到前台，否则留在后台（agent 用，不抢用户的视线） */

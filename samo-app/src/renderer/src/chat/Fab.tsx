@@ -23,7 +23,7 @@ export function Fab({ busy, unread, active, onClick }: { busy: boolean; unread: 
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}
       className="group relative isolate flex h-full w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-3xl border-0 text-white transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]"
-      style={{ boxShadow: '0 4px 20px color-mix(in srgb, var(--primary) 35%, transparent)' }}
+      style={{ boxShadow: '0 3px 12px color-mix(in srgb, var(--primary) 35%, transparent)' }}
     >
       {/* 底层渐变：primary 的三段（Laper：主题色三段渐变） */}
       <span aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(135deg, color-mix(in oklch, var(--primary), black 10%) 0%, var(--primary) 55%, color-mix(in oklch, var(--primary), white 14%) 100%)' }} />
