@@ -30,6 +30,7 @@ import { locateCli, ScriptRunner } from './agent/runner';
 import { AgentPresence } from './agent/presence';
 import { AppsService } from './apps/service';
 import { installPermissions } from './browser/permissions';
+import { installNetTrace } from './browser/net-trace';
 import { WorkspaceService } from './workspace/service';
 import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
@@ -76,6 +77,7 @@ async function bootstrap(): Promise<void> {
     onSession: (ses) => {
       downloads.attach(ses);
       installPermissions(ses, join(userData, 'permissions.json')); // 按站点询问并记住
+      installNetTrace(ses); // SAMO_TRACE_NET=1 才生效
     },
     legacyPartitionExists: existsSync(join(userData, 'Partitions', 'samo')),
   });

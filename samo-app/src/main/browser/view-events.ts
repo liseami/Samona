@@ -4,9 +4,10 @@
  * [POS]: browser 模块的感知层，engine 在创建视图时调用一次；它只写 store/history 并回调 host，不做导航决策（决策在 engine）。phi 这些由原生 Chromium 壳自带，Samo 在 Electron 上逐项补齐
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { shell, type WebContents } from 'electron';
+import { shell, type WebContents, type BaseWindow } from 'electron';
 import type { Tab } from '@shared/model';
 import { showPageContextMenu } from './page-context-menu';
+import { traceFrames } from './net-trace';
 import type { BrowserStore } from './store';
 import type { HistoryStore } from './history';
 
@@ -22,6 +23,7 @@ export interface ViewEventHost {
   hoverUrl(tabId: string, url: string): void;
   findResult(tabId: string, current: number, total: number): void;
   onViewGone(tabId: string, wc: WebContents): void;
+  popupParent(): BaseWindow; // OAuth 登录弹窗的归属窗口
 }
 
 const WEB_SCHEME = /^(https?|file|about|blob|data|samo):/i;
@@ -29,6 +31,7 @@ const ERR_ABORTED = -3;
 const ERR_UNKNOWN_URL_SCHEME = -302;
 
 export function wireTabEvents(host: ViewEventHost, tabId: string, wc: WebContents): void {
+  traceFrames(wc);
   const patch = (p: Partial<Tab>) => host.store.updateTab(tabId, p);
   const nav = () =>
     patch({
@@ -93,21 +96,35 @@ export function wireTabEvents(host: ViewEventHost, tabId: string, wc: WebContent
   );
   wc.on('destroyed', () => host.onViewGone(tabId, wc));
 
-  // ---- window.open 的去向：⌘点击 = 后台标签；普通链接 = 前台标签；带尺寸的弹窗（OAuth 登录）= 真正的弹窗，保住 window.opener ----
-  wc.setWindowOpenHandler(({ url, disposition, features }) => {
+  // ---- window.open 的去向（浏览器体验的关键：登录弹窗必须像真浏览器一样活着）----
+  // 决策依据：disposition（Chromium 依 window.open 特性给出）+ frameName（具名弹窗）。
+  //   · 外部协议         → 交给系统
+  //   · 具名或带特性的弹窗 → 真正的弹窗窗口，且 **继承开启标签的 session**（否则 OAuth/微信登录
+  //                        拿不到用户的登录态与 cookie，扫码/授权后主页面永远不知道已登录），
+  //                        归属壳窗口、居中、保住 window.opener，让页面能 postMessage / 轮询 popup.closed
+  //   · 普通链接（⌘点击/新前台）→ 落成 Samo 标签
+  wc.setWindowOpenHandler(({ url, disposition, features, frameName }) => {
     if (!WEB_SCHEME.test(url) || /^samo:/i.test(url)) {
       void shell.openExternal(url);
       return { action: 'deny' };
     }
-    if (disposition === 'new-window' && /\b(width|height)=/.test(features)) {
+    const isPopup = disposition === 'new-window' || (!!frameName && disposition !== 'background-tab');
+    if (isPopup) {
       const size = (k: string) => Number(new RegExp(`\\b${k}=(\\d+)`).exec(features)?.[1] ?? 0);
       return {
         action: 'allow',
+        outlivesOpener: false,
         overrideBrowserWindowOptions: {
-          width: size('width') || 520,
-          height: size('height') || 640,
+          parent: host.popupParent(),
+          width: Math.min(size('width') || 480, 1000),
+          height: Math.min(size('height') || 640, 900),
+          center: true,
+          minimizable: false,
+          maximizable: false,
+          fullscreenable: false,
           autoHideMenuBar: true,
-          webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+          // 关键：与开启标签同一 session，登录态/cookie 全程一致
+          webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, session: wc.session },
         },
       };
     }

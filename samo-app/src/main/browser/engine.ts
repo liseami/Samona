@@ -432,6 +432,7 @@ export class BrowserEngine {
         onViewGone: (id, wc) => {
           if (this.views.get(id)?.webContents === wc) this.views.delete(id);
         },
+        popupParent: () => this.window.win,
       },
       tabId,
       view.webContents,
