@@ -64,7 +64,11 @@ export class AgentSession {
         if (this.selectedSpaceId !== null) this.engine.store.updateIdentity(this.selectedSpaceId, { agentState: label == null ? null : String(label) });
         return {};
       },
-      animationHighlightMouseToPosition: () => ({}), // 第一版无光标镜像
+      animationHighlightMouseToPosition: (x, y) => {
+        // ego-browser 在每次 click/hover/drag 之前调用：镜像成 agent 光标层的目标点
+        if (this.selectedSpaceId !== null && typeof x === 'number' && typeof y === 'number') this.engine.agentCursor(this.selectedSpaceId, x, y);
+        return {};
+      },
       captureWindow: (dir) => this.captureWindow(dir ? String(dir) : undefined),
       useShell: (which) => {
         if (!process.env.SAMO_DEBUG_SHELL) return egoError(EGO_CODE.operationFailed, 'useShell requires SAMO_DEBUG_SHELL=1');

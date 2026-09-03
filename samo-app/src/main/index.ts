@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/{gateway,runner}，./chat/{store,provider,agent-provider,config,service,window,launcher-window,choreographer}
+ * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/{gateway,runner,presence}，./apps/service，./chat/{store,provider,agent-provider,config,service,window,choreographer}
  * [OUTPUT]: 无导出；主进程引导——装配 store→window→engine→chat→ipc/menu→gateway，并处理生命周期（恢复/落盘/退出）、系统外观跟随与开发态 Dock 图标
  * [POS]: samo-app 主进程的根，唯一知道所有模块如何拼在一起的地方；各模块彼此通过构造注入相识，不互相 import 单例
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -24,9 +24,10 @@ import { AgentProvider } from './chat/agent-provider';
 import { ChatConfigStore } from './chat/config';
 import { ChatService } from './chat/service';
 import { ChatWindow } from './chat/window';
-import { LauncherWindow } from './chat/launcher-window';
 import { ChatChoreographer } from './chat/choreographer';
 import { locateCli, ScriptRunner } from './agent/runner';
+import { AgentPresence } from './agent/presence';
+import { AppsService } from './apps/service';
 import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
 
@@ -34,7 +35,7 @@ app.setName('Samo');
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL;
 
 // ============ 渲染资源定位：dev 走 Vite 服务（HMR），prod 走打包产物 ============
-function rendererUrl(page: 'index' | 'newtab' | 'overlay' | 'launcher' | 'chat'): string {
+function rendererUrl(page: 'index' | 'newtab' | 'overlay' | 'chat' | 'agent'): string {
   if (isDev) return `${process.env.ELECTRON_RENDERER_URL}/${page}.html`;
   return pathToFileURL(join(__dirname, `../renderer/${page}.html`)).href;
 }
@@ -71,6 +72,10 @@ async function bootstrap(): Promise<void> {
     legacyPartitionExists: existsSync(join(userData, 'Partitions', 'samo')),
   });
   const menus = new ContextMenus(engine, window);
+  const apps = new AppsService(engine); // 应用维度：扫描 localhost 上的应用
+  // ---- agent 存在感：可见身份被 agent 驱动时，透明点击穿透的子窗口盖在网页上画光标、动作标签与边缘发光 ----
+  const presence = new AgentPresence(window, engine, { preloadPath, agentUrl: rendererUrl('agent') });
+  engine.registerAux('agent', () => presence.webContents());
 
   // ---- AI 对话：主进程持有真相，三处 UI（launcher / 浮窗 / 停靠卡）只读快照 ----
   const chatStore = new ChatStore();
@@ -95,20 +100,17 @@ async function bootstrap(): Promise<void> {
     });
   };
   const chat = new ChatService(chatStore, makeProvider());
-  const chatWindow = new ChatWindow(window, { preloadPath, chatUrl: rendererUrl('chat'), onClosedByUser: () => chat.setMode('closed') });
-  const launcher = new LauncherWindow(window, { preloadPath, launcherUrl: rendererUrl('launcher') });
+  const chatWindow = new ChatWindow(window, { preloadPath, chatUrl: rendererUrl('chat') });
   const chatSaver = createSaver<PersistedChat>(join(userData, 'chat.json'));
-  engine.registerAux('launcher', () => (launcher.isVisible() ? launcher.webContents() : null));
-  engine.registerAux('chat', () => (chatWindow.isOpen() ? chatWindow.webContents() : null));
-  const choreographer = new ChatChoreographer(window, chatWindow, launcher);
+  engine.registerAux('chat', () => chatWindow.webContents());
+  const choreographer = new ChatChoreographer(window, chatWindow);
   chatStore.subscribe((snap) => {
     window.send(CHANNELS.chat, snap);
-    launcher.send(CHANNELS.chat, snap);
     chatWindow.send(CHANNELS.chat, snap);
-    choreographer.apply(snap); // 形态切换 = 窗口几何编舞
+    choreographer.apply(snap); // 形态切换：页内变形 / 停靠飞行
     chatSaver.schedule(() => chatStore.toPersisted());
   });
-  window.shellView.webContents.once('did-finish-load', () => launcher.setVisible(chatStore.currentMode === 'closed'));
+  window.shellView.webContents.once('did-finish-load', () => choreographer.init(chatStore.currentMode));
 
   registerIpc({
     engine,
@@ -116,6 +118,8 @@ async function bootstrap(): Promise<void> {
     menus,
     window,
     chat,
+    chatWindow,
+    apps,
     setApiKey: (key) => {
       chatConfig.write({ anthropicApiKey: key.trim() });
       chat.setProvider(makeProvider());
@@ -142,6 +146,7 @@ async function bootstrap(): Promise<void> {
 
   const gateway = new AgentGateway(engine);
   await gateway.start();
+  apps.start();
 
   app.on('second-instance', () => {
     if (window.win.isMinimized()) window.win.restore();

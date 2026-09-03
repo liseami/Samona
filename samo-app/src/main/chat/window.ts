@@ -1,106 +1,135 @@
 /**
- * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/screen，@shared/chat 的 CHAT_DEFAULTS，../shell/window 的 ShellWindow
- * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮窗——主窗口的子窗口（永远在其上、随其移动），无边框、不透明、圆角、带系统阴影、可自由缩放、可拖出应用窗口；open/showAt/restBounds/rememberBounds/close/isOpen/send/window，记住上次几何，默认停在主窗口右下角；编舞（chat/choreographer）用 showAt + window() 驱动几何动画
- * [POS]: chat 模块的浮动承载；停靠态不用它（停靠卡由壳渲染），launcher 也不用它（launcher 是主窗口内的视图）。选择不透明而非透明窗口：Electron 的透明窗口不能缩放也没有阴影
+ * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/Rectangle，@shared/chat 的 CHAT_DEFAULTS，../shell/window 的 ShellWindow
+ * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮层——主窗口的透明、无边框子窗口，药丸（收起态）与面板（展开态）同宿其中，Laper AIFloatingPanelShell 的窗口版；ensure/setExpanded/setInteractive/setBounds/bounds/restBounds/defaultBounds/rememberBounds/clampIntoParent/hide/show/focus/send/window
+ * [POS]: chat 模块的浮动承载。透明窗口意味着：没有原生阴影（页内 box-shadow）、没有原生缩放（页内边缘热区 → chat.setBounds）、收起时整窗点击穿透（setIgnoreMouseEvents(true, forward) 让指针进出药丸仍可感知，进入即恢复接收）；换来的是药丸 ↔ 面板在同一文档里用 scaleX/scaleY 变形，锚点天然对齐
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { BaseWindow, WebContentsView, nativeTheme, type Rectangle } from 'electron';
+import { BaseWindow, WebContentsView, type Rectangle } from 'electron';
 import { CHAT_DEFAULTS } from '@shared/chat';
 import type { ShellWindow } from '../shell/window';
 
 export interface ChatWindowOptions {
   preloadPath: string;
   chatUrl: string;
-  onClosedByUser: () => void; // 用户关掉浮窗（⌘W / 系统关闭）→ 形态回到 closed
 }
 
 export class ChatWindow {
   private win: BaseWindow | null = null;
   private view: WebContentsView | null = null;
-  private lastBounds: Rectangle | null = null;
+  private lastBounds: Rectangle | null = null; // 展开态的安放位
+  private expanded = false;
+  private hidden = false; // 停靠时整窗隐藏
 
   constructor(
     private readonly shell: ShellWindow,
     private readonly options: ChatWindowOptions,
-  ) {}
-
-  isOpen(): boolean {
-    return !!this.win && !this.win.isDestroyed() && this.win.isVisible();
+  ) {
+    const parent = shell.win;
+    parent.on('resize', () => {
+      if (!this.expanded) this.clampIntoParent(); // 收起态：药丸跟着主窗口右下角走
+    });
+    parent.on('minimize', () => this.win?.hide());
+    parent.on('hide', () => this.win?.hide());
+    parent.on('restore', () => this.show());
+    parent.on('show', () => this.show());
   }
 
   webContents() {
-    return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
+    return this.view && !this.view.webContents.isDestroyed() && this.win?.isVisible() ? this.view.webContents : null;
+  }
+  window(): BaseWindow | null {
+    return this.win && !this.win.isDestroyed() ? this.win : null;
+  }
+  isExpanded(): boolean {
+    return this.expanded;
   }
 
-  open(): void {
-    this.showAt(this.restBounds());
-    this.focus();
+  /** 首次：创建并以收起态显示在主窗口右下角 */
+  ensure(): void {
+    if (!this.win || this.win.isDestroyed()) this.create();
+    this.show();
   }
 
-  /** 浮窗的「安放位」：上次几何或默认几何 */
+  /** 展开 = 接收鼠标 + 聚焦；收起 = 只有药丸接鼠标（由 chat.hover 切换） */
+  setExpanded(expanded: boolean): void {
+    this.expanded = expanded;
+    this.setInteractive(expanded);
+    if (expanded) this.focus();
+  }
+  setInteractive(on: boolean): void {
+    this.win?.setIgnoreMouseEvents(!on, { forward: true });
+  }
+
   restBounds(): Rectangle {
     return this.lastBounds ?? this.defaultBounds();
   }
-
-  /** 以给定几何显示（不聚焦）——编舞的起点：从药丸/停靠卡的矩形出发再动画到安放位 */
-  showAt(bounds: Rectangle): void {
-    if (!this.win || this.win.isDestroyed()) this.create();
-    const win = this.win!;
-    win.setBounds(bounds);
-    if (!win.isVisible()) win.show();
+  bounds(): Rectangle | null {
+    return this.window()?.getBounds() ?? null;
+  }
+  setBounds(bounds: Rectangle): void {
+    const w = Math.max(CHAT_DEFAULTS.minWidth, Math.round(bounds.width));
+    const h = Math.max(CHAT_DEFAULTS.minHeight, Math.round(bounds.height));
+    this.window()?.setBounds({ x: Math.round(bounds.x), y: Math.round(bounds.y), width: w, height: h });
+  }
+  rememberBounds(): void {
+    const b = this.bounds();
+    if (b && this.win?.isVisible()) this.lastBounds = b;
+  }
+  /** 收起态把窗口收回主窗口内容区之内（药丸永远看得见） */
+  clampIntoParent(): void {
+    const b = this.bounds();
+    if (!b) return;
+    const p = this.shell.win.getContentBounds();
+    const m = CHAT_DEFAULTS.launcherMargin;
+    const x = Math.min(Math.max(b.x, p.x + m - (b.width - CHAT_DEFAULTS.launcherPill.width)), p.x + p.width - b.width - m);
+    const y = Math.min(Math.max(b.y, p.y + m - (b.height - CHAT_DEFAULTS.launcherPill.height)), p.y + p.height - b.height - m);
+    if (x !== b.x || y !== b.y) this.setBounds({ ...b, x, y });
   }
 
+  show(): void {
+    if (this.hidden || !this.win || this.win.isDestroyed() || this.shell.win.isMinimized()) return;
+    if (!this.win.isVisible()) this.win.showInactive();
+  }
+  hide(): void {
+    this.hidden = true;
+    this.win?.hide();
+  }
+  /** 从停靠回到浮层：以给定几何显示 */
+  showAt(bounds: Rectangle): void {
+    this.hidden = false;
+    if (!this.win || this.win.isDestroyed()) this.create();
+    this.setBounds(bounds);
+    this.show();
+  }
   focus(): void {
     this.win?.focus();
     this.view?.webContents.focus();
   }
-
-  window(): BaseWindow | null {
-    return this.win && !this.win.isDestroyed() ? this.win : null;
-  }
-
-  /** 记住当前几何为安放位（动画中途不要记） */
-  rememberBounds(): void {
-    if (this.win && !this.win.isDestroyed() && this.win.isVisible()) this.lastBounds = this.win.getBounds();
-  }
-
-  close(): void {
-    if (!this.win || this.win.isDestroyed()) return;
-    this.win.hide();
-  }
-
   send(channel: string, payload: unknown): void {
-    const wc = this.webContents();
-    if (wc) wc.send(channel, payload);
-  }
-
-  destroy(): void {
-    this.win?.destroy();
-    this.win = null;
-    this.view = null;
+    const wc = this.view?.webContents;
+    if (wc && !wc.isDestroyed()) wc.send(channel, payload);
   }
 
   private create(): void {
-    const dark = nativeTheme.shouldUseDarkColors;
     const win = new BaseWindow({
-      parent: this.shell.win, // 子窗口：永远在主窗口之上，随主窗口移动，但可以被拖到主窗口之外
+      parent: this.shell.win,
+      transparent: true,
       frame: false,
-      resizable: true,
+      hasShadow: false,
+      resizable: false,
       minimizable: false,
       maximizable: false,
       fullscreenable: false,
-      hasShadow: true,
-      roundedCorners: true,
+      roundedCorners: false,
       show: false,
-      ...this.defaultBounds(),
-      minWidth: 320,
-      minHeight: 420,
-      backgroundColor: dark ? '#3c3c3c' : '#fdfdfd', // ≈ --card（Laper 面板底是 bg-card）
-      title: 'Samo Chat',
+      ...this.restBounds(),
+      title: 'Samo AI',
     });
+    win.setIgnoreMouseEvents(true, { forward: true }); // 收起态默认穿透；药丸悬停时由 chat.hover 打开
     const view = new WebContentsView({
-      webPreferences: { preload: this.options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false },
+      webPreferences: { preload: this.options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false, transparent: true },
     });
+    view.setBackgroundColor('#00000000');
     win.contentView.addChildView(view);
     const fit = () => {
       const { width, height } = win.getContentBounds();
@@ -109,12 +138,6 @@ export class ChatWindow {
     win.on('resize', fit);
     fit();
     void view.webContents.loadURL(this.options.chatUrl);
-    win.on('close', (e) => {
-      // 关闭 = 隐藏，对话状态在主进程里不受影响
-      e.preventDefault();
-      this.close();
-      this.options.onClosedByUser();
-    });
     win.on('closed', () => {
       this.win = null;
       this.view = null;
@@ -124,11 +147,11 @@ export class ChatWindow {
   }
 
   /** Laper 几何：高 = 主窗口内容高 × 2/3，宽按 9:16，右下角留 1.5rem；上限主窗口 − 48 */
-  private defaultBounds(): Rectangle {
+  defaultBounds(): Rectangle {
     const parent = this.shell.win.getContentBounds();
     const m = CHAT_DEFAULTS.launcherMargin;
-    const height = Math.round(Math.min(parent.height * CHAT_DEFAULTS.heightRatio, parent.height - CHAT_DEFAULTS.viewportInset));
-    const width = Math.round(Math.min(height * CHAT_DEFAULTS.aspect, parent.width - CHAT_DEFAULTS.viewportInset));
+    const height = Math.round(Math.max(CHAT_DEFAULTS.minHeight, Math.min(parent.height * CHAT_DEFAULTS.heightRatio, parent.height - CHAT_DEFAULTS.viewportInset)));
+    const width = Math.round(Math.max(CHAT_DEFAULTS.minWidth, Math.min(height * CHAT_DEFAULTS.aspect, parent.width - CHAT_DEFAULTS.viewportInset)));
     return { x: parent.x + parent.width - width - m, y: parent.y + parent.height - height - m, width, height };
   }
 }

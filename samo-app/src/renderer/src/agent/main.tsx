@@ -1,12 +1,12 @@
 /**
- * [INPUT]: 依赖 react-dom/client，./Launcher，../styles.css，window.samo 桥
- * [OUTPUT]: 无导出；挂载右下角的对话 launcher，并同步 html.dark
- * [POS]: renderer/launcher 页（launcher.html）的启动引导；这页是主窗口右下角 56px 的透明视图
+ * [INPUT]: 依赖 react-dom/client，./AgentLayer，../styles.css，window.samo 桥
+ * [OUTPUT]: 无导出；挂载 agent 光标层，并同步 html.dark
+ * [POS]: renderer/agent 页（agent.html）的启动引导；这页跑在主进程 AgentPresence 的透明、点击穿透子窗口里，盖在网页视图上
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Launcher } from './Launcher';
+import { AgentLayer } from './AgentLayer';
 import '../styles.css';
 
 const syncDark = (dark: boolean) => document.documentElement.classList.toggle('dark', dark);
@@ -17,6 +17,6 @@ document.body.style.background = 'transparent';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Launcher />
+    <AgentLayer />
   </StrictMode>,
 );

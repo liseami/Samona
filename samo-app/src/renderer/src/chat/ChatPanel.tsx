@@ -31,7 +31,7 @@ export function ChatPanel({ variant }: { variant: Variant }) {
 
   if (!snap) return null;
   return (
-    <div className="agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-foreground">
+    <div className={cn('agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden text-foreground', variant === 'docked' ? 'bg-card' : 'bg-transparent')}>
       <Aurora active={snap.generating} />
       <div className="relative z-1 flex min-h-0 flex-1 flex-col">
         <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />
@@ -487,7 +487,8 @@ function SessionDrawer({ threads, activeId, onClose }: { threads: ChatThread[]; 
 function Aurora({ active }: { active: boolean }) {
   return (
     <div className={cn('pointer-events-none absolute right-0 bottom-0 left-0 z-0 overflow-hidden transition-opacity duration-600 ease-out', active ? 'opacity-55' : 'opacity-0')} style={{ height: '33.33%' }}>
-      <div className="holo-spin absolute -inset-1/2" style={{ background: 'conic-gradient(from 0deg, #f6c1c1, #f9e3a1, #c8f2c0, #b8e0ff, #d9c6ff, #f6c1c1)', filter: 'blur(40px) saturate(1.3)' }} />
+      {/* 银灰极光：只用中性灰阶转动，符合设计系统的冷调 */}
+      <div className="holo-spin absolute -inset-1/2" style={{ background: 'conic-gradient(from 0deg, #e4e4e7, #f4f4f5, #a1a1aa, #d4d4d8, #71717a, #e4e4e7)', filter: 'blur(40px) saturate(0.2)' }} />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, var(--card) 0%, transparent 60%)' }} />
     </div>
   );

@@ -78,9 +78,10 @@ function Pip({ identity, active }: { identity: Identity; active: boolean }) {
   );
 }
 
-/** phi 的角标语义：agent 工作中=绿点，用户接管=橙点，agent 空闲=灰点 */
+/** phi 的角标语义：agent 工作中=agent 色脉冲点，用户接管=橙点，agent 空闲=灰点 */
 function AgentBadge({ identity }: { identity: Identity }) {
   if (identity.ownership === 'user') return null;
-  const color = identity.ownership === 'agentDelegatedToUser' ? 'bg-orange-500' : identity.agentState ? 'bg-emerald-500' : 'bg-muted-foreground';
+  const working = identity.ownership === 'agent' && identity.agentState !== null;
+  const color = identity.ownership === 'agentDelegatedToUser' ? 'bg-orange-500' : working ? 'bg-agent animate-pulse' : 'bg-muted-foreground';
   return <span className={cn('absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ring-2 ring-panel', color)} />;
 }

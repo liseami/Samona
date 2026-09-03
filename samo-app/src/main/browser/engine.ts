@@ -21,6 +21,8 @@ export interface EngineOptions {
 
 export class BrowserEngine {
   private views = new Map<string, WebContentsView>();
+  /** agent 即将操作的页面坐标（ego 的 animationHighlightMouseToPosition）；由 index 接到 AgentPresence */
+  agentCursor: (identityId: number, x: number, y: number) => void = () => {};
   private knownPartitions = new Set<string>();
 
   constructor(
@@ -31,7 +33,7 @@ export class BrowserEngine {
   ) {
     store.subscribe((snap) => {
       window.setLayout({ ...snap.layout, sidebarCollapsed: snap.layout.sidebarCollapsed && !snap.sidebarPeek });
-      window.setContentVisible(snap.layout.module === 'browser' && !snap.layout.overview); // 标签矩阵打开时网页让位
+      window.setContentVisible((snap.layout.module === 'browser' || snap.layout.module === 'apps') && !snap.layout.overview); // 标签矩阵打开时网页让位
       this.reconcileBackground();
     });
   }

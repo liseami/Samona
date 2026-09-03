@@ -22,6 +22,7 @@ import {
   EyeOn,
   KeyLeft,
   PointerCursorDefault,
+  GridDashboard01,
   LayoutGridTwoHorizontal,
   DiamondComponent,
   StopSmall,
@@ -120,6 +121,8 @@ export const CrossCircle = d(MultipleCrossCancelCircle); // 工具胶囊：失�
 export const Eye = d(EyeOn); // 工具胶囊：Watch，切到 agent 身份
 export const Key = d(KeyLeft); // 接入卡：API 密钥
 export const AgentCursor = d(PointerCursorDefault); // agent 光标层
+export const AppLocal = d(TerminalConsoleSquare); // 应用卡：本地 dev server
+export const AppCloud = d(CloudDefault); // 应用卡：Samo 云端
 export const TabsOverview = decorative(LayoutGridTwoHorizontal); // 面板头部：Safari 式标签矩阵
 export const Copy = d(CopyDefault);
 export const StopIcon = d(StopSmall);
@@ -139,6 +142,7 @@ export const Copied = d(CopyCopied);
 /** 模块图标：icon navi 的四个维度 */
 export const MODULE_ICON: Record<ModuleId, ComponentType<IconProps>> = {
   browser: d(PiGlobe),
+  apps: d(GridDashboard01),
   mail: d(EnvelopeDefault),
   knowledge: d(GraduationHat),
   drive: d(CloudDefault),

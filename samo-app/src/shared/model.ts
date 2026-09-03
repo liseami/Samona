@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
+ * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/AppEntry/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
  * [POS]: shared 的领域模型根，主进程是唯一写者，渲染进程与 agent 网关只读；三方共享同一份真相定义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -119,6 +119,7 @@ export interface Download {
 // ============ 模块：Samo 是「身份 × 模块」的应用，浏览器只是第一个模块 ============
 export const MODULES = [
   { id: 'browser', label: 'Browser', ready: true, dev: false },
+  { id: 'apps', label: 'Apps', ready: true, dev: false }, // 用户自己的应用：本地（localhost 端口扫描）与云端（Samo 部署）
   { id: 'mail', label: 'Mail', ready: false, dev: false },
   { id: 'knowledge', label: 'Knowledge', ready: false, dev: false },
   { id: 'drive', label: 'Drive', ready: false, dev: false },
@@ -127,7 +128,7 @@ export const MODULES = [
 export type ModuleId = (typeof MODULES)[number]['id'];
 
 export interface Layout {
-  module: ModuleId; // 当前展示的模块：非 browser 时网页视图隐藏，面板由模块自己渲染
+  module: ModuleId; // 当前展示的模块：browser 与 apps 显示网页视图，其余模块隐藏它、面板由模块自己渲染
   sidebarWidth: number;
   sidebarCollapsed: boolean;
   overview: boolean; // Safari 式标签矩阵：打开时网页视图隐藏，面板陈列当前身份的所有标签
@@ -142,6 +143,16 @@ export const CLOSED_STACK_MAX = 25;
 export const LEGACY_PARTITION = 'persist:samo'; // v1/v2 时代所有标签共用的分区，迁移时保留以不丢登录态
 
 // ============ 快照：主进程推给渲染层的完整真相 ============
+/** 「应用」维度里的一张卡：本地 = 正在 localhost 端口上跑的 dev server；云端 = Samo 部署的应用（预留） */
+export interface AppEntry {
+  id: string; // local:<port> / cloud:<id>
+  kind: 'local' | 'cloud';
+  name: string; // 页面 <title>，没有则进程名
+  url: string;
+  port?: number;
+  process?: string; // 监听该端口的进程名（lsof）
+}
+
 export interface BrowserSnapshot {
   identities: Identity[]; // 数组顺序即侧栏顺序
   folders: Folder[];
@@ -150,6 +161,8 @@ export interface BrowserSnapshot {
   activeIdentityId: number;
   activeTabIdByIdentity: Record<number, string | null>;
   layout: Layout;
+  apps: AppEntry[]; // 应用维度：本地扫描 + 云端
+  activeAppId: string | null; // 应用维度里打开的那一个
   sidebarPeek: boolean; // 折叠态下鼠标贴边临时展开
   closedCount: number; // 可重开的已关闭标签数
   dark: boolean; // 跟随系统外观

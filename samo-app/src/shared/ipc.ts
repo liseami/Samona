@@ -82,6 +82,11 @@ export type Command =
   | { type: 'chat.deleteThread'; threadId: string }
   | { type: 'chat.setDockWidth'; width: number }
   | { type: 'chat.setApiKey'; key: string } // 保存 Anthropic 密钥（主进程落盘 0600），空串即清除
+  | { type: 'chat.hover'; over: boolean } // 收起态：指针进出药丸——浮窗透明区点击穿透，只有药丸接鼠标
+  | { type: 'chat.setBounds'; x: number; y: number; width: number; height: number } // 浮窗页内拖拽边缘缩放（透明窗口没有原生缩放）
+  // ---- 应用维度 ----
+  | { type: 'apps.open'; id: string } // 打开一张应用卡：在当前身份复用/新建该地址的标签并激活
+  | { type: 'apps.rescan' } // 立即重扫 localhost
   // ---- 壳：模块与窗口（自绘红绿灯） ----
   | { type: 'module.activate'; module: ModuleId }
   | { type: 'window.close' }
@@ -109,7 +114,8 @@ export type ShellEvent =
   | { type: 'renameTab'; tabId: string }
   | { type: 'renameFolder'; folderId: string }
   | { type: 'editIdentity'; identityId: number }
-  | { type: 'chatPhase'; phase: 'launcherIn' | 'launcherOut' | 'panelIn' | 'panelOut' } // AI 对话编舞：发给 launcher 页与浮窗页
+  | { type: 'agentPresence'; active: boolean; label: string | null } // agent 光标层：当前可见身份是否有 agent 在工作 + 动作标签
+  | { type: 'agentCursor'; x: number; y: number } // agent 光标层：agent 即将点击/悬停的页面坐标（CSS px）
   | { type: 'toast'; text: string };
 
 // ============ preload 暴露给渲染层的桥 ============

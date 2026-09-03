@@ -17,6 +17,7 @@ import {
   type IdentityIcon,
   type Layout,
   type Tab,
+  type AppEntry,
 } from '@shared/model';
 import type { TabTarget } from '@shared/ipc';
 
@@ -92,6 +93,8 @@ export class BrowserStore {
   private _activeSpaceId = 0;
   private activeTabIdByIdentity: Record<number, string | null> = {};
   private layout: Layout = { ...DEFAULT_LAYOUT };
+  private apps: AppEntry[] = [];
+  private activeAppId: string | null = null;
   private sidebarPeek = false;
   private dark = false;
   private focused = true;
@@ -126,6 +129,8 @@ export class BrowserStore {
       activeIdentityId: this._activeSpaceId,
       activeTabIdByIdentity: { ...this.activeTabIdByIdentity },
       layout: { ...this.layout },
+      apps: this.apps,
+      activeAppId: this.activeAppId,
       sidebarPeek: this.sidebarPeek,
       closedCount: this.closed.length,
       dark: this.dark,
@@ -362,6 +367,24 @@ export class BrowserStore {
       this.sidebarPeek = false;
     }
     if (patch.overview !== undefined) this.layout.overview = patch.overview;
+    this.emit();
+  }
+  // ---------- 应用维度 ----------
+  get appList(): AppEntry[] {
+    return this.apps;
+  }
+  get currentAppId(): string | null {
+    return this.activeAppId;
+  }
+  setApps(apps: AppEntry[]): void {
+    if (JSON.stringify(apps) === JSON.stringify(this.apps)) return;
+    this.apps = apps;
+    if (this.activeAppId && !apps.some((a) => a.id === this.activeAppId)) this.activeAppId = null;
+    this.emit();
+  }
+  setActiveApp(id: string | null): void {
+    if (this.activeAppId === id) return;
+    this.activeAppId = id;
     this.emit();
   }
   setPeek(peek: boolean): void {

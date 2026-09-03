@@ -12,6 +12,8 @@ import type { BrowserEngine } from '../browser/engine';
 import type { DownloadManager } from '../browser/downloads';
 import type { ContextMenus } from '../menus/context-menu';
 import type { ChatService } from '../chat/service';
+import type { ChatWindow } from '../chat/window';
+import type { AppsService } from '../apps/service';
 import type { ShellWindow } from '../shell/window';
 
 export interface IpcDeps {
@@ -20,10 +22,12 @@ export interface IpcDeps {
   menus: ContextMenus;
   window: ShellWindow;
   chat: ChatService;
+  chatWindow: ChatWindow; // 浮层：药丸悬停接收鼠标、页内缩放
+  apps: AppsService; // 应用维度
   setApiKey: (key: string) => void; // 保存密钥并热切换回答者
 }
 
-export function registerIpc({ engine, downloads, menus, window, chat, setApiKey }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat, chatWindow, apps, setApiKey }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
   ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
@@ -176,6 +180,12 @@ export function registerIpc({ engine, downloads, menus, window, chat, setApiKey 
       case 'chat.setApiKey':
         setApiKey(command.key);
         break;
+      case 'chat.hover':
+        if (chat.store.currentMode === 'closed') chatWindow.setInteractive(command.over);
+        break;
+      case 'chat.setBounds':
+        chatWindow.setBounds({ x: command.x, y: command.y, width: command.width, height: command.height });
+        break;
       case 'chat.setMode':
         chat.setMode(command.mode);
         break;
@@ -213,6 +223,12 @@ export function registerIpc({ engine, downloads, menus, window, chat, setApiKey 
       // ---- 布局与壳 ----
       case 'layout.sidebar':
         store.setLayout({ sidebarWidth: command.width, sidebarCollapsed: command.collapsed });
+        break;
+      case 'apps.open':
+        apps.open(command.id);
+        break;
+      case 'apps.rescan':
+        void apps.rescan();
         break;
       case 'layout.overview':
         store.setLayout({ overview: command.open });

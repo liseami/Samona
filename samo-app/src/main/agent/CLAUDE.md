@@ -12,6 +12,7 @@ gateway.ts: AgentGateway——127.0.0.1 随机端口的 ws 服务；启动时写
 session.ts: AgentSession——ego 宿主方法表（listTabs/createTab/snapshot/listTaskSpaces/createTaskSpace/useTaskSpace/claimTaskSpace/completeTaskSpace/closeTaskSpace/handOffTaskSpace/takeOverTaskSpace/setAgentTaskState/animationHighlightMouseToPosition/getBrowserVersion…）+ Samo 扩展 captureWindow（壳、当前标签与辅助视图各存 PNG）与 useShell(name)（仅 SAMO_DEBUG_SHELL=1：把壳 / overlay / 登记的辅助视图 launcher、chat 当 target 驱动 UI）；按连接持有 selectedSpaceId，所有可见性以它为界；guardSelected 产出 ego 识别的错误码。
 runner.ts: ScriptRunner——应用内 agent 的执行器：把脚本交给 samo-agent 的 dist/cli.js 子进程（ELECTRON_RUN_AS_NODE 复用 Electron 自带的 Node），自动补 taskSpaces.useOrCreate(线程名) 与 setAgentTaskState(label) 前奏，收集 console.log，超时/中止即杀，输出截断到 12k；locateCli() 经 samo-agent/cli 定位。
 cdp-bridge.ts: CdpBridge——Target 域仿真与会话铸造：attachToTarget 铸 sessionId 并附着 debugger，子会话（Target.attachedToTarget）按所属附着透传，detach/destroyed 回收并推 detachedFromTarget；`view:<name>` target 走 host.debugWebContents。
+presence.ts: AgentPresence——agent 的可见存在：透明、点击穿透、不可聚焦的子窗口精确盖在网页视图上（agent.html），可见身份被 agent 驱动时显示光标镜像（animationHighlightMouseToPosition → engine.agentCursor）、动作标签（identity.agentState）与边缘发光；动作结束 600ms 后隐藏。
 snapshot.ts: buildSnapshot——Accessibility.getFullAXTree 压成缩进文本，可交互/有名节点带 [ref=@backendNodeId]，refs 回填 ego 的 RefMap；是 ego lite 内核级快照的 CDP 近似，可替换。
 task-spaces.ts: Identity ↔ task space 线形换算、EGO_CODE 错误码表、egoError（resolved 形）与 EgoRejection（reject 形）。
 

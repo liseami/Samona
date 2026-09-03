@@ -1,17 +1,18 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（圆角容器 frame：上溢到面板头部之下，网页上直下圆；setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、dockSlotScreenBounds
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页在面板头部之下内缩 PAGE_INSET 成一张四角圆 10 的卡；setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { BaseWindow, View, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
+import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, HEADER_HEIGHT, RAIL_WIDTH, type Layout } from '@shared/model';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
 const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
 const PANEL_BORDER = 1; // 网页视图内缩 1px，露出壳画的面板边线
-const CONTENT_RADIUS = 13; // 面板 rounded-2xl ≈ 13.6，视图内缩 1px 后取 13
+const CONTENT_RADIUS = 10; // 网页在面板体里是一张内缩的卡（PAGE_INSET），四角同圆——Electron 的圆角只能四角统一且父 View 裁不到 WebContentsView，所以「上直下圆」做不到，改为让四角圆得理直气壮
+const PAGE_INSET = 6; // 网页卡与面板体的间距（头部下、左右、底）
 const COLLAPSED_TOP = HEADER_HEIGHT + GUTTER; // 折叠时顶部是 h-10 的控制条（红绿灯 + 展开）+ 一个 gap
 const PANEL_HEADER = HEADER_HEIGHT; // 浏览器模块的面板卡头部（后退/前进/刷新 · 地址 · 工具），网页视图从它下方开始
 
@@ -27,12 +28,6 @@ export class ShellWindow {
   readonly shellView: WebContentsView;
   readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
   private contentView: WebContentsView | null = null;
-  /**
-   * 网页视图的圆角容器：Electron 的圆角只能四角统一，而面板头部在壳视图里、网页视图之上；
-   * 于是让容器向上溢出 CONTENT_RADIUS 藏到头部之下，网页视图在容器内下沉同样距离——
-   * 容器只裁自己的四角，网页视图的上缘是直角、下缘随容器成圆角
-   */
-  private readonly frame = new View();
   private contentVisible = true; // 非浏览器模块时隐藏网页视图，面板由模块自己渲染
   private dockWidth = 0; // 停靠的对话卡宽度（0 = 未停靠）
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
@@ -80,7 +75,6 @@ export class ShellWindow {
     void this.overlayView.webContents.loadURL(options.overlayUrl);
 
 
-    this.frame.setBorderRadius(CONTENT_RADIUS);
     this.win.on('resize', () => this.applyBounds());
     this.shellView.webContents.once('did-finish-load', () => {
       if (!this.win.isVisible()) this.win.show();
@@ -103,14 +97,16 @@ export class ShellWindow {
   contentBounds(): Rectangle {
     const { width, height } = this.win.getContentBounds();
     const collapsed = this.layout.sidebarCollapsed;
-    const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER) + PANEL_BORDER;
-    const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER + (this.layout.module === 'browser' ? PANEL_HEADER : 0);
-    const right = GUTTER + (this.dockWidth ? this.dockWidth + GUTTER : 0);
+    const webModule = this.layout.module === 'browser' || this.layout.module === 'apps';
+    const inset = webModule ? PAGE_INSET : 0; // 面板头部之下网页是一张内缩的卡
+    const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER) + PANEL_BORDER + inset;
+    const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER + (webModule ? PANEL_HEADER : 0) + inset;
+    const right = GUTTER + (this.dockWidth ? this.dockWidth + GUTTER : 0) + inset;
     return {
       x: left,
       y: top,
       width: Math.max(0, width - left - right - PANEL_BORDER),
-      height: Math.max(0, height - top - GUTTER - PANEL_BORDER),
+      height: Math.max(0, height - top - GUTTER - PANEL_BORDER - inset),
     };
   }
 
@@ -119,16 +115,24 @@ export class ShellWindow {
     this.shellView.setBounds({ x: 0, y: 0, width, height });
     this.overlayView.setBounds({ x: 0, y: 0, width, height });
     const bounds = this.contentBounds();
-    const overlap = this.headerOverlap();
-    this.frame.setBounds({ x: bounds.x, y: bounds.y - overlap, width: bounds.width, height: bounds.height + overlap });
-    this.contentView?.setBounds({ x: 0, y: overlap, width: bounds.width, height: bounds.height });
+    this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
+    for (const l of this.boundsListeners) l();
   }
 
-  /** 浏览器模块有面板头部：容器上溢一个圆角半径藏到头部之下 */
-  private headerOverlap(): number {
-    return this.layout.module === 'browser' ? CONTENT_RADIUS : 0;
+  /** 内容区（网页视图）在屏幕上的矩形：agent 光标层这张透明子窗口精确盖在它上面 */
+  contentScreenBounds(): Rectangle {
+    const c = this.win.getContentBounds();
+    const b = this.contentBounds();
+    return { x: c.x + b.x, y: c.y + b.y, width: b.width, height: b.height };
   }
+
+  /** 内容区几何变化（resize / 侧栏 / 停靠 / 模块）时通知；agent 光标层据此跟随 */
+  onBoundsChange(listener: () => void): () => void {
+    this.boundsListeners.add(listener);
+    return () => this.boundsListeners.delete(listener);
+  }
+  private readonly boundsListeners = new Set<() => void>();
 
   /** 停靠对话卡在屏幕上的矩形（编舞：浮窗飞向它 / 从它飞出） */
   dockSlotScreenBounds(width: number): Rectangle {
@@ -160,21 +164,18 @@ export class ShellWindow {
       return;
     }
     if (this.contentView) {
-      this.frame.removeChildView(this.contentView); // 是否转入后台由 engine 的 reconcile 决定
+      this.win.contentView.removeChildView(this.contentView); // 是否转入后台由 engine 的 reconcile 决定
     }
     this.contentView = view;
     if (view) {
       this.background.delete(view);
-      applyRadius(view, 0); // 圆角由容器裁，视图本身直角
-      this.frame.addChildView(view);
-      this.win.contentView.addChildView(this.frame); // 容器压在壳之上
+      applyRadius(view, CONTENT_RADIUS);
+      this.win.contentView.addChildView(view);
       this.raise(this.overlayView); // overlay 永远最上
-      this.applyBounds();
-      this.frame.setVisible(this.contentVisible);
-      view.setVisible(true);
+      view.setBounds(this.contentBounds());
+      view.setVisible(this.contentVisible);
       if (this.contentVisible) view.webContents.focus();
     } else {
-      this.frame.setVisible(false);
       this.shellView.webContents.focus();
     }
   }
@@ -183,7 +184,7 @@ export class ShellWindow {
   setContentVisible(visible: boolean): void {
     if (this.contentVisible === visible) return;
     this.contentVisible = visible;
-    this.frame.setVisible(visible && !!this.contentView);
+    this.contentView?.setVisible(visible);
     if (!visible) this.shellView.webContents.focus();
   }
 
@@ -216,7 +217,7 @@ export class ShellWindow {
   attachBackground(view: WebContentsView): void {
     if (view === this.contentView || this.background.has(view)) return;
     this.background.add(view);
-    applyRadius(view, 0);
+    applyRadius(view, CONTENT_RADIUS);
     this.win.contentView.addChildView(view, 0); // index 0 = 最底层，被不透明的壳视图完全遮住
     view.setBounds(this.contentBounds());
   }

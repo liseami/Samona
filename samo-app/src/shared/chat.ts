@@ -65,9 +65,10 @@ export const CHAT_DEFAULTS = {
   aspect: 9 / 16, // Laper：竖版 9:16
   heightRatio: 2 / 3, // 默认高度 = 主窗口内容高的 2/3，宽度按 9:16
   viewportInset: 48, // 最大不超过主窗口 - 48
-  launcherPill: { width: 130, height: 44 }, // Laper FAB 药丸
-  launcherBleed: 24, // launcher 视图四周给阴影留的透明呼吸区
-  launcherMargin: 24, // 药丸距窗口右下 1.5rem
+  launcherPill: { width: 130, height: 44 }, // Laper FAB 药丸：收起时浮窗整体 scale 到这个尺寸（锚点右下）
+  launcherMargin: 24, // 浮窗（与药丸）距主窗口右下 1.5rem
+  minWidth: 320, // 浮窗最小几何（页内拖拽边缘缩放的下限）
+  minHeight: 420,
   dockWidth: 380,
   dockMinWidth: 300,
   dockMaxWidth: 640,

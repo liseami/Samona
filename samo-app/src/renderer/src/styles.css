@@ -59,7 +59,7 @@
   --identity: #3a6ff8; /* 运行时由 App 写入活动 Identity 的强调色，仅用于小面积点缀 */
   --info: #3b82f6;
   --warning: #f59e0b;
-  --agent: #6d5cf5; /* AI 的唯一彩色信号：agent 光标、边缘发光、Samo AI 药丸 */
+  --agent: #7c8797; /* AI 的信号色：银灰冷调（agent 光标、边缘发光、Samo AI 药丸）——不破坏中性灰体系 */
   /* 扫光三参数（Laper 2026-07-27 归一）：峰值 / 起边 / 止边 / 时长，全站流光只有这一档 */
   --shimmer-tint: #ffffff;
   --shimmer-peak: 9%;
@@ -547,7 +547,7 @@
 
 /* ---- 暗色下 agent 色略提亮 ---- */
 .dark {
-  --agent: #8b7cff;
+  --agent: #aab4c3;
 }
 
 /* ---- Samo AI 药丸悬停光晕脉冲（Laper PrismaticEffect 的 framer 动画：opacity 0→0.2→0，scale 1→1.3→1.6） ---- */
@@ -609,47 +609,7 @@
   --ease-exit-hard: cubic-bezier(0.4, 0, 1, 1);
 }
 
-/* ---- Samo AI 编舞：药丸淡出/淡入（与浮窗几何动画同步）、浮窗内容着陆、停靠卡滑入 ---- */
-@keyframes launcher-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes launcher-out {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-}
-.launcher-in {
-  animation: launcher-in var(--duration-quick) var(--ease-settle) both;
-}
-.launcher-out {
-  animation: launcher-out var(--duration-fast) var(--ease-exit-hard) both;
-}
-@keyframes panel-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-:root[data-phase='in'] .agent-chat-root > * {
-  animation: panel-in var(--duration-gentle) var(--ease-settle) both;
-}
-:root[data-phase='out'] .agent-chat-root > * {
-  animation: panel-in var(--duration-fast) var(--ease-exit-hard) reverse both;
-}
+/* ---- 停靠对话卡入场（浮层飞到停靠槽后由卡片接手） ---- */
 @keyframes dock-in {
   from {
     opacity: 0;
@@ -662,4 +622,60 @@
 }
 .dock-in {
   animation: dock-in var(--duration-base) var(--ease-settle) both;
+}
+
+/* ---- agent 光标层：边缘柔光呼吸、环绕光束、到点涟漪（agent.html） ---- */
+@property --agent-orbit {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.agent-edge {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--agent) 55%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--agent) 18%, transparent);
+  animation: agent-edge-breathe 2.4s ease-in-out infinite;
+}
+@keyframes agent-edge-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.agent-ring {
+  padding: 2px;
+  background: conic-gradient(from var(--agent-orbit), transparent 0 72%, color-mix(in srgb, var(--agent) 90%, white 10%) 86%, transparent 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: agent-orbit 3.2s linear infinite;
+}
+@keyframes agent-orbit {
+  to {
+    --agent-orbit: 360deg;
+  }
+}
+.agent-ripple {
+  border: 1.5px solid color-mix(in srgb, var(--agent) 80%, transparent);
+  opacity: 0;
+  transform: scale(0.3);
+  animation: agent-ripple 0.6s var(--ease-glide) both;
+}
+@keyframes agent-ripple {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
 }

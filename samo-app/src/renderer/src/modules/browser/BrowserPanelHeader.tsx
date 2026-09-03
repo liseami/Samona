@@ -1,17 +1,18 @@
 /**
- * [INPUT]: 依赖 react，../../icons 的 ArrowLeft/ArrowRight/Refresh/Close/Copy/Copied/TabsOverview，../../store/browser 的 useBrowser/send/selectActiveTab，../../components/ui/{button,tooltip}，../../shell/PanelHeader，./UrlField，./TabOverview 的 openOverview/closeOverview
+ * [INPUT]: 依赖 react，../../icons 的 Copy/Copied/TabsOverview，../../store/browser 的 useBrowser/send/selectActiveTab，../../components/ui/{button,tooltip}，../../shell/PanelHeader，./NavButtons，./UrlField，./TabOverview 的 openOverview/closeOverview
  * [OUTPUT]: 对外提供 BrowserPanelHeader 组件：面板卡头部——左：后退/前进/刷新（加载中变停止）；中：地址栏（点击开 ⌘T 同款命令面板）；右：复制地址、标签矩阵开关
  * [POS]: modules/browser 的头部（Laper PanelHeader 三槽）；导航从侧栏搬到这里，侧栏只留标签与身份
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Close, Copied, Copy, Refresh, TabsOverview } from '../../icons';
+import { Copied, Copy, TabsOverview } from '../../icons';
 import { selectActiveTab, send, useBrowser } from '../../store/browser';
 import { Button } from '../../components/ui/button';
 import { Tip } from '../../components/ui/tooltip';
 import { PanelHeader } from '../../shell/PanelHeader';
 import { cn } from '../../lib/utils';
 import { UrlField } from './UrlField';
+import { NavButtons } from './NavButtons';
 import { closeOverview, openOverview } from './TabOverview';
 
 export function BrowserPanelHeader() {
@@ -20,25 +21,6 @@ export function BrowserPanelHeader() {
   const identityId = useBrowser((s) => s.snapshot?.activeIdentityId ?? -1);
   const [copied, setCopied] = useState(false);
 
-  const nav = (
-    <>
-      <Tip label="Back ⌘[">
-        <Button variant="icon" className="text-muted-foreground" disabled={!tab?.canGoBack} onClick={() => send({ type: 'tab.back' })}>
-          <ArrowLeft size={15} />
-        </Button>
-      </Tip>
-      <Tip label="Forward ⌘]">
-        <Button variant="icon" className="text-muted-foreground" disabled={!tab?.canGoForward} onClick={() => send({ type: 'tab.forward' })}>
-          <ArrowRight size={15} />
-        </Button>
-      </Tip>
-      <Tip label={tab?.loading ? 'Stop' : 'Reload ⌘R'}>
-        <Button variant="icon" className="text-muted-foreground" disabled={!tab} onClick={() => send({ type: tab?.loading ? 'tab.stop' : 'tab.reload' })}>
-          {tab?.loading ? <Close size={15} /> : <Refresh size={14} />}
-        </Button>
-      </Tip>
-    </>
-  );
   const tools = (
     <>
       <Tip label={copied ? 'Copied' : 'Copy URL ⇧⌘C'}>
@@ -66,5 +48,5 @@ export function BrowserPanelHeader() {
       </Tip>
     </>
   );
-  return <PanelHeader title={nav} center={<UrlField />} actions={tools} />;
+  return <PanelHeader title={<NavButtons />} center={<UrlField />} actions={tools} />;
 }
