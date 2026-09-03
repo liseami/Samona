@@ -1,14 +1,15 @@
 /**
- * [INPUT]: 依赖 electron 的 Menu/dialog/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 IDENTITY_COLORS/FolderColor
- * [OUTPUT]: 对外提供 ContextMenus 类：tab/identity/folder/tabList 四种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
+ * [INPUT]: 依赖 electron 的 Menu/clipboard/dialog/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，../apps/service 的 AppsService，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 IDENTITY_COLORS/FolderColor
+ * [OUTPUT]: 对外提供 ContextMenus 类：tab/identity/folder/tabList/app 五种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
  * [POS]: menus 模块的唯一成员；原生菜单保证与系统观感一致并天然浮在 WebContentsView 之上，重命名/编辑等需要内联 UI 的动作通过 ShellEvent 交回渲染层
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { Menu, dialog, type MenuItemConstructorOptions } from 'electron';
+import { Menu, clipboard, dialog, type MenuItemConstructorOptions } from 'electron';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 import { IDENTITY_COLORS, type FolderColor } from '@shared/model';
 import type { BrowserEngine } from '../browser/engine';
 import type { ShellWindow } from '../shell/window';
+import type { AppsService } from '../apps/service';
 
 const FOLDER_COLORS: FolderColor[] = ['grey', ...IDENTITY_COLORS];
 
@@ -16,6 +17,7 @@ export class ContextMenus {
   constructor(
     private readonly engine: BrowserEngine,
     private readonly window: ShellWindow,
+    private readonly apps: AppsService,
   ) {}
 
   private emit(event: ShellEvent): void {
@@ -142,6 +144,20 @@ export class ContextMenus {
   }
 
   // ============ 列表空白处 ============
+  /** 应用卡：固定到顶部 / 在浏览器打开 / 复制地址 / 重扫 */
+  app(id: string): void {
+    const app = this.engine.store.appList.find((a) => a.id === id);
+    if (!app) return;
+    this.popup([
+      { label: app.pinned ? 'Unpin' : 'Pin to Top', click: () => this.apps.pin(id, !app.pinned) },
+      { type: 'separator' },
+      { label: 'Open in Browser', enabled: !app.offline, click: () => this.apps.openInBrowser(id) },
+      { label: 'Copy URL', click: () => clipboard.writeText(app.url) },
+      { type: 'separator' },
+      { label: 'Rescan localhost', click: () => void this.apps.rescan() },
+    ]);
+  }
+
   tabList(identityId: number): void {
     this.popup([
       { label: 'New Tab', click: () => this.engine.createTab({ identityId, activate: true }) },

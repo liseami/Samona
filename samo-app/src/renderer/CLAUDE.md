@@ -1,7 +1,7 @@
 # renderer/
 > L2 | 父级: ../../CLAUDE.md
 
-五张页面共用一套样式与 Tailwind 主题：`index.html` 是应用壳（三层：icon navi + 模块侧栏 + 面板 + 停靠的对话卡，带 preload），`overlay.html` 是命令面板（透明，叠在网页之上），`chat.html` 是 AI 浮层（透明子窗口，药丸与面板同宿），`agent.html` 是 agent 光标层（透明、点击穿透的子窗口，盖在网页上），`newtab.html` 是新标签页（无 preload 的普通网页）。渲染层从不持有真相：主进程推快照，组件只读镜像；所有动作经 store.send 变成 Command，需要返回值的经 store.query。
+五张页面共用一套样式与 Tailwind 主题：`index.html` 是应用壳（三层：icon navi + 模块侧栏 + 面板 + 停靠的对话卡，带 preload），`overlay.html` 是常驻的面板头部层 + ⌘T 命令面板（透明，叠在网页之上），`chat.html` 是 AI 浮层（透明子窗口，药丸与面板同宿），`agent.html` 是 agent 光标层（透明、点击穿透的子窗口，盖在网页上），`newtab.html` 是新标签页（无 preload 的普通网页）。渲染层从不持有真相：主进程推快照，组件只读镜像；所有动作经 store.send 变成 Command，需要返回值的经 store.query。
 
 设计体系：配色是用户的 oklch 中性灰 shadcn 令牌（light/dark 由 html.dark 切换，跟随系统）；阴影、圆角、密度取自 Laper index.css——淡雅平阴影 + Apple squircle（corner-shape + Safari fallback）+ 压缩字号阶（xs10/sm12/base13/lg14）；结构取自 Laper ProjectEditorShell：页面底 `bg-sidebar`，一行 `gap-2 pt-2 pb-2 pl-0 pr-2` 里是 rail、侧栏卡、面板卡，两张卡同为 SoftPanel（`bg-panel rounded-2xl border shadow-sm`）；三级梯度 sidebar(底) < panel(卡) < card(浮起的行)；网页视图内缩 1px 叠在面板卡上露出边线。图标全部来自 Laper 的 Pika 库（icons/）。
 
@@ -22,7 +22,8 @@ src/components/ui/: shadcn 形态原子（见其 CLAUDE.md）。
 src/components/effects/: WebGL 效果层——PrismaticBurst（见其 CLAUDE.md）。
 src/shell/: 跨模块的壳——Header、PanelHeader 原语、自绘红绿灯、NavRail、Resizer、EdgePeek、DockResizer（见其 CLAUDE.md）。
 src/modules/: 模块注册表与各模块（见其 CLAUDE.md）。
-src/overlay/main.tsx: 命令面板页引导（同步 html.dark，挂载 modules/browser/palette/Palette）。
+src/overlay/main.tsx: overlay 页引导（透明底、同步 html.dark、bindBridge，挂载 HeaderLayer + Palette）。
+src/overlay/HeaderLayer.tsx: 面板头部在 overlay 层的那一份——按主进程的 overlayLayout 定位，画卡片上边线与圆角，渲染当前模块的 PanelHeader；它盖住网页视图向上伸进头部的那一截，让网页上缘是直角。
 src/chat/: 对话面板本体与镜像 store（见其 CLAUDE.md）。
 src/agent/main.tsx: agent 光标层引导（透明底、同步 html.dark）。
 src/agent/AgentLayer.tsx: agent 的「手」——临界阻尼弹簧跟随的光标 + 到点涟漪 + 动作标签胶囊 + 沿网页边缘呼吸并有一束光环绕的发光圈；agentPresence/agentCursor 事件驱动。

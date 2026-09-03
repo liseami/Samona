@@ -43,10 +43,35 @@ async function probe(listener: Listener): Promise<AppEntry | null> {
     if (!type.includes('text/html')) return null;
     const body = (await res.text()).slice(0, MAX_BODY);
     const title = /<title[^>]*>([^<]*)<\/title>/i.exec(body)?.[1]?.trim().replace(/\s+/g, ' ') ?? '';
-    return { id: `local:${listener.port}`, kind: 'local', name: title || listener.process, url, port: listener.port, process: listener.process };
+    const icon = await findIcon(url, body);
+    return { id: `local:${listener.port}`, kind: 'local', name: title || listener.process, url, port: listener.port, process: listener.process, icon };
   } catch {
     return null;
   }
+}
+
+/** 网页的 favicon：先看 <link rel="icon">（含 shortcut / apple-touch），再试 /favicon.ico */
+async function findIcon(pageUrl: string, html: string): Promise<string | null> {
+  const links = html.match(/<link\b[^>]*>/gi) ?? [];
+  for (const tag of links) {
+    const rel = /rel=["']([^"']+)["']/i.exec(tag)?.[1]?.toLowerCase() ?? '';
+    if (!/(^|\s)(icon|shortcut icon|apple-touch-icon)(\s|$)/.test(rel)) continue;
+    const href = /href=["']([^"']+)["']/i.exec(tag)?.[1];
+    if (!href) continue;
+    try {
+      return new URL(href, pageUrl).toString();
+    } catch {
+      /* 非法 href */
+    }
+  }
+  try {
+    const fallback = new URL('/favicon.ico', pageUrl).toString();
+    const res = await fetch(fallback, { method: 'HEAD', signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) });
+    if (res.ok && (res.headers.get('content-type') ?? '').startsWith('image/')) return fallback;
+  } catch {
+    /* 没有 */
+  }
+  return null;
 }
 
 export async function scanLocalApps(excludePorts: ReadonlySet<number> = new Set()): Promise<AppEntry[]> {

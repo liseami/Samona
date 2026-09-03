@@ -71,10 +71,10 @@ async function bootstrap(): Promise<void> {
     onSession: (ses) => downloads.attach(ses),
     legacyPartitionExists: existsSync(join(userData, 'Partitions', 'samo')),
   });
-  const menus = new ContextMenus(engine, window);
   const ownPorts = new Set<number>();
   if (isDev && process.env.ELECTRON_RENDERER_URL) ownPorts.add(Number(new URL(process.env.ELECTRON_RENDERER_URL).port)); // 自己的渲染开发服务器不算应用
-  const apps = new AppsService(engine, ownPorts); // 应用维度：扫描 localhost 上的应用
+  const apps = new AppsService(engine, join(userData, 'apps.json'), ownPorts); // 应用维度：扫描 localhost 上的应用，固定项落盘
+  const menus = new ContextMenus(engine, window, apps);
   // ---- agent 存在感：可见身份被 agent 驱动时，透明点击穿透的子窗口盖在网页上画光标、动作标签与边缘发光 ----
   const presence = new AgentPresence(window, engine, { preloadPath, agentUrl: rendererUrl('agent') });
   engine.registerAux('agent', () => presence.webContents());

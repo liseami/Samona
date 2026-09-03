@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页在面板头部之下内缩 PAGE_INSET 成一张四角圆 10 的卡；setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页贴边、上缘藏进面板头部之下；setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口）+ 最上层的 overlay 视图（平时只有面板头部条那么大、承载头部；openPalette 时铺满全窗承载命令面板）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/headerStrip/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,10 +11,10 @@ import { CHANNELS, type ShellEvent } from '@shared/ipc';
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
 const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
 const PANEL_BORDER = 1; // 网页视图内缩 1px，露出壳画的面板边线
-const CONTENT_RADIUS = 10; // 网页在面板体里是一张内缩的卡（PAGE_INSET），四角同圆——Electron 的圆角只能四角统一且父 View 裁不到 WebContentsView，所以「上直下圆」做不到，改为让四角圆得理直气壮
-const PAGE_INSET = 6; // 网页卡与面板体的间距（头部下、左右、底）
+const CONTENT_RADIUS = 13; // 面板 rounded-2xl ≈ 13.6，视图内缩 1px 后取 13：下缘随面板圆角
+// 上缘直角的做法：Electron 的圆角四角统一，于是让网页视图向上多伸一个半径、藏到面板头部之下——头部住在最上层的 overlay 视图里（与 ⌘T 命令面板同层），
+// 盖住网页的上圆角；壳视图里同一头部保留一份作为几何占位与命中兜底。网页贴边渲染，没有内边距
 const COLLAPSED_TOP = HEADER_HEIGHT + GUTTER; // 折叠时顶部是 h-10 的控制条（红绿灯 + 展开）+ 一个 gap
-const PANEL_HEADER = HEADER_HEIGHT; // 浏览器模块的面板卡头部（后退/前进/刷新 · 地址 · 工具），网页视图从它下方开始
 
 export interface ShellWindowOptions {
   preloadPath: string;
@@ -70,7 +70,6 @@ export class ShellWindow {
       webPreferences: { preload: options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false },
     });
     this.overlayView.setBackgroundColor('#00000000');
-    this.overlayView.setVisible(false);
     this.win.contentView.addChildView(this.overlayView);
     void this.overlayView.webContents.loadURL(options.overlayUrl);
 
@@ -94,31 +93,61 @@ export class ShellWindow {
   }
 
   /** 内容区矩形：rail 40 → gap 8 → 侧栏卡（宽 sidebarWidth）→ gap 8 → 面板卡；上下右留 8；再内缩 1px 边线（Laper ProjectEditorShell 的一行三卡） */
+  /** 网页视图矩形：面板卡内缩 1px 边线、贴边；有面板头部时上缘再向上伸 CONTENT_RADIUS 藏进头部（头部由 overlay 盖住） */
   contentBounds(): Rectangle {
+    const card = this.panelCardBounds();
+    const header = this.hasPanelHeader() ? HEADER_HEIGHT : 0;
+    const tuck = header ? CONTENT_RADIUS : 0;
+    return {
+      x: card.x + PANEL_BORDER,
+      y: card.y + PANEL_BORDER + header - tuck,
+      width: Math.max(0, card.width - PANEL_BORDER * 2),
+      height: Math.max(0, card.height - PANEL_BORDER * 2 - header + tuck),
+    };
+  }
+
+  /** 面板卡（SoftPanel）在窗口里的外框矩形 */
+  panelCardBounds(): Rectangle {
     const { width, height } = this.win.getContentBounds();
     const collapsed = this.layout.sidebarCollapsed;
-    const webModule = this.layout.module === 'browser' || this.layout.module === 'apps';
-    const inset = webModule ? PAGE_INSET : 0; // 面板头部之下网页是一张内缩的卡
-    const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER) + PANEL_BORDER + inset;
-    const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER + (webModule ? PANEL_HEADER : 0) + inset;
-    const right = GUTTER + (this.dockWidth ? this.dockWidth + GUTTER : 0) + inset;
-    return {
-      x: left,
-      y: top,
-      width: Math.max(0, width - left - right - PANEL_BORDER),
-      height: Math.max(0, height - top - GUTTER - PANEL_BORDER - inset),
-    };
+    const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER);
+    const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0);
+    const right = GUTTER + (this.dockWidth ? this.dockWidth + GUTTER : 0);
+    return { x: left, y: top, width: Math.max(0, width - left - right), height: Math.max(0, height - top - GUTTER) };
+  }
+
+  /** 浏览器与应用维度有面板头部（导航 · 地址 · 工具） */
+  private hasPanelHeader(): boolean {
+    return this.layout.module === 'browser' || this.layout.module === 'apps';
+  }
+
+  /** 面板头部条（含卡片上边线）在窗口里的矩形：overlay 平时就只有这么大 */
+  headerStrip(): Rectangle | null {
+    if (!this.hasPanelHeader()) return null;
+    const card = this.panelCardBounds();
+    return { x: card.x, y: card.y, width: card.width, height: HEADER_HEIGHT + PANEL_BORDER };
   }
 
   private applyBounds(): void {
     const { width, height } = this.win.getContentBounds();
     this.shellView.setBounds({ x: 0, y: 0, width, height });
-    this.overlayView.setBounds({ x: 0, y: 0, width, height });
+    this.applyOverlayBounds();
     const bounds = this.contentBounds();
     this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
     for (const l of this.boundsListeners) l();
   }
+
+  /** overlay：命令面板打开时铺满全窗，否则只有面板头部条那么大（盖住网页的上圆角、承接头部点击） */
+  private applyOverlayBounds(): void {
+    const { width, height } = this.win.getContentBounds();
+    const strip = this.headerStrip();
+    if (this.paletteOpen) this.overlayView.setBounds({ x: 0, y: 0, width, height });
+    else this.overlayView.setBounds(strip ?? { x: 0, y: 0, width: 0, height: 0 });
+    this.overlayView.setVisible(this.paletteOpen || !!strip);
+    this.overlayView.webContents.send(CHANNELS.event, { type: 'overlayLayout', header: strip, full: this.paletteOpen } satisfies ShellEvent);
+  }
+  private paletteOpen = false;
 
   /** 内容区（网页视图）在屏幕上的矩形：agent 光标层这张透明子窗口精确盖在它上面 */
   contentScreenBounds(): Rectangle {
@@ -197,15 +226,17 @@ export class ShellWindow {
 
   // ---------- 命令面板 ----------
   openPalette(event: Extract<ShellEvent, { type: 'openPalette' }>): void {
-    this.overlayView.setVisible(true);
+    this.paletteOpen = true;
     this.raise(this.overlayView);
+    this.applyOverlayBounds();
     this.overlayView.webContents.send(CHANNELS.event, event);
     this.overlayView.webContents.focus();
   }
 
   closePalette(): void {
-    if (!this.overlayView.getVisible()) return;
-    this.overlayView.setVisible(false);
+    if (!this.paletteOpen) return;
+    this.paletteOpen = false;
+    this.applyOverlayBounds();
     (this.contentView ?? this.shellView).webContents.focus();
   }
 

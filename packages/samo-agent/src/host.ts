@@ -24,6 +24,7 @@ const HOST_METHODS = [
   'animationHighlightMouseToPosition',
   'captureWindow', // Samo 扩展：截屏壳与当前标签页
   'useShell', // Samo 扩展（开发态）：把壳当作 target 驱动
+  'debugWindows', // Samo 扩展（开发态）：列出所有窗口的可见性与几何
 ] as const;
 
 export interface EgoHost {

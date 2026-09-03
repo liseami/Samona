@@ -227,6 +227,12 @@ export function registerIpc({ engine, downloads, menus, window, chat, chatWindow
       case 'apps.rescan':
         void apps.rescan();
         break;
+      case 'apps.pin':
+        apps.pin(command.id, command.pinned);
+        break;
+      case 'menu.app':
+        menus.app(command.id);
+        break;
       case 'layout.overview':
         store.setLayout({ overview: command.open });
         break;

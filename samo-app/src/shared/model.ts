@@ -152,6 +152,9 @@ export interface AppEntry {
   url: string;
   port?: number;
   process?: string; // 监听该端口的进程名（lsof）
+  icon?: string | null; // 网页的 favicon 地址（优先作 logo）
+  pinned?: boolean; // 固定在侧栏顶部（一排最多 4 个）
+  offline?: boolean; // 固定过但此刻没在跑
 }
 
 export interface BrowserSnapshot {

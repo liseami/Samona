@@ -1,12 +1,12 @@
 /**
  * [INPUT]: 依赖 ../browser/engine 的 BrowserEngine，./cdp-bridge 的 CdpBridge，./snapshot 的 buildSnapshot，./task-spaces 的翻译与错误工厂，@shared/model 的 NEW_TAB_URL/AGENT_IDENTITY_COLOR
- * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task identity 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell（开发态驱动壳），按连接持有「当前选中的 task identity」；VIEW_TARGET_PREFIX 常量
+ * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task identity 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell/debugWindows（开发态驱动壳与诊断窗口），按连接持有「当前选中的 task identity」；VIEW_TARGET_PREFIX 常量
  * [POS]: agent 模块的业务层，是 ego-browser 眼里的「浏览器」；所有可见性都以 selectedSpaceId 为界（phi 缺的服务端过滤在这里补上）。gateway 负责传输，它负责语义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { app, type WebContents } from 'electron';
+import { app, BaseWindow, type WebContents } from 'electron';
 import { AGENT_IDENTITY_COLOR, NEW_TAB_URL } from '@shared/model';
 import type { BrowserEngine } from '../browser/engine';
 import { CdpBridge } from './cdp-bridge';
@@ -79,6 +79,14 @@ export class AgentSession {
         this.shellMode = name;
         this.bridge.dispose(); // 切换目标时丢掉旧附着
         return {};
+      },
+      debugWindows: () => {
+        // 开发态诊断：所有窗口的可见性与几何（浮层/光标层是否真的在屏幕上）
+        if (!process.env.SAMO_DEBUG_SHELL) return egoError(EGO_CODE.operationFailed, 'debugWindows requires SAMO_DEBUG_SHELL=1');
+        return {
+          windows: BaseWindow.getAllWindows().map((w) => ({ title: w.getTitle(), visible: w.isVisible(), focused: w.isFocused(), bounds: w.getBounds() })),
+          aux: this.engine.auxWebContents().map(([name, wc]) => [name, wc.getURL()]),
+        };
       },
       ping: () => ({ ok: true }),
     };

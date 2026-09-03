@@ -14,7 +14,7 @@ Samo = 身份 × 模块。壳（shell）负责窗口、icon navi、侧栏几何�
 ## 三进程分工
 - **main**（Node）：唯一真相。持有身份/标签状态、每个标签的 WebContentsView、布局几何、agent 网关。
 - **preload**（沙盒 CJS）：把主进程能力收窄成 `window.samo`（invoke/getState/onState/onEvent）。
-- **renderer**（React）：只读镜像 + 命令出口。三层壳（icon navi + 模块侧栏 + 面板卡：头部 导航·地址·工具 + 面板体）是壳视图，红绿灯自绘；网页是主进程叠在面板头部之下的独立视图（内缩 6px 的圆角卡；非 browser/apps 模块或标签矩阵时隐藏）；agent 驱动可见身份时，一张点击穿透的透明子窗口在网页上画光标、动作标签与边缘发光；最上层还有透明的 overlay 视图承载 ⌘T 命令面板；壳之下有用户看不见的「后台视图」，供 agent 在用户看别处时继续工作。
+- **renderer**（React）：只读镜像 + 命令出口。三层壳（icon navi + 模块侧栏 + 面板卡：头部 导航·地址·工具 + 面板体）是壳视图，红绿灯自绘；网页是主进程叠在面板头部之下的独立视图（贴边、上缘藏进头部之下、下缘随面板圆角；头部同时住在最上层 overlay 里盖住那一截；非 browser/apps 模块或标签矩阵时隐藏；所有已加载视图不呈现时挂在壳之下的后台层，视口永远真实）；agent 驱动可见身份时，一张点击穿透的透明子窗口在网页上画光标、动作标签与边缘发光；最上层还有透明的 overlay 视图承载 ⌘T 命令面板；壳之下有用户看不见的「后台视图」，供 agent 在用户看别处时继续工作。
 - 开发态 `SAMO_DEBUG_SHELL=1 bun dev` 后，agent 可 `await ego.useShell()` 把壳当作 target，用 ego-browser 的 click/insertText/evaluate 驱动侧栏做端到端测试。
 
 ## 目录

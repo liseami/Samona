@@ -407,6 +407,7 @@ export class BrowserEngine {
     );
     if (tab.muted) view.webContents.setAudioMuted(true);
     this.store.updateTab(tabId, { discarded: false, loading: true });
+    this.window.attachBackground(view); // 一出生就有真实视口：未挂窗口的视图是 0×0，页面会在 0×0 下布局、之后只重排一半
     void view.webContents.loadURL(this.loadableUrl(tab.url)).catch(() => {});
     return view;
   }
@@ -469,18 +470,15 @@ export class BrowserEngine {
    * 后台层对账：每个 agent 持有的 Identity，其活动标签若不在前台，就压到壳之下继续绘制。
    * 幂等；由 store 变更触发。ensureLoaded 可能再次触发 emit，下一轮对账无事可做即收敛。
    */
+  /** 后台层 = 所有已加载但此刻没被呈现的视图（agent 的标签、应用标签、别的维度/身份的标签）：它们在壳之下继续绘制，随时能被呈现、截图、驱动 */
   private reconcileBackground(): void {
     const shown = this.window.currentContentView;
-    const wanted = new Set<WebContentsView>();
     for (const identity of this.store.allIdentities()) {
       if (identity.ownership === 'user') continue;
       const tab = this.store.activeTab(identity.id);
-      if (!tab) continue;
-      const view = this.ensureLoaded(tab.id);
-      if (view !== shown) wanted.add(view);
+      if (tab) this.ensureLoaded(tab.id); // agent 的活动标签必须活着
     }
-    for (const view of this.window.backgroundViews()) if (!wanted.has(view)) this.window.detach(view);
-    for (const view of wanted) this.window.attachBackground(view);
+    for (const view of this.views.values()) if (view !== shown) this.window.attachBackground(view);
   }
 
   // ============ 地址映射：真实加载地址 ↔ 对外公开地址 ============
