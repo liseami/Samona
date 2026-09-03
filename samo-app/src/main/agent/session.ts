@@ -169,6 +169,7 @@ export class AgentSession {
     };
     await grab('shell', this.engine.shellWebContents());
     if (this.engine.overlayVisible()) await grab('overlay', this.engine.overlayWebContents());
+    for (const [name, wc] of this.engine.auxWebContents()) await grab(name, wc);
     const tab = this.selectedSpaceId !== null ? this.engine.store.activeTab(this.selectedSpaceId) : this.engine.store.activeTab();
     await grab('content', tab ? this.engine.webContentsOf(tab.id) : undefined);
     return Object.keys(errors).length ? { ...files, errors } : files;

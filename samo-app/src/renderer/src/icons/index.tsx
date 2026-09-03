@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react，@shared/model 的 IdentityIcon/ModuleId，./pika/index.js（Laper 的 Pika 图标库，1200+ 描边图标，API: size/color/className/ariaLabel）
- * [OUTPUT]: 对外提供壳所需图标的语义命名（SidebarClose/SidebarOpen/ArrowLeft/ArrowRight/Refresh/Close/Plus/Lock/Search/Window/Clock/Globe/Bot/Hand/Spinner/VolumeOn/VolumeMute/ChevronRight/Folder/FolderOpen/Eraser/Bug/Settings/Download/Copy/Copied）、模块图标表 MODULE_ICON、身份图标表 IDENTITY_ICON 与 IconProps 类型；全部以装饰性（aria-hidden）渲染，按钮的可访问名由文字/aria-label 决定
+ * [OUTPUT]: 对外提供壳所需图标的语义命名（SidebarClose/SidebarOpen/ArrowLeft/ArrowRight/Refresh/Close/Plus/Lock/Search/Window/Clock/Globe/Bot/Hand/Spinner/VolumeOn/VolumeMute/ChevronRight/Folder/FolderOpen/Eraser/Bug/Settings/Download/Copy/Copied/StopIcon/SendIcon/ArrowLeftUpIcon/ArrowUpIcon/Menu/NewChat/Maximize/Minimize/ChevronDown/Clipboard/ClipboardOk/Paperclip）、模块图标表 MODULE_ICON、身份图标表 IDENTITY_ICON 与 IconProps 类型；全部以装饰性（aria-hidden）渲染，按钮的可访问名由文字/aria-label 决定
  * [POS]: renderer/icons 的语义层——组件只认语义名，换图标只改这里；pika/ 目录原样复制自 Laper，不手改
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -18,6 +18,18 @@ import {
   CopyCopied,
   CopyDefault,
   DiamondComponent,
+  StopSmall,
+  SendPlaneHorizontal,
+  ArrowLeftUp,
+  ArrowUp,
+  BurgerMenuThree,
+  MessagePlus,
+  MaximizeFourArrow,
+  MinimizeFourArrow,
+  ChevronBigDown,
+  ClipboardDefault,
+  ClipboardCheck,
+  PaperclipSlant,
   EnvelopeDefault,
   Film,
   GraduationHat,
@@ -98,6 +110,18 @@ export const Bug = d(PiBug);
 export const Settings = d(Settings01);
 export const Download = d(DownloadDown);
 export const Copy = d(CopyDefault);
+export const StopIcon = d(StopSmall);
+export const SendIcon = d(SendPlaneHorizontal);
+export const ArrowLeftUpIcon = d(ArrowLeftUp);
+export const ArrowUpIcon = d(ArrowUp);
+export const Menu = d(BurgerMenuThree);
+export const NewChat = d(MessagePlus);
+export const Maximize = d(MaximizeFourArrow);
+export const Minimize = d(MinimizeFourArrow);
+export const ChevronDown = d(ChevronBigDown);
+export const Clipboard = d(ClipboardDefault);
+export const ClipboardOk = d(ClipboardCheck);
+export const Paperclip = d(PaperclipSlant);
 export const Copied = d(CopyCopied);
 
 /** 模块图标：icon navi 的四个维度 */

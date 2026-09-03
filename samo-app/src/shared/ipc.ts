@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 ./model 的 BrowserSnapshot/IdentityColor/IdentityIcon/FolderColor/Suggestion 类型
- * [OUTPUT]: 对外提供 IPC 通道名常量 CHANNELS、渲染→主进程的 Command 联合类型与 Query 联合类型（带返回映射 QueryResult）、主进程→渲染的 ShellEvent 联合类型、PaletteMode、TabTarget 落点、SamoBridge 接口
+ * [INPUT]: 依赖 ./model 的 BrowserSnapshot/IdentityColor/IdentityIcon/ModuleId/FolderColor/Suggestion 类型，./chat 的 ChatMode/ChatSnapshot
+ * [OUTPUT]: 对外提供 IPC 通道名常量 CHANNELS（含对话专用通道）、渲染→主进程的 Command 联合类型与 Query 联合类型（带返回映射 QueryResult）、主进程→渲染的 ShellEvent 联合类型、PaletteMode、TabTarget 落点、SamoBridge 接口
  * [POS]: shared 的进程间契约；preload 按 SamoBridge 暴露 window.samo，主进程 ipc/handlers 按 Command/Query 分发。新增能力 = 新增一个联合成员 + 一个 case，不改旧路径
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { BrowserSnapshot, FolderColor, IdentityColor, IdentityIcon, ModuleId, Suggestion } from './model';
+import type { ChatMode, ChatSnapshot } from './chat';
 
 export const CHANNELS = {
   invoke: 'samo:invoke', // renderer → main（命令，无返回）
@@ -12,6 +13,8 @@ export const CHANNELS = {
   getState: 'samo:get-state', // renderer → main（拉取一次全量快照）
   state: 'samo:state', // main → renderer（全量快照推送）
   event: 'samo:event', // main → renderer（一次性事件，如聚焦地址栏）
+  getChat: 'samo:get-chat', // renderer → main（拉取一次对话快照）
+  chat: 'samo:chat', // main → renderer（对话快照推送，独立于浏览器快照以免消息体拖慢标签更新）
 } as const;
 
 /** 标签移动的落点：Identity（null = 收藏区）、是否固定、所属文件夹、同区内序号 */
@@ -70,6 +73,14 @@ export type Command =
   // ---- 命令面板（叠在网页之上的 overlay 视图） ----
   | { type: 'palette.open'; mode: PaletteMode }
   | { type: 'palette.close' }
+  // ---- AI 对话（launcher / 浮窗 / 停靠卡三处共用） ----
+  | { type: 'chat.setMode'; mode: ChatMode }
+  | { type: 'chat.send'; text: string }
+  | { type: 'chat.stop' }
+  | { type: 'chat.newThread' }
+  | { type: 'chat.switchThread'; threadId: string }
+  | { type: 'chat.deleteThread'; threadId: string }
+  | { type: 'chat.setDockWidth'; width: number }
   // ---- 壳：模块与窗口（自绘红绿灯） ----
   | { type: 'module.activate'; module: ModuleId }
   | { type: 'window.close' }
@@ -102,4 +113,6 @@ export interface SamoBridge {
   getState(): Promise<BrowserSnapshot>;
   onState(listener: (snapshot: BrowserSnapshot) => void): () => void;
   onEvent(listener: (event: ShellEvent) => void): () => void;
+  getChat(): Promise<ChatSnapshot>;
+  onChat(listener: (snapshot: ChatSnapshot) => void): () => void;
 }

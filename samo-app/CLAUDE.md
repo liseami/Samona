@@ -8,6 +8,9 @@ Electron 44 (BaseWindow + WebContentsView) + electron-vite 5 + Vite 8 + React 19
 ## 产品架构
 Samo = 身份 × 模块。壳（shell）负责窗口、icon navi、侧栏几何——页面底是 sidebar 色，rail 与底同色，侧栏与面板是两张同质卡片（Laper 剧本项目的 ProjectEditorShell）；每个模块交出侧栏 + 面板 + 头部动作（modules/registry）。浏览器是第一个模块，它的面板是主进程叠上来的网页视图；邮件 / 知识库 / 网盘是后续模块。身份（独立登录态）是跨模块的主键。
 
+## AI 对话
+真相在主进程 chat/（线程、消息、流式、形态）。三形态：closed（右下角 Laper 药丸 launcher）、floating（可拖出应用、可缩放的子窗口）、docked（面板卡右侧的第四张卡）。回答者是 ChatProvider 插槽，现为本地回声 stub，接模型/agent 时只换实现。⌘I 开关。
+
 ## 三进程分工
 - **main**（Node）：唯一真相。持有身份/标签状态、每个标签的 WebContentsView、布局几何、agent 网关。
 - **preload**（沙盒 CJS）：把主进程能力收窄成 `window.samo`（invoke/getState/onState/onEvent）。
@@ -17,7 +20,7 @@ Samo = 身份 × 模块。壳（shell）负责窗口、icon navi、侧栏几何�
 ## 目录
 src/main/ - 主进程（browser 引擎/状态/历史/下载、shell 窗口几何、ipc 命令与查询、menus 原生右键、agent 网关、menu 快捷键）
 src/preload/ - contextBridge 桥
-src/renderer/ - 壳页 index.html（shell/ + modules/）、命令面板 overlay.html、新标签页 newtab.html（共用 styles.css；icons/ 为 Laper 的 Pika 图标库）
+src/renderer/ - 壳页 index.html（shell/ + modules/ + chat/ 停靠卡）、命令面板 overlay.html、对话入口 launcher.html、对话浮窗 chat.html、新标签页 newtab.html（共用 styles.css；icons/ 为 Laper 的 Pika 图标库）
 src/shared/ - 三方共享的模型、IPC 契约、URL 语义（零运行时依赖）
 
 ## 配置
@@ -32,7 +35,7 @@ bun run dev        # 从仓库根：bun dev
 bun run typecheck
 bun run build      # 产物 out/
 ```
-用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（身份/标签落盘 v3）、history.json、Partitions/<identity-*>（每个身份的登录态）、agent-gateway.json（网关指针，0600）。
+用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（身份/标签落盘 v3）、history.json、chat.json（对话线程与消息）、Partitions/<identity-*>（每个身份的登录态）、agent-gateway.json（网关指针，0600）。
 开发态 `SAMO_DEBUG_SHELL=1 bun dev` 后 agent 可用 `ego.useShell()` / `ego.useShell('overlay')` 驱动壳与命令面板做端到端测试。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置

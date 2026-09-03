@@ -1,11 +1,12 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列的 contentBounds 布局算法
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 右下角 launcher 视图（setLauncherVisible）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列与停靠对话卡（setDock）的 contentBounds 布局算法
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, RAIL_WIDTH, type Layout } from '@shared/model';
+import { CHAT_DEFAULTS } from '@shared/chat';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
@@ -18,6 +19,7 @@ export interface ShellWindowOptions {
   preloadPath: string;
   shellUrl: string; // dev: http://localhost:5173/index.html ；prod: file://…/index.html
   overlayUrl: string; // 命令面板页（透明，叠在最上层）
+  launcherUrl: string; // 右下角 AI 对话 launcher（透明小视图，常驻）
   isDev: boolean;
 }
 
@@ -25,8 +27,10 @@ export class ShellWindow {
   readonly win: BaseWindow;
   readonly shellView: WebContentsView;
   readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
+  readonly launcherView: WebContentsView; // 右下角 AI 对话 launcher：透明小视图，压在网页之上、命令面板之下
   private contentView: WebContentsView | null = null;
   private contentVisible = true; // 非浏览器模块时隐藏网页视图，面板由模块自己渲染
+  private dockWidth = 0; // 停靠的对话卡宽度（0 = 未停靠）
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
   private layout: Layout = { ...DEFAULT_LAYOUT };
 
@@ -71,6 +75,15 @@ export class ShellWindow {
     this.win.contentView.addChildView(this.overlayView);
     void this.overlayView.webContents.loadURL(options.overlayUrl);
 
+    // ---- 右下角 launcher：透明小视图，只有圆形按钮命中 ----
+    this.launcherView = new WebContentsView({
+      webPreferences: { preload: options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    this.launcherView.setBackgroundColor('#00000000');
+    this.win.contentView.addChildView(this.launcherView);
+    this.win.contentView.addChildView(this.overlayView); // overlay 仍在最上
+    void this.launcherView.webContents.loadURL(options.launcherUrl);
+
     this.win.on('resize', () => this.applyBounds());
     this.shellView.webContents.once('did-finish-load', () => {
       if (!this.win.isVisible()) this.win.show();
@@ -95,10 +108,11 @@ export class ShellWindow {
     const collapsed = this.layout.sidebarCollapsed;
     const left = RAIL_WIDTH + GUTTER + (collapsed ? 0 : this.layout.sidebarWidth + GUTTER) + PANEL_BORDER;
     const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER;
+    const right = GUTTER + (this.dockWidth ? this.dockWidth + GUTTER : 0);
     return {
       x: left,
       y: top,
-      width: Math.max(0, width - left - GUTTER - PANEL_BORDER),
+      width: Math.max(0, width - left - right - PANEL_BORDER),
       height: Math.max(0, height - top - GUTTER - PANEL_BORDER),
     };
   }
@@ -110,6 +124,23 @@ export class ShellWindow {
     const bounds = this.contentBounds();
     this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
+    const { width: pw, height: ph } = CHAT_DEFAULTS.launcherPill;
+    const bleed = CHAT_DEFAULTS.launcherBleed;
+    const m = CHAT_DEFAULTS.launcherMargin;
+    const lw = pw + bleed * 2;
+    const lh = ph + bleed * 2;
+    this.launcherView.setBounds({ x: width - m - pw - bleed, y: height - m - ph - bleed, width: lw, height: lh });
+  }
+
+  /** 停靠的对话卡：内容区右侧让出 width + gap */
+  setDock(width: number): void {
+    if (this.dockWidth === width) return;
+    this.dockWidth = width;
+    this.applyBounds();
+  }
+
+  setLauncherVisible(visible: boolean): void {
+    this.launcherView.setVisible(visible);
   }
 
   // ---------- 内容视图槽位（同一时刻只有一个标签页视图在窗口里） ----------
@@ -126,7 +157,8 @@ export class ShellWindow {
       this.background.delete(view);
       applyRadius(view, CONTENT_RADIUS);
       this.win.contentView.addChildView(view); // 已是子视图时会被重排到最上层
-      this.win.contentView.addChildView(this.overlayView); // overlay 永远压在内容之上
+      this.win.contentView.addChildView(this.launcherView); // launcher 压在内容之上
+      this.win.contentView.addChildView(this.overlayView); // overlay 永远最上
       view.setBounds(this.contentBounds());
       view.setVisible(this.contentVisible);
       if (this.contentVisible) view.webContents.focus();

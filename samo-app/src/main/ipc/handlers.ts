@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 ipcMain，@shared/ipc 的 CHANNELS/Command/Query，@shared/model 的 Suggestion/tabTitle，@shared/url 的 resolveInput，../browser/{engine,downloads} 与 ../menus/context-menu，../shell/window
- * [OUTPUT]: 对外提供 registerIpc(deps)：把渲染层的 Command 联合逐一映射到 engine/downloads/menus 动作，Query（suggest）合并「打开的标签 + 历史 + 直达/搜索」返回建议，并把 store 快照推给壳
+ * [OUTPUT]: 对外提供 registerIpc(deps)：把渲染层的 Command 联合逐一映射到 engine/downloads/menus/chat/window 动作，Query（suggest）合并「打开的标签 + 历史 + 直达/搜索」返回建议，并把 store 快照推给壳
  * [POS]: ipc 模块的唯一成员，是渲染层与主进程之间唯一的命令/查询入口；新增命令只需在 switch 增加一个 case
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,6 +11,7 @@ import { resolveInput } from '@shared/url';
 import type { BrowserEngine } from '../browser/engine';
 import type { DownloadManager } from '../browser/downloads';
 import type { ContextMenus } from '../menus/context-menu';
+import type { ChatService } from '../chat/service';
 import type { ShellWindow } from '../shell/window';
 
 export interface IpcDeps {
@@ -18,11 +19,13 @@ export interface IpcDeps {
   downloads: DownloadManager;
   menus: ContextMenus;
   window: ShellWindow;
+  chat: ChatService;
 }
 
-export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
+  ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
   store.subscribe((snapshot) => window.send(CHANNELS.state, snapshot));
 
   ipcMain.handle(CHANNELS.query, (_event, query: Query) => {
@@ -165,6 +168,28 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
         break;
       case 'palette.close':
         window.closePalette();
+        break;
+      // ---- AI 对话 ----
+      case 'chat.setMode':
+        chat.setMode(command.mode);
+        break;
+      case 'chat.send':
+        void chat.send(command.text);
+        break;
+      case 'chat.stop':
+        chat.stop();
+        break;
+      case 'chat.newThread':
+        chat.newThread();
+        break;
+      case 'chat.switchThread':
+        chat.switchThread(command.threadId);
+        break;
+      case 'chat.deleteThread':
+        chat.deleteThread(command.threadId);
+        break;
+      case 'chat.setDockWidth':
+        chat.store.setDockWidth(command.width);
         break;
       // ---- 壳：模块与窗口 ----
       case 'module.activate':

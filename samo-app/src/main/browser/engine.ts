@@ -381,6 +381,19 @@ export class BrowserEngine {
   shellWebContents(): WebContents {
     return this.window.shellView.webContents;
   }
+  /** 辅助视图登记（launcher / 浮窗对话…），供 agent 网关截屏；宿主在装配时注册 */
+  private aux = new Map<string, () => WebContents | null>();
+  registerAux(name: string, getter: () => WebContents | null): void {
+    this.aux.set(name, getter);
+  }
+  auxWebContents(): [string, WebContents][] {
+    const out: [string, WebContents][] = [];
+    for (const [name, get] of this.aux) {
+      const wc = get();
+      if (wc && !wc.isDestroyed()) out.push([name, wc]);
+    }
+    return out;
+  }
   overlayWebContents(): WebContents {
     return this.window.overlayView.webContents;
   }

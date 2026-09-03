@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 electron 的 Menu/app，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，@shared/ipc 的 CHANNELS/ShellEvent
+ * [INPUT]: 依赖 electron 的 Menu/app，./browser/engine 的 BrowserEngine，./shell/window 的 ShellWindow，./chat/service 的 ChatService，@shared/ipc 的 CHANNELS/ShellEvent
  * [OUTPUT]: 对外提供 installMenu(engine, window)：应用菜单与全部快捷键（⌘T/⌘L/⌘W/⇧⌘T/⇧⌘A/⌃Tab/⌘S/⌘[ ]/⌘R/⌘1-9/⌃1-9/⌥⌘←→/⇧⌘N/⇧⌘C/⌘D…，沿用 phi 与 Arc 的默认键位）
  * [POS]: main 的输入路由，把菜单加速键翻译成 engine 动作或壳事件；渲染层不自行监听全局快捷键，避免两处真相
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,8 +8,9 @@ import { Menu, app, type MenuItemConstructorOptions } from 'electron';
 import { CHANNELS, type PaletteMode, type ShellEvent } from '@shared/ipc';
 import type { BrowserEngine } from './browser/engine';
 import type { ShellWindow } from './shell/window';
+import type { ChatService } from './chat/service';
 
-export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
+export function installMenu(engine: BrowserEngine, window: ShellWindow, chat: ChatService): void {
   // 需要键盘落到壳里的事件，先把 OS 焦点从网页视图挪回壳视图，否则 ⌘T/⌘L 之后敲的字会进网页
   const { store } = engine;
   const emit = (event: ShellEvent) => {
@@ -53,6 +54,7 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
         { label: 'Open Location', accelerator: 'CmdOrCtrl+L', click: () => palette('editUrl') },
         { label: 'Search Tabs', accelerator: 'CmdOrCtrl+Shift+A', click: () => palette('searchTabs') },
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+S', click: () => store.setLayout({ sidebarCollapsed: !store.getLayout().sidebarCollapsed }) },
+        { label: 'Toggle Samo AI', accelerator: 'CmdOrCtrl+I', click: () => chat.setMode(chat.store.currentMode === 'closed' ? 'floating' : 'closed') },
         { type: 'separator' },
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => engine.reload() },
         { label: 'Developer Tools', accelerator: isMac ? 'Alt+Cmd+I' : 'Ctrl+Shift+I', click: () => engine.openDevTools() },
