@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react';
-import { Globe } from '../../icons';
+import { Globe } from '../../../icons';
 import { NEW_TAB_URL, type Tab } from '@shared/model';
 
 export function Favicon({ tab, size = 16 }: { tab: Tab; size?: number }) {

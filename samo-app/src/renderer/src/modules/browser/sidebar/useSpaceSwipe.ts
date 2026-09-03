@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useCallback, useRef, type WheelEvent } from 'react';
-import { send } from '../../store/browser';
+import { send } from '../../../store/browser';
 
 const THRESHOLD = 50;
 const GESTURE_IDLE_MS = 300;

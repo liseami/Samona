@@ -4,8 +4,8 @@
  * [POS]: renderer/components/sidebar 的顶部网格；identityId 为 null 的标签在此
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { CONTAINER } from '../../lib/dnd';
-import { selectActiveTabId, useBrowser, useFavorites } from '../../store/browser';
+import { CONTAINER } from '../../../lib/dnd';
+import { selectActiveTabId, useBrowser, useFavorites } from '../../../store/browser';
 import { IconGrid } from './IconGrid';
 
 export function FavoritesGrid() {

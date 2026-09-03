@@ -31,6 +31,7 @@ export class BrowserEngine {
   ) {
     store.subscribe((snap) => {
       window.setLayout({ ...snap.layout, sidebarCollapsed: snap.layout.sidebarCollapsed && !snap.sidebarPeek });
+      window.setContentVisible(snap.layout.module === 'browser');
       this.reconcileBackground();
     });
   }

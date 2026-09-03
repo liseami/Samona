@@ -6,11 +6,11 @@
  */
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { ChevronRight, Folder as FolderIcon } from '../../icons';
+import { ChevronRight, Folder as FolderIcon } from '../../../icons';
 import { IDENTITY_COLOR_HEX, type Folder, type Tab } from '@shared/model';
-import { folderContainerId, folderHeadId, tabDragId } from '../../lib/dnd';
-import { cn } from '../../lib/utils';
-import { send, useBrowser } from '../../store/browser';
+import { folderContainerId, folderHeadId, tabDragId } from '../../../lib/dnd';
+import { cn } from '../../../lib/utils';
+import { send, useBrowser } from '../../../store/browser';
 import { InlineEdit } from './InlineEdit';
 import { TabItem } from './TabItem';
 

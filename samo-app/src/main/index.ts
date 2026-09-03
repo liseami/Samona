@@ -62,6 +62,10 @@ async function bootstrap(): Promise<void> {
 
   registerIpc({ engine, downloads, menus, window });
   installMenu(engine, window);
+  window.win.on('focus', () => store.setFocused(true));
+  window.win.on('blur', () => store.setFocused(false));
+  window.win.on('enter-full-screen', () => store.setFullscreen(true));
+  window.win.on('leave-full-screen', () => store.setFullscreen(false));
 
   const stateFile = join(userData, 'browser-state.json');
   const persisted = await loadState(stateFile);

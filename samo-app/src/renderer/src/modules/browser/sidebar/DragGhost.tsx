@@ -5,9 +5,9 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { tabTitle } from '@shared/model';
-import { parseDndId } from '../../lib/dnd';
-import { useBrowser } from '../../store/browser';
-import { IDENTITY_ICON } from '../../icons';
+import { parseDndId } from '../../../lib/dnd';
+import { useBrowser } from '../../../store/browser';
+import { IDENTITY_ICON } from '../../../icons';
 import { Favicon } from './Favicon';
 
 export function DragGhost({ dndId }: { dndId: string }) {

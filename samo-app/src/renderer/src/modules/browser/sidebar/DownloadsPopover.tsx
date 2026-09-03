@@ -4,13 +4,13 @@
  * [POS]: renderer/components/sidebar 底栏的下载入口；数据来自快照的 downloads
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { Download as DownloadIcon, FolderOpen, Close } from '../../icons';
+import { Download as DownloadIcon, FolderOpen, Close } from '../../../icons';
 import type { Download } from '@shared/model';
-import { cn } from '../../lib/utils';
-import { send, useBrowser } from '../../store/browser';
-import { Button } from '../ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Tip } from '../ui/tooltip';
+import { cn } from '../../../lib/utils';
+import { send, useBrowser } from '../../../store/browser';
+import { Button } from '../../../components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
+import { Tip } from '../../../components/ui/tooltip';
 
 export function DownloadsPopover() {
   const downloads = useBrowser((s) => s.snapshot?.downloads ?? []);

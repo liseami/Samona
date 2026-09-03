@@ -1,14 +1,13 @@
-# components/sidebar/
-> L2 | 父级: ../../../CLAUDE.md
+# modules/browser/sidebar/
+> L2 | 父级: ../../CLAUDE.md
 
-Arc 级的侧栏管理层。自上而下：头部（拖拽区 + 交通灯留白 + 折叠 + 后退/前进/刷新）→ 地址展示条（点击开命令面板）→ agent 控制条 → 收藏网格（跨身份）→ 固定网格（本身份）→ 文件夹与散装标签（分隔线上悬停 Clear）→ 底部身份栏（身份 pip + 新建 | 下载 + DevTools）；右缘拖拽调宽。
+浏览器模块的 Arc 级侧栏。自上而下（头部、宽度与拖拽调宽属于壳）：地址展示条（点击开命令面板）→ agent 控制条 → 收藏网格（跨身份）→ 固定网格（本身份）→ 文件夹与散装标签（分隔线上悬停 Clear）→ 底部身份栏（身份 pip + 新建 | 下载 + DevTools）；右缘拖拽调宽。
 
-「身份」（Identity）取代 Arc 的 Space：一个身份 = 一套独立的登录态（session 分区）+ 它名下的标签；图标只用 Pika（禁止 emoji）。唯一的 DndContext 在 Sidebar：每个分区只是登记 sortable/droppable，落点如何变成 `tab.move`/`identity.reorder` 全在 lib/dnd.ts 的 resolveDrop。所有右键菜单都是主进程的原生 Menu（menu.* 命令），需要内联 UI 的动作（重命名/编辑身份）由主进程用 ShellEvent 交回来。输入与建议全在 overlay 的命令面板里，侧栏不再有第二套建议 UI。密度与选中态取自 Laper：行高 32、活动项 = 浮起白卡（bg-card + border + shadow-sm）、悬停 sidebar-accent/66。
+「身份」（Identity）取代 Arc 的 Space：一个身份 = 一套独立的登录态（session 分区）+ 它名下的标签；图标只用 Pika（禁止 emoji）。唯一的 DndContext 在 BrowserSidebar：每个分区只是登记 sortable/droppable，落点如何变成 `tab.move`/`identity.reorder` 全在 lib/dnd.ts 的 resolveDrop。所有右键菜单都是主进程的原生 Menu（menu.* 命令），需要内联 UI 的动作（重命名/编辑身份）由主进程用 ShellEvent 交回来。输入与建议全在 overlay 的命令面板里，侧栏不再有第二套建议 UI。密度与选中态取自 Laper：行高 32、活动项 = 浮起白卡（bg-card + border + shadow-sm）、悬停 sidebar-accent/66。
 
 ## 成员清单
-Sidebar.tsx: 容器 + DndContext（PointerSensor 8px、键盘传感器、sidebarCollision）+ onDragEnd 仲裁 + DraggingContext（拖拽中显示空态落点）+ 双指横滑 + peek 收回。
+BrowserSidebar.tsx: 容器 + DndContext（PointerSensor 8px、键盘传感器、sidebarCollision）+ onDragEnd 仲裁 + DraggingContext（拖拽中显示空态落点）+ 双指横滑 + peek 收回。
 useSpaceSwipe.ts: 双指横滑切身份（轴锁定、阈值 50、每手势一次）。
-SidebarHeader.tsx: 40px 拖拽行，后退/前进/刷新（加载中变停止）。
 Omnibox.tsx: 地址展示条——显示当前标签短地址与 ⌘L/⌘T 键帽，点击打开命令面板。
 AgentBanner.tsx: agent 持有的身份显示动作标签与 Take control / Hand back。
 IconGrid.tsx: 收藏/固定共用的图标网格（rectSortingStrategy，整块是落点，拖拽中显示虚线空态）。
@@ -22,8 +21,6 @@ DragGhost.tsx: DragOverlay 里跟随指针的浮起卡片（标签行 / 身份 p
 IdentityBar.tsx: 底部身份栏——身份 pip（Pika 图标、可拖排序、活动项白卡 + 强调色着色、agent 角标、也是「拖标签到此身份」的落点）+ 新建；右侧下载浮层与 DevTools。
 IdentityEditor.tsx: 锚在身份栏上的 Popover——名称、Pika 图标网格、七色色板即时生效，删除（至少保留一个）。
 DownloadsPopover.tsx: 下载列表浮层（进度、打开、在访达中显示、取消、清空）。
-Resizer.tsx: 右缘拖拽调宽（rAF 节流写回 layout.sidebar）。
-EdgePeek.tsx: 折叠态的贴边热区（悬停 peek）与顶部展开按钮。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

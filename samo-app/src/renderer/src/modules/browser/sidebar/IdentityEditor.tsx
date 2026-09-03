@@ -6,12 +6,12 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { IDENTITY_COLORS, IDENTITY_COLOR_HEX, IDENTITY_ICONS } from '@shared/model';
-import { IDENTITY_ICON } from '../../icons';
-import { cn } from '../../lib/utils';
-import { send, useBrowser } from '../../store/browser';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Popover, PopoverAnchor, PopoverContent } from '../ui/popover';
+import { IDENTITY_ICON } from '../../../icons';
+import { cn } from '../../../lib/utils';
+import { send, useBrowser } from '../../../store/browser';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Popover, PopoverAnchor, PopoverContent } from '../../../components/ui/popover';
 
 export function IdentityEditor({ children }: { children: ReactNode }) {
   const request = useBrowser((s) => s.identityEditor);

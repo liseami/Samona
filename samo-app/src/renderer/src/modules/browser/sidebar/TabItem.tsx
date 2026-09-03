@@ -6,11 +6,11 @@
  */
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Spinner, VolumeOn, VolumeMute, Close } from '../../icons';
+import { Spinner, VolumeOn, VolumeMute, Close } from '../../../icons';
 import { tabTitle, type Tab } from '@shared/model';
-import { tabDragId } from '../../lib/dnd';
-import { cn } from '../../lib/utils';
-import { send, useBrowser } from '../../store/browser';
+import { tabDragId } from '../../../lib/dnd';
+import { cn } from '../../../lib/utils';
+import { send, useBrowser } from '../../../store/browser';
 import { Favicon } from './Favicon';
 import { InlineEdit } from './InlineEdit';
 

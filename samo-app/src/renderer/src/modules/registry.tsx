@@ -1,0 +1,32 @@
+/**
+ * [INPUT]: 依赖 react 的 ComponentType，@shared/model 的 ModuleId，./browser/{sidebar/BrowserSidebar,BrowserPanel,BrowserHeaderActions}，./placeholder/Placeholder
+ * [OUTPUT]: 对外提供 ModuleDef 类型与 MODULE_REGISTRY：每个模块 = 侧栏 + 面板 + 可选的头部动作；壳按 layout.module 取用
+ * [POS]: modules 的注册表——Samo 是「身份 × 模块」的应用，浏览器只是第一个模块；新模块 = 新目录 + 这里一行
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+import type { ComponentType } from 'react';
+import type { ModuleId } from '@shared/model';
+import { BrowserSidebar } from './browser/sidebar/BrowserSidebar';
+import { BrowserPanel } from './browser/BrowserPanel';
+import { BrowserHeaderActions } from './browser/BrowserHeaderActions';
+import { PlaceholderPanel, PlaceholderSidebar } from './placeholder/Placeholder';
+
+export interface ModuleDef {
+  id: ModuleId;
+  Sidebar: ComponentType;
+  Panel: ComponentType;
+  HeaderActions?: ComponentType;
+}
+
+const placeholder = (id: ModuleId, label: string, blurb: string): ModuleDef => ({
+  id,
+  Sidebar: () => <PlaceholderSidebar label={label} />,
+  Panel: () => <PlaceholderPanel label={label} blurb={blurb} />,
+});
+
+export const MODULE_REGISTRY: Record<ModuleId, ModuleDef> = {
+  browser: { id: 'browser', Sidebar: BrowserSidebar, Panel: BrowserPanel, HeaderActions: BrowserHeaderActions },
+  mail: placeholder('mail', 'Mail', 'One inbox per identity. Coming soon.'),
+  knowledge: placeholder('knowledge', 'Knowledge', 'Everything you read, kept and searchable. Coming soon.'),
+  drive: placeholder('drive', 'Drive', 'Your files, next to your apps. Coming soon.'),
+};

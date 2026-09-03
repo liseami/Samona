@@ -6,13 +6,13 @@
  */
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Eraser, Plus } from '../../icons';
-import { CONTAINER, tabDragId } from '../../lib/dnd';
-import { cn } from '../../lib/utils';
-import { selectActiveTabId, send, useBrowser, useIdentityFolders, useIdentityTabs } from '../../store/browser';
+import { Eraser, Plus } from '../../../icons';
+import { CONTAINER, tabDragId } from '../../../lib/dnd';
+import { cn } from '../../../lib/utils';
+import { selectActiveTabId, send, useBrowser, useIdentityFolders, useIdentityTabs } from '../../../store/browser';
 import { FolderRow } from './FolderRow';
 import { TabItem } from './TabItem';
-import { Tip } from '../ui/tooltip';
+import { Tip } from '../../../components/ui/tooltip';
 
 export function TabList() {
   const identityId = useBrowser((s) => s.snapshot?.activeIdentityId ?? 0);

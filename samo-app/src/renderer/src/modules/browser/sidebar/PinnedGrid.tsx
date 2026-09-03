@@ -4,8 +4,8 @@
  * [POS]: renderer/components/sidebar 的 Identity 固定区，位于收藏之下、标签列表之上
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { CONTAINER } from '../../lib/dnd';
-import { selectActiveTabId, useBrowser, useIdentityTabs } from '../../store/browser';
+import { CONTAINER } from '../../../lib/dnd';
+import { selectActiveTabId, useBrowser, useIdentityTabs } from '../../../store/browser';
 import { IconGrid } from './IconGrid';
 
 export function PinnedGrid() {

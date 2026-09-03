@@ -6,7 +6,7 @@
  */
 import { useRef } from 'react';
 import { SIDEBAR_MAX, SIDEBAR_MIN } from '@shared/model';
-import { send, useBrowser } from '../../store/browser';
+import { send, useBrowser } from '../store/browser';
 
 export function Resizer() {
   const width = useBrowser((s) => s.snapshot?.layout.sidebarWidth ?? 264);

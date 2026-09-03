@@ -5,9 +5,9 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { displayUrl } from '@shared/url';
-import { Lock, Search } from '../../icons';
-import { selectActiveTab, send, useBrowser } from '../../store/browser';
-import { Kbd } from '../ui/kbd';
+import { Lock, Search } from '../../../icons';
+import { selectActiveTab, send, useBrowser } from '../../../store/browser';
+import { Kbd } from '../../../components/ui/kbd';
 
 export function Omnibox() {
   const tab = useBrowser(selectActiveTab);

@@ -8,9 +8,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Command, PaletteMode, Query } from '@shared/ipc';
 import type { Suggestion } from '@shared/model';
 import { displayUrl } from '@shared/url';
-import { ArrowRight, Clock, Close, Globe, Search, Window } from '../icons';
-import { Keycap } from '../components/ui/keycap';
-import { cn } from '../lib/utils';
+import { ArrowRight, Clock, Close, Globe, Search, Window } from '../../../icons';
+import { Keycap } from '../../../components/ui/keycap';
+import { cn } from '../../../lib/utils';
 
 const DEBOUNCE_MS = 100;
 const send = (c: Command) => void window.samo.invoke(c);

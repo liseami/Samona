@@ -7,12 +7,12 @@
 import { SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { IDENTITY_COLOR_HEX, type Identity } from '@shared/model';
-import { Bug, IDENTITY_ICON, Plus } from '../../icons';
-import { identityDragId } from '../../lib/dnd';
-import { cn } from '../../lib/utils';
-import { send, useBrowser } from '../../store/browser';
-import { Button } from '../ui/button';
-import { Tip } from '../ui/tooltip';
+import { Bug, IDENTITY_ICON, Plus } from '../../../icons';
+import { identityDragId } from '../../../lib/dnd';
+import { cn } from '../../../lib/utils';
+import { send, useBrowser } from '../../../store/browser';
+import { Button } from '../../../components/ui/button';
+import { Tip } from '../../../components/ui/tooltip';
 import { DownloadsPopover } from './DownloadsPopover';
 
 export function IdentityBar() {

@@ -4,7 +4,7 @@
  * [POS]: shared 的进程间契约；preload 按 SamoBridge 暴露 window.samo，主进程 ipc/handlers 按 Command/Query 分发。新增能力 = 新增一个联合成员 + 一个 case，不改旧路径
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { BrowserSnapshot, FolderColor, IdentityColor, IdentityIcon, Suggestion } from './model';
+import type { BrowserSnapshot, FolderColor, IdentityColor, IdentityIcon, ModuleId, Suggestion } from './model';
 
 export const CHANNELS = {
   invoke: 'samo:invoke', // renderer → main（命令，无返回）
@@ -70,6 +70,11 @@ export type Command =
   // ---- 命令面板（叠在网页之上的 overlay 视图） ----
   | { type: 'palette.open'; mode: PaletteMode }
   | { type: 'palette.close' }
+  // ---- 壳：模块与窗口（自绘红绿灯） ----
+  | { type: 'module.activate'; module: ModuleId }
+  | { type: 'window.close' }
+  | { type: 'window.minimize' }
+  | { type: 'window.zoom'; fullscreen?: boolean } // 绿灯：默认全屏；⌥点击 = 最大化/还原
   // ---- 布局与壳 ----
   | { type: 'layout.sidebar'; width?: number; collapsed?: boolean }
   | { type: 'layout.peek'; peek: boolean }

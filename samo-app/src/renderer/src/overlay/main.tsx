@@ -6,7 +6,7 @@
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Palette } from './Palette';
+import { Palette } from '../modules/browser/palette/Palette';
 import '../styles.css';
 
 const syncDark = (dark: boolean) => document.documentElement.classList.toggle('dark', dark);

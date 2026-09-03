@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/Layout/BrowserSnapshot 数据模型、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
+ * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
  * [POS]: shared 的领域模型根，主进程是唯一写者，渲染进程与 agent 网关只读；三方共享同一份真相定义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -116,12 +116,23 @@ export interface Download {
   startedAt: number;
 }
 
+// ============ 模块：Samo 是「身份 × 模块」的应用，浏览器只是第一个模块 ============
+export const MODULES = [
+  { id: 'browser', label: 'Browser', ready: true },
+  { id: 'mail', label: 'Mail', ready: false },
+  { id: 'knowledge', label: 'Knowledge', ready: false },
+  { id: 'drive', label: 'Drive', ready: false },
+] as const;
+export type ModuleId = (typeof MODULES)[number]['id'];
+
 export interface Layout {
+  module: ModuleId; // 当前展示的模块：非 browser 时网页视图隐藏，面板由模块自己渲染
   sidebarWidth: number;
   sidebarCollapsed: boolean;
 }
 
-export const DEFAULT_LAYOUT: Layout = { sidebarWidth: 264, sidebarCollapsed: false };
+export const DEFAULT_LAYOUT: Layout = { module: 'browser', sidebarWidth: 264, sidebarCollapsed: false };
+export const RAIL_WIDTH = 40; // 左缘 icon 导航栏（Laper ProjectNavRail 的 40px 占位列）
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 420;
 export const CLOSED_STACK_MAX = 25;
@@ -139,6 +150,8 @@ export interface BrowserSnapshot {
   sidebarPeek: boolean; // 折叠态下鼠标贴边临时展开
   closedCount: number; // 可重开的已关闭标签数
   dark: boolean; // 跟随系统外观
+  windowFocused: boolean; // 自绘红绿灯的聚焦/失焦态
+  fullscreen: boolean;
 }
 
 // ============ 地址栏建议（主进程按需查询返回） ============

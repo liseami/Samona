@@ -166,6 +166,19 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
       case 'palette.close':
         window.closePalette();
         break;
+      // ---- 壳：模块与窗口 ----
+      case 'module.activate':
+        store.setLayout({ module: command.module });
+        break;
+      case 'window.close':
+        window.win.close();
+        break;
+      case 'window.minimize':
+        window.win.minimize();
+        break;
+      case 'window.zoom':
+        window.zoom(command.fullscreen ?? true);
+        break;
       // ---- 布局与壳 ----
       case 'layout.sidebar':
         store.setLayout({ sidebarWidth: command.width, sidebarCollapsed: command.collapsed });

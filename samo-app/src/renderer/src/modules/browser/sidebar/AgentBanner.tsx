@@ -4,9 +4,9 @@
  * [POS]: renderer/components/sidebar 的 agent 可见性层；用户 Identity 时不渲染
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { Bot, Hand } from '../../icons';
-import { selectActiveIdentity, send, useBrowser } from '../../store/browser';
-import { Button } from '../ui/button';
+import { Bot, Hand } from '../../../icons';
+import { selectActiveIdentity, send, useBrowser } from '../../../store/browser';
+import { Button } from '../../../components/ui/button';
 
 export function AgentBanner() {
   const identity = useBrowser(selectActiveIdentity);

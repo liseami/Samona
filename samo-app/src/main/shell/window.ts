@@ -1,11 +1,11 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个 BaseWindow + 壳视图（React 侧边栏）+ 内容视图槽位 + 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette），以及 contentBounds 布局算法
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列的 contentBounds 布局算法
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
-import { DEFAULT_LAYOUT, type Layout } from '@shared/model';
+import { DEFAULT_LAYOUT, RAIL_WIDTH, type Layout } from '@shared/model';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 
 // ============ 几何常量（源自 Laper MainLayout：外层 py-2 pr-2，面板 rounded-xl + 1px 边线） ============
@@ -26,6 +26,7 @@ export class ShellWindow {
   readonly shellView: WebContentsView;
   readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
   private contentView: WebContentsView | null = null;
+  private contentVisible = true; // 非浏览器模块时隐藏网页视图，面板由模块自己渲染
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
   private layout: Layout = { ...DEFAULT_LAYOUT };
 
@@ -37,11 +38,12 @@ export class ShellWindow {
       minWidth: 720,
       minHeight: 480,
       show: false,
-      titleBarStyle: 'hidden',
-      trafficLightPosition: { x: 14, y: 14 },
-      backgroundColor: dark ? '#252525' : '#EAEAEA',
+      titleBarStyle: 'hidden', // 保留原生标题栏行为（圆角、全屏动画、双击缩放），但按钮完全自绘
+      backgroundColor: dark ? '#373737' : '#EEEEEE',
       title: 'Samo',
     });
+    // ---- 原生红绿灯彻底隐藏：三颗灯由壳的 WindowControls 自绘，与侧栏图标同一基线 ----
+    this.win.setWindowButtonVisibility?.(false);
 
     // ---- 底层：React 壳（侧边栏 + 空态内容区），覆盖整个窗口 ----
     this.shellView = new WebContentsView({
@@ -87,11 +89,11 @@ export class ShellWindow {
     this.applyBounds();
   }
 
-  /** 内容区矩形：紧贴侧栏右侧（侧栏自带内边距即间隙）、上下右留 GUTTER、再内缩 1px 边线的面板（Laper 的「面板浮在 sidebar 色上」） */
+  /** 内容区矩形：rail 列 + 侧栏之右（侧栏自带内边距即间隙）、上下右留 GUTTER、再内缩 1px 边线的面板（Laper 的「面板浮在 sidebar 色上」） */
   contentBounds(): Rectangle {
     const { width, height } = this.win.getContentBounds();
     const collapsed = this.layout.sidebarCollapsed;
-    const left = (collapsed ? GUTTER : this.layout.sidebarWidth) + PANEL_BORDER;
+    const left = RAIL_WIDTH + (collapsed ? GUTTER : this.layout.sidebarWidth) + PANEL_BORDER;
     const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER;
     return {
       x: left,
@@ -126,10 +128,26 @@ export class ShellWindow {
       this.win.contentView.addChildView(view); // 已是子视图时会被重排到最上层
       this.win.contentView.addChildView(this.overlayView); // overlay 永远压在内容之上
       view.setBounds(this.contentBounds());
-      view.webContents.focus();
+      view.setVisible(this.contentVisible);
+      if (this.contentVisible) view.webContents.focus();
     } else {
       this.shellView.webContents.focus();
     }
+  }
+
+  /** 模块切换：非浏览器模块时把网页视图藏起来（不销毁、不改活动标签） */
+  setContentVisible(visible: boolean): void {
+    if (this.contentVisible === visible) return;
+    this.contentVisible = visible;
+    this.contentView?.setVisible(visible);
+    if (!visible) this.shellView.webContents.focus();
+  }
+
+  /** 绿灯：默认全屏；fullscreen=false 时为最大化/还原（⌥点击、双击标题区） */
+  zoom(fullscreen = true): void {
+    if (fullscreen) this.win.setFullScreen(!this.win.isFullScreen());
+    else if (this.win.isMaximized()) this.win.unmaximize();
+    else this.win.maximize();
   }
 
   // ---------- 命令面板 ----------

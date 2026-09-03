@@ -8,12 +8,12 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { tabTitle, type Tab } from '@shared/model';
-import { parseDndId, tabDragId } from '../../lib/dnd';
-import { cn } from '../../lib/utils';
-import { send } from '../../store/browser';
-import { Tip } from '../ui/tooltip';
+import { parseDndId, tabDragId } from '../../../lib/dnd';
+import { cn } from '../../../lib/utils';
+import { send } from '../../../store/browser';
+import { Tip } from '../../../components/ui/tooltip';
 import { Favicon } from './Favicon';
-import { useDragging } from './Sidebar';
+import { useDragging } from './BrowserSidebar';
 
 export function IconGrid({ containerId, tabs, activeId, emptyLabel }: { containerId: string; tabs: Tab[]; activeId: string | null; emptyLabel: string }) {
   const dragging = useDragging();

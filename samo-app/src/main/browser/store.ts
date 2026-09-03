@@ -94,6 +94,8 @@ export class BrowserStore {
   private layout: Layout = { ...DEFAULT_LAYOUT };
   private sidebarPeek = false;
   private dark = false;
+  private focused = true;
+  private fullscreen = false;
   private nextIdentityId = 1;
   private listeners = new Set<Listener>();
   private emitScheduled = false;
@@ -127,6 +129,8 @@ export class BrowserStore {
       sidebarPeek: this.sidebarPeek,
       closedCount: this.closed.length,
       dark: this.dark,
+      windowFocused: this.focused,
+      fullscreen: this.fullscreen,
     };
   }
 
@@ -349,6 +353,7 @@ export class BrowserStore {
 
   // ---------- Layout / 外观 ----------
   setLayout(patch: Partial<Layout>): void {
+    if (patch.module !== undefined) this.layout.module = patch.module;
     if (patch.sidebarWidth !== undefined) {
       this.layout.sidebarWidth = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, Math.round(patch.sidebarWidth)));
     }
@@ -366,6 +371,16 @@ export class BrowserStore {
   setDark(dark: boolean): void {
     if (this.dark === dark) return;
     this.dark = dark;
+    this.emit();
+  }
+  setFocused(focused: boolean): void {
+    if (this.focused === focused) return;
+    this.focused = focused;
+    this.emit();
+  }
+  setFullscreen(fullscreen: boolean): void {
+    if (this.fullscreen === fullscreen) return;
+    this.fullscreen = fullscreen;
     this.emit();
   }
 

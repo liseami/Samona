@@ -1,17 +1,18 @@
 /**
- * [INPUT]: 依赖 react，@shared/model 的 IdentityIcon，./pika/index.js（Laper 的 Pika 图标库，1200+ 描边图标，API: size/color/className/ariaLabel）
- * [OUTPUT]: 对外提供壳所需图标的语义命名（SidebarClose/SidebarOpen/ArrowLeft/ArrowRight/Refresh/Close/Plus/Lock/Search/Window/Clock/Globe/Bot/Hand/Spinner/VolumeOn/VolumeMute/ChevronRight/Folder/FolderOpen/Eraser/Bug/Settings/Download）、身份图标表 IDENTITY_ICON 与 IconProps 类型；全部以装饰性（aria-hidden）渲染，按钮的可访问名由文字/aria-label 决定
+ * [INPUT]: 依赖 react，@shared/model 的 IdentityIcon/ModuleId，./pika/index.js（Laper 的 Pika 图标库，1200+ 描边图标，API: size/color/className/ariaLabel）
+ * [OUTPUT]: 对外提供壳所需图标的语义命名（SidebarClose/SidebarOpen/ArrowLeft/ArrowRight/Refresh/Close/Plus/Lock/Search/Window/Clock/Globe/Bot/Hand/Spinner/VolumeOn/VolumeMute/ChevronRight/Folder/FolderOpen/Eraser/Bug/Settings/Download）、模块图标表 MODULE_ICON、身份图标表 IDENTITY_ICON 与 IconProps 类型；全部以装饰性（aria-hidden）渲染，按钮的可访问名由文字/aria-label 决定
  * [POS]: renderer/icons 的语义层——组件只认语义名，换图标只改这里；pika/ 目录原样复制自 Laper，不手改
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { ComponentType, SVGProps } from 'react';
-import type { IdentityIcon } from '@shared/model';
+import type { IdentityIcon, ModuleId } from '@shared/model';
 // 具名导入才能被 tree-shake：namespace 导入 + 动态取键会把 1200+ 图标全打进包（实测 2.4MB）
 import {
   ArrowLeft as PiArrowLeft,
   BriefcaseJob,
   Camera,
   ChatDefault,
+  CloudDefault,
   CoffeeCup01,
   Code,
   EnvelopeDefault,
@@ -93,6 +94,14 @@ export const Eraser = d(EraserDefault);
 export const Bug = d(PiBug);
 export const Settings = d(Settings01);
 export const Download = d(DownloadDown);
+
+/** 模块图标：icon navi 的四个维度 */
+export const MODULE_ICON: Record<ModuleId, ComponentType<IconProps>> = {
+  browser: d(PiGlobe),
+  mail: d(EnvelopeDefault),
+  knowledge: d(GraduationHat),
+  drive: d(CloudDefault),
+};
 
 /** 身份图标：语义键 → Pika 组件（禁止 emoji） */
 export const IDENTITY_ICON: Record<IdentityIcon, ComponentType<IconProps>> = {
