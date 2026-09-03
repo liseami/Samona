@@ -96,6 +96,10 @@ export type Command =
   | { type: 'layout.sidebar'; width?: number; collapsed?: boolean }
   | { type: 'layout.peek'; peek: boolean }
   | { type: 'layout.overview'; open: boolean } // Safari 式标签矩阵
+  | { type: 'find.start'; text: string } // 页内查找（空串即停止）
+  | { type: 'find.next'; forward: boolean }
+  | { type: 'find.stop' }
+  | { type: 'tab.print' }
   | { type: 'shell.setTheme'; mode: 'system' | 'light' | 'dark' } // 外观：跟随系统 / 浅 / 深（主进程 nativeTheme.themeSource，落盘 config.json）
   | { type: 'shell.openDevTools'; tabId?: string }
   | { type: 'shell.copyUrl'; tabId?: string };
@@ -113,6 +117,7 @@ export type PaletteMode = 'newTab' | 'editUrl' | 'searchTabs';
 export type ShellEvent =
   | { type: 'openPalette'; mode: PaletteMode; url: string } // 发给 overlay 页
   | { type: 'renameTab'; tabId: string }
+  | { type: 'focusFind' } // ⌘F：面板头部打开查找条
   | { type: 'renameFolder'; folderId: string }
   | { type: 'agentPresence'; active: boolean; label: string | null } // agent 光标层：当前可见身份是否有 agent 在工作 + 动作标签
   | { type: 'agentCursor'; x: number; y: number } // agent 光标层：agent 即将点击/悬停的页面坐标（CSS px）

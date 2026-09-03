@@ -35,7 +35,7 @@ bun run dev        # 从仓库根：bun dev
 bun run typecheck
 bun run build      # 产物 out/
 ```
-用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（标签/工作区落盘 v3，旧的多身份在加载时合并为一个）、history.json、chat.json（对话线程与消息）、config.json（模型密钥，0600）、apps.json（固定的应用）、workspaces.json（工作区目录列表）、Partitions/samo（唯一登录态）、agent-gateway.json（网关指针，0600）。应用内 Samo AI 起 `packages/samo-agent/dist/cli.js` 跑脚本，改了 samo-agent 要 `bun run agent:build`。
+用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（标签/工作区落盘 v3，旧的多身份在加载时合并为一个）、history.json、chat.json（对话线程与消息）、config.json（模型密钥与外观，0600）、apps.json（固定的应用）、workspaces.json（工作区目录列表）、permissions.json（按站点记住的网页权限）、Partitions/samo（唯一登录态）、agent-gateway.json（网关指针，0600）。应用内 Samo AI 起 `packages/samo-agent/dist/cli.js` 跑脚本，改了 samo-agent 要 `bun run agent:build`。
 开发态 `SAMO_DEBUG_SHELL=1 bun dev` 后 agent 可用 `ego.useShell()` / `ego.useShell('overlay')` 驱动壳与命令面板做端到端测试。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置

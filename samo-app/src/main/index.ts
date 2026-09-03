@@ -29,6 +29,7 @@ import { LauncherWindow } from './chat/launcher-window';
 import { locateCli, ScriptRunner } from './agent/runner';
 import { AgentPresence } from './agent/presence';
 import { AppsService } from './apps/service';
+import { installPermissions } from './browser/permissions';
 import { WorkspaceService } from './workspace/service';
 import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
@@ -72,7 +73,10 @@ async function bootstrap(): Promise<void> {
   const downloads = new DownloadManager(store);
   const engine = new BrowserEngine(store, history, window, {
     newTabUrl: rendererUrl('newtab'),
-    onSession: (ses) => downloads.attach(ses),
+    onSession: (ses) => {
+      downloads.attach(ses);
+      installPermissions(ses, join(userData, 'permissions.json')); // 按站点询问并记住
+    },
     legacyPartitionExists: existsSync(join(userData, 'Partitions', 'samo')),
   });
   const ownPorts = new Set<number>();

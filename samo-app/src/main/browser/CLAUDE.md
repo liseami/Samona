@@ -23,4 +23,10 @@ persistence.ts: loadJson / loadState（v3 或 v1/v2 legacy）/ createSaver<T>—
 后台层规则（engine.reconcileBackground）：所有已加载但未呈现的视图都挂在壳之下，未挂窗口的视图视口为 0×0 会让页面布局残缺。
 呈现规则（engine.present）：每个维度呈现自己的标签——浏览器 = 身份的活动标签，应用 = 当前应用在本身份里的 appId 标签，其他维度 = 无；activateTab 收到应用标签时切到应用维度而不改浏览器活动标签。
 
+浏览器体验层（phi 靠自家 Chromium 原生壳自带，Electron 默认缺失、Samo 逐项补齐）：
+- view-events.ts：window.open 去向（⌘点击后台标签 / 前台标签 / 带尺寸的 OAuth 弹窗放行为真弹窗保住 opener）、HTML5 全屏铺满整窗、悬停链接地址、主框架加载失败换 Samo 错误页（newtab.html?error=）、未知协议交给系统、页内查找结果、网页右键菜单。
+- page-context-menu.ts：showPageContextMenu——链接 / 图片 / 选中文字（复制、搜索）/ 可编辑区（拼写建议 + 剪切复制粘贴）/ 页面（后退前进重载、打印）/ 检查元素。
+- permissions.ts：installPermissions——无害权限静默放行，摄像头/麦克风/定位/通知/剪贴板读取等首次按站点弹原生询问并落盘 permissions.json。
+- engine：findInPage/stopFind/print/zoom/swipe（三指轻扫前进后退），hoverUrl 与 find 结果进快照。
+
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

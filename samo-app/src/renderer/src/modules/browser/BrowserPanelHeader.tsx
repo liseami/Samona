@@ -4,7 +4,7 @@
  * [POS]: modules/browser 的头部（Laper PanelHeader 三槽）；导航从侧栏搬到这里，侧栏只留标签与身份
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Copied, Copy, TabsOverview } from '../../icons';
 import { selectActiveTab, send, useBrowser } from '../../store/browser';
 import { Button } from '../../components/ui/button';
@@ -12,6 +12,7 @@ import { Tip } from '../../components/ui/tooltip';
 import { PanelHeader } from '../../shell/PanelHeader';
 import { cn } from '../../lib/utils';
 import { UrlField } from './UrlField';
+import { FindBar } from './FindBar';
 import { NavButtons } from './NavButtons';
 import { closeOverview, openOverview } from './TabOverview';
 
@@ -20,6 +21,8 @@ export function BrowserPanelHeader() {
   const overview = useBrowser((s) => s.snapshot?.layout.overview ?? false);
   const identityId = useBrowser((s) => s.snapshot?.activeIdentityId ?? -1);
   const [copied, setCopied] = useState(false);
+  const [finding, setFinding] = useState(false); // ⌘F：中槽从地址栏切成查找条
+  useEffect(() => window.samo.onEvent((e) => e.type === 'focusFind' && setFinding(true)), []);
 
   const tools = (
     <>
@@ -48,5 +51,5 @@ export function BrowserPanelHeader() {
       </Tip>
     </>
   );
-  return <PanelHeader title={<NavButtons />} center={<UrlField />} actions={tools} />;
+  return <PanelHeader title={<NavButtons />} center={finding ? <FindBar onClose={() => setFinding(false)} /> : <UrlField />} actions={tools} />;
 }

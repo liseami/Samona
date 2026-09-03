@@ -193,6 +193,8 @@ export interface BrowserSnapshot {
   activeAppId: string | null; // 应用维度里打开的那一个
   workspaces: Workspace[]; // 工作区维度：本机目录列表
   activeWorkspaceId: string | null;
+  hoverUrl: string | null; // 活动标签里正悬停的链接地址（显示在地址栏）
+  find: { current: number; total: number } | null; // 页内查找结果（null = 未在查找）
   sidebarPeek: boolean; // 折叠态下鼠标贴边临时展开
   closedCount: number; // 可重开的已关闭标签数
   dark: boolean; // 跟随系统外观

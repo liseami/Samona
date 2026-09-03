@@ -30,7 +30,7 @@ src/chat/: 对话面板本体与镜像 store（见其 CLAUDE.md）。
 src/agent/main.tsx: agent 光标层引导（透明底、同步 html.dark）。
 src/agent/AgentLayer.tsx: agent 的「手」——临界阻尼弹簧跟随的光标 + 到点涟漪 + 动作标签胶囊 + 沿网页边缘呼吸并有一束光环绕的发光圈；agentPresence/agentCursor 事件驱动。
 src/newtab/main.tsx: 新标签页引导。
-src/newtab/NewTab.tsx: 极简 NTP——品牌标 + 自动聚焦的地址框，回车用 shared/url 的 resolveInput 在本标签导航。
+src/newtab/NewTab.tsx: 极简 NTP——品牌标 + 自动聚焦的地址框，回车用 shared/url 的 resolveInput 在本标签导航；带 ?error= 时是加载失败页（主进程在主框架失败时导到这里，Try again 重试）。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

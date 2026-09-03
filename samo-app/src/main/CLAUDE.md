@@ -5,7 +5,7 @@
 
 ## 成员清单
 index.ts: 引导。app.setName('Samo') 固定 userData 路径；nativeTheme → store.dark；history/downloads 装配到标签页 session；ChatStore/ChatConfigStore/ScriptRunner 装配，回答者按密钥选 AgentProvider 或 KeylessProvider（chat.setApiKey 热切换）；ChatWindow（不透明面板子窗口）/LauncherWindow（药丸子窗口）/ChatChoreographer 装配并把对话快照广播到壳、药丸、面板，形态切换交给编舞（无动画）；AgentPresence（agent 光标层）、AppsService（应用维度扫描）与 WorkspaceService（工作区目录）装配；dev 时从 ELECTRON_RENDERER_URL 取壳与新标签页地址，prod 走 file://；单实例锁；恢复落盘状态或 seed；退出前 flush 落盘并关闭网关。
-menu.ts: 应用菜单 = 全部快捷键的唯一真相（⌘T/⌘L/⇧⌘A/⇧⌘\\ 标签矩阵/⌘I 对话/⌘0 ⌘= ⌘- 网页缩放/⌘W/⇧⌘T/⇧⌘W/⌃Tab/⌘S/⌘D/⇧⌘R/⌘[ ]/⌘R/⌘1-9/⇧⌘F/⇧⌘C），翻译为 engine 动作或推给壳的 ShellEvent（推前先 focusShell）；渲染层不监听全局键。
+menu.ts: 应用菜单 = 全部快捷键的唯一真相（⌘T/⌘L/⇧⌘A/⇧⌘\\ 标签矩阵/⌘I 对话/⌘0 ⌘= ⌘- 网页缩放/⌘F 查找/⌘P 打印/⌘W/⇧⌘T/⇧⌘W/⌃Tab/⌘S/⌘D/⇧⌘R/⌘[ ]/⌘R/⌘1-9/⇧⌘F/⇧⌘C），翻译为 engine 动作或推给壳的 ShellEvent（推前先 focusShell）；渲染层不监听全局键。
 browser/: 状态与引擎（见其 CLAUDE.md）
 shell/: 窗口与视图层叠几何（见其 CLAUDE.md）
 ipc/: 渲染层命令与查询的唯一入口（见其 CLAUDE.md）

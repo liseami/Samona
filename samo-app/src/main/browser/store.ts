@@ -100,6 +100,8 @@ export class BrowserStore {
   private activeAppId: string | null = null;
   private workspaces: Workspace[] = [];
   private activeWorkspaceId: string | null = null;
+  private hoverUrl: string | null = null;
+  private find: { current: number; total: number } | null = null;
   private sidebarPeek = false;
   private dark = false;
   private focused = true;
@@ -138,6 +140,8 @@ export class BrowserStore {
       activeAppId: this.activeAppId,
       workspaces: this.workspaces,
       activeWorkspaceId: this.activeWorkspaceId,
+      hoverUrl: this.hoverUrl,
+      find: this.find,
       sidebarPeek: this.sidebarPeek,
       closedCount: this.closed.length,
       dark: this.dark,
@@ -399,6 +403,17 @@ export class BrowserStore {
     tab.appId = appId;
     this.emit();
   }
+  // ---------- 浏览器体验：悬停链接 / 页内查找 ----------
+  setHoverUrl(url: string | null): void {
+    if (this.hoverUrl === url) return;
+    this.hoverUrl = url;
+    this.emit();
+  }
+  setFind(find: { current: number; total: number } | null): void {
+    this.find = find;
+    this.emit();
+  }
+
   // ---------- 工作区维度 ----------
   get workspaceList(): Workspace[] {
     return this.workspaces;

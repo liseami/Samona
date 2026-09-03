@@ -34,9 +34,11 @@ export class BrowserEngine {
     store.subscribe((snap) => {
       window.setLayout({ ...snap.layout, sidebarCollapsed: snap.layout.sidebarCollapsed && !snap.sidebarPeek });
       this.present(); // 每个维度呈现自己的标签：浏览器 = 身份的活动标签，应用 = 当前应用的标签，其余 = 无
+      this.store.setHoverUrl(null);
       window.setContentVisible(!snap.layout.overview); // 标签矩阵打开时网页让位
       this.reconcileBackground();
     });
+    window.onSwipe((direction) => this.swipe(direction));
   }
 
   /** 标签矩阵的缩略图：只截已加载的视图（后台视图也在绘制），JPEG 480 宽；应在网页视图隐藏之前调用 */
@@ -54,6 +56,12 @@ export class BrowserEngine {
       }
     }
     return out;
+  }
+
+  /** 三指轻扫（macOS 触控板「在页面之间轻扫」）：左 = 后退，右 = 前进 */
+  swipe(direction: 'left' | 'right'): void {
+    if (direction === 'left') this.back();
+    else this.forward();
   }
 
   // ============ 启动 ============
@@ -226,6 +234,23 @@ export class BrowserEngine {
     const wc = this.webContentsOf(tabId);
     if (wc?.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
   }
+  /** 页内查找（作用于当前呈现的视图）：空串即停止并清除高亮 */
+  findInPage(text: string, forward = true, next = false): void {
+    const wc = this.window.currentContentView?.webContents;
+    if (!wc || wc.isDestroyed()) return;
+    if (!text) return this.stopFind();
+    wc.findInPage(text, { forward, findNext: next });
+  }
+  stopFind(): void {
+    const wc = this.window.currentContentView?.webContents;
+    if (wc && !wc.isDestroyed()) wc.stopFindInPage('clearSelection');
+    this.store.setFind(null);
+  }
+  print(): void {
+    const wc = this.window.currentContentView?.webContents;
+    if (wc && !wc.isDestroyed()) wc.print();
+  }
+
   /** 网页缩放（作用于当前呈现的视图）：step ±1 = 20%，0 = 还原；Chromium 按站点记住 */
   zoom(step: 1 | -1 | 0): void {
     const wc = this.window.currentContentView?.webContents;
@@ -391,7 +416,19 @@ export class BrowserEngine {
         store: this.store,
         history: this.history,
         publicUrl: (url) => this.publicUrl(url),
+        errorUrl: (code, desc, url) => `${this.options.newTabUrl}?error=${code}&desc=${encodeURIComponent(desc)}&url=${encodeURIComponent(url)}`,
         openFromTab: (openerId, url, background) => this.openFromTab(openerId, url, background),
+        search: (q) => this.createTab({ url: resolveInput(q), activate: true }),
+        saveImage: (url) => this.webContentsOf(tabId)?.downloadURL(url),
+        htmlFullscreen: (id, on) => {
+          if (this.store.activeTabId() === id || !on) this.window.setFullBleed(on);
+        },
+        hoverUrl: (id, url) => {
+          if (this.store.activeTabId() === id) this.store.setHoverUrl(url || null);
+        },
+        findResult: (id, current, total) => {
+          if (this.store.activeTabId() === id) this.store.setFind({ current, total });
+        },
         onViewGone: (id, wc) => {
           if (this.views.get(id)?.webContents === wc) this.views.delete(id);
         },

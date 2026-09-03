@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT/HEADER_HEIGHT/RAIL_WIDTH，@shared/ipc 的 ShellEvent，./palette-window 的 PaletteWindow
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保持呈现视图在最上）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化）+ 红灯即隐藏（allowClose 后才真正关闭），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保持呈现视图在最上）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化）+ setFullBleed（HTML5 全屏铺满整窗）+ onSwipe（三指轻扫）+ 红灯即隐藏（allowClose 后才真正关闭），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -42,6 +42,9 @@ export class ShellWindow {
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
   private layout: Layout = { ...DEFAULT_LAYOUT };
   private quitting = false;
+  private fullBleed = false; // HTML5 全屏：网页视图铺满整窗
+  private wasFullScreen = false;
+  private swipeListeners = new Set<(direction: 'left' | 'right') => void>();
 
   constructor(options: ShellWindowOptions) {
     const dark = nativeTheme.shouldUseDarkColors;
@@ -90,6 +93,9 @@ export class ShellWindow {
     });
 
     this.win.on('resize', () => this.applyBounds());
+    this.win.on('swipe', (_e, direction) => {
+      if (direction === 'left' || direction === 'right') for (const l of this.swipeListeners) l(direction);
+    });
     // 红灯 = 隐藏而非销毁：应用继续跑（agent 在后台工作），Dock 点击 / activate 再显示；只有退出时才真正关闭
     this.win.on('close', (e) => {
       if (this.quitting) return;
@@ -107,6 +113,23 @@ export class ShellWindow {
     this.applyBounds();
   }
 
+  /** HTML5 全屏（视频全屏）：网页视图铺满整窗，进 macOS 全屏；退出时还原 */
+  setFullBleed(on: boolean): void {
+    if (this.fullBleed === on) return;
+    this.fullBleed = on;
+    if (on) {
+      this.wasFullScreen = this.win.isFullScreen();
+      if (!this.wasFullScreen) this.win.setFullScreen(true);
+    } else if (!this.wasFullScreen && this.win.isFullScreen()) this.win.setFullScreen(false);
+    this.applyBounds();
+  }
+
+  /** macOS 三指轻扫（系统偏好「在页面之间轻扫」）→ 前进/后退 */
+  onSwipe(listener: (direction: 'left' | 'right') => void): () => void {
+    this.swipeListeners.add(listener);
+    return () => this.swipeListeners.delete(listener);
+  }
+
   /** 退出流程开始：允许窗口真正关闭 */
   allowClose(): void {
     this.quitting = true;
@@ -121,6 +144,10 @@ export class ShellWindow {
   /** 内容区矩形：rail 40 → gap 8 → 侧栏卡（宽 sidebarWidth）→ gap 8 → 面板卡；上下右留 8；再内缩 1px 边线（Laper ProjectEditorShell 的一行三卡） */
   /** 网页视图矩形：面板卡内缩 1px 边线、贴边，从面板头部下方开始；直角矩形，不切内容 */
   contentBounds(): Rectangle {
+    if (this.fullBleed) {
+      const { width, height } = this.win.getContentBounds();
+      return { x: 0, y: 0, width, height };
+    }
     const card = this.panelCardBounds();
     const header = this.hasPanelHeader() ? HEADER_HEIGHT : 0;
     return {
@@ -161,7 +188,7 @@ export class ShellWindow {
   /** 角落遮罩贴在面板卡底部两角；只在网页视图可见时出现 */
   private applyCornerMasks(): void {
     const card = this.panelCardBounds();
-    const visible = this.contentVisible && !!this.contentView && card.width > CORNER_MASK * 2;
+    const visible = this.contentVisible && !!this.contentView && !this.fullBleed && card.width > CORNER_MASK * 2;
     const y = card.y + card.height - CORNER_MASK;
     const [left, right] = this.cornerMasks;
     left.setBounds({ x: card.x, y, width: CORNER_MASK, height: CORNER_MASK });

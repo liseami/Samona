@@ -47,7 +47,9 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, work
     }
   });
 
+  let lastFind = '';
   ipcMain.handle(CHANNELS.invoke, (_event, command: Command) => {
+    if (command.type === 'find.start') lastFind = command.text;
     switch (command.type) {
       // ---- 标签 ----
       case 'tab.create':
@@ -231,6 +233,18 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, work
         break;
       case 'layout.peek':
         store.setPeek(command.peek);
+        break;
+      case 'find.start':
+        engine.findInPage(command.text, true, false);
+        break;
+      case 'find.next':
+        engine.findInPage(lastFind, command.forward, true);
+        break;
+      case 'find.stop':
+        engine.stopFind();
+        break;
+      case 'tab.print':
+        engine.print();
         break;
       case 'shell.setTheme':
         setTheme(command.mode);
