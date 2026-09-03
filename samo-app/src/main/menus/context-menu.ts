@@ -1,16 +1,16 @@
 /**
- * [INPUT]: 依赖 electron 的 Menu/dialog/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 SPACE_COLORS/FolderColor
- * [OUTPUT]: 对外提供 ContextMenus 类：tab/space/folder/tabList 四种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
+ * [INPUT]: 依赖 electron 的 Menu/dialog/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 IDENTITY_COLORS/FolderColor
+ * [OUTPUT]: 对外提供 ContextMenus 类：tab/identity/folder/tabList 四种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
  * [POS]: menus 模块的唯一成员；原生菜单保证与系统观感一致并天然浮在 WebContentsView 之上，重命名/编辑等需要内联 UI 的动作通过 ShellEvent 交回渲染层
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { Menu, dialog, type MenuItemConstructorOptions } from 'electron';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
-import { SPACE_COLORS, type FolderColor } from '@shared/model';
+import { IDENTITY_COLORS, type FolderColor } from '@shared/model';
 import type { BrowserEngine } from '../browser/engine';
 import type { ShellWindow } from '../shell/window';
 
-const FOLDER_COLORS: FolderColor[] = ['grey', ...SPACE_COLORS];
+const FOLDER_COLORS: FolderColor[] = ['grey', ...IDENTITY_COLORS];
 
 export class ContextMenus {
   constructor(
@@ -32,9 +32,9 @@ export class ContextMenus {
     const { store } = this.engine;
     const tab = store.getTab(tabId);
     if (!tab) return;
-    const isFavorite = tab.spaceId === null;
-    const spaces = store.allSpaces().filter((s) => s.id !== tab.spaceId && s.ownership === 'user');
-    const folders = tab.spaceId !== null ? store.foldersInSpace(tab.spaceId).filter((f) => f.id !== tab.folderId) : [];
+    const isFavorite = tab.identityId === null;
+    const identities = store.allIdentities().filter((s) => s.id !== tab.identityId && s.ownership === 'user');
+    const folders = tab.identityId !== null ? store.foldersInIdentity(tab.identityId).filter((f) => f.id !== tab.folderId) : [];
 
     this.popup([
       { label: 'Rename…', click: () => this.emit({ type: 'renameTab', tabId }) },
@@ -47,11 +47,11 @@ export class ContextMenus {
           ]),
       { label: 'Duplicate', click: () => this.engine.duplicateTab(tabId) },
       {
-        label: 'Move to Space',
-        enabled: spaces.length > 0,
-        submenu: spaces.map((s) => ({
-          label: `${s.emoji} ${s.name}`,
-          click: () => this.engine.moveTab(tabId, { spaceId: s.id, pinned: !isFavorite && tab.pinned, folderId: null, index: Number.MAX_SAFE_INTEGER }),
+        label: 'Move to Identity',
+        enabled: identities.length > 0,
+        submenu: identities.map((s) => ({
+          label: s.name,
+          click: () => this.engine.moveTab(tabId, { identityId: s.id, pinned: !isFavorite && tab.pinned, folderId: null, index: Number.MAX_SAFE_INTEGER }),
         })),
       },
       ...(isFavorite || tab.pinned
@@ -62,20 +62,20 @@ export class ContextMenus {
               submenu: [
                 ...folders.map((f) => ({
                   label: f.name,
-                  click: () => this.engine.moveTab(tabId, { spaceId: tab.spaceId, pinned: false, folderId: f.id, index: Number.MAX_SAFE_INTEGER }),
+                  click: () => this.engine.moveTab(tabId, { identityId: tab.identityId, pinned: false, folderId: f.id, index: Number.MAX_SAFE_INTEGER }),
                 })),
                 ...(folders.length ? [{ type: 'separator' as const }] : []),
                 {
                   label: 'New Folder with Tab',
                   click: () => {
-                    const id = this.engine.createFolder(tab.spaceId!, 'New Folder', [tabId]);
+                    const id = this.engine.createFolder(tab.identityId!, 'New Folder', [tabId]);
                     this.emit({ type: 'renameFolder', folderId: id });
                   },
                 },
               ],
             },
             ...(tab.folderId
-              ? [{ label: 'Remove from Folder', click: () => this.engine.moveTab(tabId, { spaceId: tab.spaceId, pinned: false, folderId: null, index: Number.MAX_SAFE_INTEGER }) }]
+              ? [{ label: 'Remove from Folder', click: () => this.engine.moveTab(tabId, { identityId: tab.identityId, pinned: false, folderId: null, index: Number.MAX_SAFE_INTEGER }) }]
               : []),
           ]),
       { type: 'separator' },
@@ -93,30 +93,30 @@ export class ContextMenus {
     ]);
   }
 
-  // ============ Space ============
-  space(spaceId: number): void {
+  // ============ Identity ============
+  identity(identityId: number): void {
     const { store } = this.engine;
-    const space = store.getSpace(spaceId);
-    if (!space) return;
+    const identity = store.getIdentity(identityId);
+    if (!identity) return;
     this.popup([
-      { label: 'Edit Space…', click: () => this.emit({ type: 'editSpace', spaceId }) },
-      { label: 'New Space', click: () => this.emit({ type: 'editSpace', spaceId: this.engine.createSpace({ name: 'New Space' }).id }) },
+      { label: 'Edit Identity…', click: () => this.emit({ type: 'editIdentity', identityId }) },
+      { label: 'New Identity', click: () => this.emit({ type: 'editIdentity', identityId: this.engine.createIdentity({ name: 'New Identity' }).id }) },
       { type: 'separator' },
-      { label: 'Close All Unpinned Tabs', click: () => this.engine.closeUnpinned(spaceId) },
+      { label: 'Close All Unpinned Tabs', click: () => this.engine.closeUnpinned(identityId) },
       { type: 'separator' },
       {
-        label: 'Delete Space',
-        enabled: store.allSpaces().length > 1,
+        label: 'Delete Identity',
+        enabled: store.allIdentities().length > 1,
         click: async () => {
           const { response } = await dialog.showMessageBox(this.window.win, {
             type: 'warning',
-            message: `Delete “${space.name}”?`,
-            detail: 'All tabs in this space will be closed. Favorites are kept.',
+            message: `Delete “${identity.name}”?`,
+            detail: 'All tabs in this identity will be closed. Favorites are kept.',
             buttons: ['Delete', 'Cancel'],
             defaultId: 1,
             cancelId: 1,
           });
-          if (response === 0) this.engine.deleteSpace(spaceId);
+          if (response === 0) this.engine.deleteIdentity(identityId);
         },
       },
     ]);
@@ -134,7 +134,7 @@ export class ContextMenus {
       },
       { label: folder.collapsed ? 'Expand' : 'Collapse', click: () => this.engine.updateFolder(folderId, { collapsed: !folder.collapsed }) },
       { type: 'separator' },
-      { label: 'New Tab in Folder', click: () => this.engine.createTab({ spaceId: folder.spaceId, folderId, activate: true }) },
+      { label: 'New Tab in Folder', click: () => this.engine.createTab({ identityId: folder.identityId, folderId, activate: true }) },
       { type: 'separator' },
       { label: 'Close All Tabs', click: () => this.engine.deleteFolder(folderId, true) },
       { label: 'Delete Folder (keep tabs)', click: () => this.engine.deleteFolder(folderId, false) },
@@ -142,16 +142,16 @@ export class ContextMenus {
   }
 
   // ============ 列表空白处 ============
-  tabList(spaceId: number): void {
+  tabList(identityId: number): void {
     this.popup([
-      { label: 'New Tab', click: () => this.engine.createTab({ spaceId, activate: true }) },
+      { label: 'New Tab', click: () => this.engine.createTab({ identityId, activate: true }) },
       {
         label: 'New Folder',
-        click: () => this.emit({ type: 'renameFolder', folderId: this.engine.createFolder(spaceId) }),
+        click: () => this.emit({ type: 'renameFolder', folderId: this.engine.createFolder(identityId) }),
       },
       { type: 'separator' },
       { label: 'Reopen Closed Tab', enabled: this.engine.store.snapshot().closedCount > 0, click: () => this.engine.reopenClosed() },
-      { label: 'Close All Unpinned Tabs', click: () => this.engine.closeUnpinned(spaceId) },
+      { label: 'Close All Unpinned Tabs', click: () => this.engine.closeUnpinned(identityId) },
     ]);
   }
 }

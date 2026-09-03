@@ -1,26 +1,30 @@
 /**
- * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT
- * [OUTPUT]: 对外提供 ShellWindow 类：一个 BaseWindow + 壳视图（React 侧边栏）+ 顶层内容视图槽位 + 壳之下的后台视图层（attachBackground/detach），以及 contentBounds 布局算法
+ * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个 BaseWindow + 壳视图（React 侧边栏）+ 内容视图槽位 + 壳之下的后台视图层（attachBackground/detach）+ 最上层透明的命令面板 overlay（openPalette/closePalette），以及 contentBounds 布局算法
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, type Layout } from '@shared/model';
+import { CHANNELS, type ShellEvent } from '@shared/ipc';
 
-// ============ 几何常量（源自 phi：WebContentConstant.edgesSpacing = 8） ============
-const GUTTER = 10;
-const CONTENT_RADIUS = 12; // 与壳里 .content-card 的 rounded-xl 同步
-const COLLAPSED_SIDEBAR = 0;
+// ============ 几何常量（源自 Laper MainLayout：外层 py-2 pr-2，面板 rounded-xl + 1px 边线） ============
+const GUTTER = 8; // 上/下/右
+const PANEL_BORDER = 1; // 网页视图内缩 1px，露出壳画的面板边线
+const CONTENT_RADIUS = 12 - PANEL_BORDER; // 面板 rounded-xl = 12，视图内缩后 11
+const COLLAPSED_TOP = 32; // 折叠时给顶部让出拖拽/交通灯一行（壳侧 pt-10 = 8 + 32）
 
 export interface ShellWindowOptions {
   preloadPath: string;
   shellUrl: string; // dev: http://localhost:5173/index.html ；prod: file://…/index.html
+  overlayUrl: string; // 命令面板页（透明，叠在最上层）
   isDev: boolean;
 }
 
 export class ShellWindow {
   readonly win: BaseWindow;
   readonly shellView: WebContentsView;
+  readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
   private contentView: WebContentsView | null = null;
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
   private layout: Layout = { ...DEFAULT_LAYOUT };
@@ -56,6 +60,15 @@ export class ShellWindow {
     });
     void this.shellView.webContents.loadURL(options.shellUrl);
 
+    // ---- 最上层：命令面板 overlay（透明背景，默认隐藏） ----
+    this.overlayView = new WebContentsView({
+      webPreferences: { preload: options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    this.overlayView.setBackgroundColor('#00000000');
+    this.overlayView.setVisible(false);
+    this.win.contentView.addChildView(this.overlayView);
+    void this.overlayView.webContents.loadURL(options.overlayUrl);
+
     this.win.on('resize', () => this.applyBounds());
     this.shellView.webContents.once('did-finish-load', () => {
       if (!this.win.isVisible()) this.win.show();
@@ -74,22 +87,24 @@ export class ShellWindow {
     this.applyBounds();
   }
 
-  /** 内容区矩形：侧栏右侧、四周留 GUTTER 的圆角卡片（Arc/phi 的「内容浮在底色上」观感） */
+  /** 内容区矩形：紧贴侧栏右侧（侧栏自带内边距即间隙）、上下右留 GUTTER、再内缩 1px 边线的面板（Laper 的「面板浮在 sidebar 色上」） */
   contentBounds(): Rectangle {
     const { width, height } = this.win.getContentBounds();
-    const sidebar = this.layout.sidebarCollapsed ? COLLAPSED_SIDEBAR : this.layout.sidebarWidth;
-    const x = sidebar + GUTTER;
+    const collapsed = this.layout.sidebarCollapsed;
+    const left = (collapsed ? GUTTER : this.layout.sidebarWidth) + PANEL_BORDER;
+    const top = GUTTER + (collapsed ? COLLAPSED_TOP : 0) + PANEL_BORDER;
     return {
-      x,
-      y: GUTTER + (this.layout.sidebarCollapsed ? 32 : 0), // 折叠时给顶部让出一行拖拽/交通灯区域
-      width: Math.max(0, width - x - GUTTER),
-      height: Math.max(0, height - GUTTER * 2 - (this.layout.sidebarCollapsed ? 32 : 0)),
+      x: left,
+      y: top,
+      width: Math.max(0, width - left - GUTTER - PANEL_BORDER),
+      height: Math.max(0, height - top - GUTTER - PANEL_BORDER),
     };
   }
 
   private applyBounds(): void {
     const { width, height } = this.win.getContentBounds();
     this.shellView.setBounds({ x: 0, y: 0, width, height });
+    this.overlayView.setBounds({ x: 0, y: 0, width, height });
     const bounds = this.contentBounds();
     this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
@@ -109,11 +124,26 @@ export class ShellWindow {
       this.background.delete(view);
       applyRadius(view, CONTENT_RADIUS);
       this.win.contentView.addChildView(view); // 已是子视图时会被重排到最上层
+      this.win.contentView.addChildView(this.overlayView); // overlay 永远压在内容之上
       view.setBounds(this.contentBounds());
       view.webContents.focus();
     } else {
       this.shellView.webContents.focus();
     }
+  }
+
+  // ---------- 命令面板 ----------
+  openPalette(event: Extract<ShellEvent, { type: 'openPalette' }>): void {
+    this.overlayView.setVisible(true);
+    this.win.contentView.addChildView(this.overlayView);
+    this.overlayView.webContents.send(CHANNELS.event, event);
+    this.overlayView.webContents.focus();
+  }
+
+  closePalette(): void {
+    if (!this.overlayView.getVisible()) return;
+    this.overlayView.setVisible(false);
+    (this.contentView ?? this.shellView).webContents.focus();
   }
 
   get currentContentView(): WebContentsView | null {

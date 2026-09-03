@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react 的 useRef/useCallback，../../store/browser 的 send
- * [OUTPUT]: 对外提供 useSpaceSwipe()：返回 onWheel 处理器——双指横滑（轴锁定、阈值 50、每次手势只触发一次）切换上一个/下一个 Space（phi SpaceSwipeTracker 语义）
- * [POS]: renderer/components/sidebar 的手势层，只发 space.step 命令
+ * [OUTPUT]: 对外提供 useSpaceSwipe()：返回 onWheel 处理器——双指横滑（轴锁定、阈值 50、每次手势只触发一次）切换上一个/下一个 Identity（phi SpaceSwipeTracker 语义）
+ * [POS]: renderer/components/sidebar 的手势层，只发 identity.step 命令
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useCallback, useRef, type WheelEvent } from 'react';
@@ -29,7 +29,7 @@ export function useSpaceSwipe() {
     acc.current += e.deltaX;
     if (Math.abs(acc.current) >= THRESHOLD) {
       fired.current = true;
-      send({ type: 'space.step', delta: acc.current > 0 ? 1 : -1 });
+      send({ type: 'identity.step', delta: acc.current > 0 ? 1 : -1 });
     }
   }, []);
 }

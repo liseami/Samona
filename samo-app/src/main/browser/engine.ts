@@ -1,11 +1,11 @@
 /**
- * [INPUT]: 依赖 electron 的 WebContentsView/WebContents/session/clipboard，./store 的 BrowserStore，./history 的 HistoryStore，./view-events 的 wireTabEvents，../shell/window 的 ShellWindow，@shared/model 与 @shared/url，@shared/ipc 的 TabTarget
- * [OUTPUT]: 对外提供 BrowserEngine 类：标签页（创建/激活/Space 内选中/关闭系列/重开/导航/固定/收藏/移动/重命名/复制/静音/MRU）、文件夹、Space（创建/激活/步进/更新/排序/删除/接管/交还）的全部动作，视图生命周期与 agent 后台层对账，给 agent 网关的 webContentsOf/shellWebContents/ensureLoaded
+ * [INPUT]: 依赖 electron 的 WebContentsView/WebContents/Session/session/clipboard，./store 的 BrowserStore，./history 的 HistoryStore，./view-events 的 wireTabEvents，../shell/window 的 ShellWindow，@shared/model 与 @shared/url，@shared/ipc 的 TabTarget
+ * [OUTPUT]: 对外提供 BrowserEngine 类：标签页（创建/激活/Identity 内选中/关闭系列/重开/导航/固定/收藏/移动/重命名/复制/静音/MRU）、文件夹、Identity（创建/激活/步进/更新/排序/删除/接管/交还）的全部动作，视图生命周期（每个身份独立 session 分区，sessionFor 首次触达回调宿主）与 agent 后台层对账，给 agent 网关的 webContentsOf/shellWebContents/ensureLoaded
  * [POS]: browser 模块的指挥者，是 store 的唯一写者、ShellWindow 的唯一调用者；ipc/handlers、menu、menus/context-menu、agent/session 都只调用它的公开方法
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { WebContentsView, clipboard, session, type WebContents } from 'electron';
-import { AGENT_SPACE_COLOR, NEW_TAB_URL, tabTitle, type FolderColor, type Ownership, type Space, type SpaceColor, type Tab } from '@shared/model';
+import { WebContentsView, clipboard, session, type Session, type WebContents } from 'electron';
+import { AGENT_IDENTITY_COLOR, LEGACY_PARTITION, NEW_TAB_URL, tabTitle, type FolderColor, type Identity, type IdentityColor, type IdentityIcon, type Ownership, type Tab } from '@shared/model';
 import type { TabTarget } from '@shared/ipc';
 import { resolveInput } from '@shared/url';
 import { BrowserStore } from './store';
@@ -13,14 +13,15 @@ import type { HistoryStore } from './history';
 import { wireTabEvents } from './view-events';
 import type { ShellWindow } from '../shell/window';
 
-export const TAB_PARTITION = 'persist:samo'; // 用户与 agent 共享同一登录态（ego 语义）
-
 export interface EngineOptions {
   newTabUrl: string; // 真实加载地址（dev 为 vite 服务、prod 为 file://）
+  onSession?: (session: Session, partition: string) => void; // 首次触达某个分区时回调（下载监听等按 session 装配）
+  legacyPartitionExists?: boolean; // 磁盘上仍有 Space 时代的 persist:samo 分区：首个身份沿用它，登录态不丢
 }
 
 export class BrowserEngine {
   private views = new Map<string, WebContentsView>();
+  private knownPartitions = new Set<string>();
 
   constructor(
     readonly store: BrowserStore,
@@ -35,13 +36,14 @@ export class BrowserEngine {
   }
 
   // ============ 启动 ============
-  /** 首次启动：一个默认 Space + 一个新标签页 */
+  /** 首次启动：一个默认 Identity + 一个新标签页 */
   seed(): void {
-    const space = this.store.createSpace({ name: 'Home', emoji: '🏠', color: 'blue', ownership: 'user' });
-    this.createTab({ spaceId: space.id, activate: true });
+    const identity = this.createIdentity({ name: 'Personal', icon: 'user', color: 'blue' }, false);
+    if (this.options.legacyPartitionExists) this.store.updateIdentity(identity.id, { partition: LEGACY_PARTITION });
+    this.createTab({ identityId: identity.id, activate: true });
   }
 
-  /** 从落盘状态恢复后：只加载当前 Space 的活动标签，其余保持冷态 */
+  /** 从落盘状态恢复后：只加载当前 Identity 的活动标签，其余保持冷态 */
   wake(): void {
     const active = this.store.activeTab();
     if (active) this.activateTab(active.id);
@@ -50,19 +52,21 @@ export class BrowserEngine {
 
   // ============ Tab：创建与激活 ============
   createTab(
-    input: { url?: string; spaceId?: number | null; pinned?: boolean; folderId?: string | null; activate?: boolean; index?: number; customTitle?: string | null } = {},
+    input: { url?: string; identityId?: number | null; partition?: string; pinned?: boolean; folderId?: string | null; activate?: boolean; index?: number; customTitle?: string | null } = {},
   ): Tab {
-    const spaceId = input.spaceId === undefined ? this.store.activeSpaceId : input.spaceId;
+    const identityId = input.identityId === undefined ? this.store.activeIdentityId : input.identityId;
     const url = input.url ? this.publicUrl(input.url) : NEW_TAB_URL;
+    const owner = this.store.getIdentity(identityId ?? this.store.activeIdentityId);
     const tab: Tab = {
       id: crypto.randomUUID(),
-      spaceId,
-      folderId: spaceId === null ? null : (input.folderId ?? null),
+      identityId,
+      partition: input.partition ?? owner?.partition ?? this.store.activeIdentity.partition,
+      folderId: identityId === null ? null : (input.folderId ?? null),
       url,
       title: url === NEW_TAB_URL ? 'New Tab' : url,
       customTitle: input.customTitle ?? null,
       favicon: null,
-      pinned: spaceId === null ? true : (input.pinned ?? false),
+      pinned: identityId === null ? true : (input.pinned ?? false),
       loading: false,
       canGoBack: false,
       canGoForward: false,
@@ -78,27 +82,27 @@ export class BrowserEngine {
     return tab;
   }
 
-  /** 激活并展示：切到它所在的 Space（收藏则留在当前 Space） */
+  /** 激活并展示：切到它所在的 Identity（收藏则留在当前 Identity） */
   activateTab(tabId: string): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
     const view = this.ensureLoaded(tabId);
-    const spaceId = tab.spaceId ?? this.store.activeSpaceId;
-    this.store.setActiveSpace(spaceId);
-    this.store.setActiveTab(spaceId, tabId);
+    const identityId = tab.identityId ?? this.store.activeIdentityId;
+    this.store.setActiveIdentity(identityId);
+    this.store.setActiveTab(identityId, tabId);
     this.window.setContentView(view);
   }
 
-  /** 只在标签所属 Space 内选中它：Space 正在展示则切到前台，否则留在后台（agent 用，不抢用户的视线） */
+  /** 只在标签所属 Identity 内选中它：Identity 正在展示则切到前台，否则留在后台（agent 用，不抢用户的视线） */
   selectTab(tabId: string): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
-    const spaceId = tab.spaceId ?? this.store.activeSpaceId;
-    this.store.setActiveTab(spaceId, tabId);
-    if (spaceId === this.store.activeSpaceId) this.window.setContentView(this.ensureLoaded(tabId));
+    const identityId = tab.identityId ?? this.store.activeIdentityId;
+    this.store.setActiveTab(identityId, tabId);
+    if (identityId === this.store.activeIdentityId) this.window.setContentView(this.ensureLoaded(tabId));
   }
 
-  /** ⌃Tab：切到当前 Space 最近使用的另一个标签 */
+  /** ⌃Tab：切到当前 Identity 最近使用的另一个标签 */
   switchMru(): void {
     const current = this.store.activeTabId();
     const next = this.store.mruTabs().find((t) => t.id !== current);
@@ -109,15 +113,15 @@ export class BrowserEngine {
   closeTab(tabId = this.store.activeTabId() ?? ''): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
-    const viewSpace = this.store.activeSpaceId;
+    const viewSpace = this.store.activeIdentityId;
     const wasShown = this.store.activeTabId(viewSpace) === tabId;
     const neighbor = wasShown ? this.store.neighborOf(tabId, viewSpace) : undefined;
     this.destroyView(tabId);
-    if (tab.pinned || tab.spaceId === null) {
+    if (tab.pinned || tab.identityId === null) {
       // Arc 语义：关闭固定/收藏标签 = 卸载回冷态，位置保留
       this.store.updateTab(tabId, { discarded: true, loading: false, audible: false });
     } else {
-      this.store.pushClosed({ url: tab.url, title: tab.title, customTitle: tab.customTitle, favicon: tab.favicon, spaceId: tab.spaceId, pinned: false, folderId: tab.folderId, closedAt: Date.now() });
+      this.store.pushClosed({ url: tab.url, title: tab.title, customTitle: tab.customTitle, favicon: tab.favicon, identityId: tab.identityId, partition: tab.partition, pinned: false, folderId: tab.folderId, closedAt: Date.now() });
       this.store.removeTab(tabId);
     }
     if (wasShown) {
@@ -131,30 +135,30 @@ export class BrowserEngine {
 
   closeOthers(tabId: string): void {
     const tab = this.store.getTab(tabId);
-    if (!tab || tab.spaceId === null) return;
-    for (const t of this.store.tabsInSpace(tab.spaceId)) if (t.id !== tabId && !t.pinned) this.closeTab(t.id);
+    if (!tab || tab.identityId === null) return;
+    for (const t of this.store.tabsInIdentity(tab.identityId)) if (t.id !== tabId && !t.pinned) this.closeTab(t.id);
     this.activateTab(tabId);
   }
 
   closeBelow(tabId: string): void {
     const tab = this.store.getTab(tabId);
-    if (!tab || tab.spaceId === null) return;
+    if (!tab || tab.identityId === null) return;
     const section = this.store.sectionTabs(tab);
     const i = section.findIndex((t) => t.id === tabId);
     for (const t of section.slice(i + 1)) if (!t.pinned) this.closeTab(t.id);
   }
 
-  /** Arc 的 Clear：关掉 Space 内所有非固定标签 */
-  closeUnpinned(spaceId = this.store.activeSpaceId): void {
-    for (const t of this.store.tabsInSpace(spaceId)) if (!t.pinned) this.closeTab(t.id);
+  /** Arc 的 Clear：关掉 Identity 内所有非固定标签 */
+  closeUnpinned(identityId = this.store.activeIdentityId): void {
+    for (const t of this.store.tabsInIdentity(identityId)) if (!t.pinned) this.closeTab(t.id);
   }
 
   reopenClosed(): void {
     const entry = this.store.popClosed();
     if (!entry) return;
-    const spaceId = entry.spaceId !== null && this.store.getSpace(entry.spaceId) ? entry.spaceId : this.store.activeSpaceId;
-    const folderId = entry.folderId && this.store.getFolder(entry.folderId)?.spaceId === spaceId ? entry.folderId : null;
-    this.createTab({ url: entry.url, spaceId, pinned: entry.pinned, folderId, customTitle: entry.customTitle, activate: true });
+    const identityId = entry.identityId !== null && this.store.getIdentity(entry.identityId) ? entry.identityId : this.store.activeIdentityId;
+    const folderId = entry.folderId && this.store.getFolder(entry.folderId)?.identityId === identityId ? entry.folderId : null;
+    this.createTab({ url: entry.url, identityId, partition: entry.partition, pinned: entry.pinned, folderId, customTitle: entry.customTitle, activate: true });
   }
 
   // ============ Tab：导航 ============
@@ -196,26 +200,26 @@ export class BrowserEngine {
   // ============ Tab：整理 ============
   pinTab(tabId: string, pinned: boolean): void {
     const tab = this.store.getTab(tabId);
-    if (!tab || tab.spaceId === null || tab.pinned === pinned) return;
-    this.store.placeTab(tabId, { spaceId: tab.spaceId, pinned, folderId: pinned ? null : tab.folderId, index: pinned ? Number.MAX_SAFE_INTEGER : 0 });
+    if (!tab || tab.identityId === null || tab.pinned === pinned) return;
+    this.store.placeTab(tabId, { identityId: tab.identityId, pinned, folderId: pinned ? null : tab.folderId, index: pinned ? Number.MAX_SAFE_INTEGER : 0 });
   }
 
   favoriteTab(tabId: string, favorite: boolean): void {
     const tab = this.store.getTab(tabId);
-    if (!tab || (tab.spaceId === null) === favorite) return;
-    if (favorite) this.store.placeTab(tabId, { spaceId: null, pinned: true, folderId: null, index: Number.MAX_SAFE_INTEGER });
-    else this.store.placeTab(tabId, { spaceId: this.store.activeSpaceId, pinned: true, folderId: null, index: Number.MAX_SAFE_INTEGER });
+    if (!tab || (tab.identityId === null) === favorite) return;
+    if (favorite) this.store.placeTab(tabId, { identityId: null, pinned: true, folderId: null, index: Number.MAX_SAFE_INTEGER });
+    else this.store.placeTab(tabId, { identityId: this.store.activeIdentityId, pinned: true, folderId: null, index: Number.MAX_SAFE_INTEGER });
   }
 
   moveTab(tabId: string, to: TabTarget): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
-    const fromSpace = tab.spaceId;
+    const fromSpace = tab.identityId;
     const wasActiveThere = fromSpace !== null && this.store.activeTabId(fromSpace) === tabId;
     this.store.placeTab(tabId, to);
-    if (wasActiveThere && fromSpace !== to.spaceId) {
-      const next = this.store.tabsInSpace(fromSpace!)[0];
-      if (fromSpace === this.store.activeSpaceId) {
+    if (wasActiveThere && fromSpace !== to.identityId) {
+      const next = this.store.tabsInIdentity(fromSpace!)[0];
+      if (fromSpace === this.store.activeIdentityId) {
         if (next) this.activateTab(next.id);
         else this.window.setContentView(null);
       } else if (next) this.store.setActiveTab(fromSpace!, next.id);
@@ -231,7 +235,7 @@ export class BrowserEngine {
     if (!tab) return;
     const section = this.store.sectionTabs(tab);
     const at = section.findIndex((t) => t.id === tabId) + 1;
-    this.createTab({ url: tab.url, spaceId: tab.spaceId ?? this.store.activeSpaceId, pinned: tab.spaceId === null ? false : tab.pinned, folderId: tab.folderId, index: at, activate: true });
+    this.createTab({ url: tab.url, identityId: tab.identityId ?? this.store.activeIdentityId, partition: tab.partition, pinned: tab.identityId === null ? false : tab.pinned, folderId: tab.folderId, index: at, activate: true });
   }
 
   muteTab(tabId: string, muted: boolean): void {
@@ -244,11 +248,11 @@ export class BrowserEngine {
   }
 
   // ============ Folder ============
-  createFolder(spaceId = this.store.activeSpaceId, name = 'New Folder', tabIds: string[] = []): string {
-    const folder = this.store.createFolder(spaceId, name);
+  createFolder(identityId = this.store.activeIdentityId, name = 'New Folder', tabIds: string[] = []): string {
+    const folder = this.store.createFolder(identityId, name);
     tabIds.forEach((id, i) => {
       const tab = this.store.getTab(id);
-      if (tab && tab.spaceId === spaceId) this.store.placeTab(id, { spaceId, pinned: false, folderId: folder.id, index: i });
+      if (tab && tab.identityId === identityId) this.store.placeTab(id, { identityId, pinned: false, folderId: folder.id, index: i });
     });
     return folder.id;
   }
@@ -262,64 +266,67 @@ export class BrowserEngine {
     this.store.deleteFolder(folderId);
   }
 
-  // ============ Space ============
-  createSpace(input: { name: string; emoji?: string; color?: SpaceColor; ownership?: Ownership; taskId?: string }, activate = true): Space {
-    const space = this.store.createSpace({
+  // ============ Identity ============
+  /** 用户身份 = 全新的 session 分区；agent 身份继承当前身份的分区（ego 语义：agent 共享用户登录态） */
+  createIdentity(input: { name: string; icon?: IdentityIcon; color?: IdentityColor; ownership?: Ownership; taskId?: string }, activate = true): Identity {
+    const agent = input.ownership === 'agent';
+    const identity = this.store.createIdentity({
       name: input.name,
-      emoji: input.emoji ?? '✦',
-      color: input.color ?? (input.ownership === 'agent' ? AGENT_SPACE_COLOR : 'blue'),
+      icon: input.icon ?? (agent ? 'bot' : 'user'),
+      color: input.color ?? (agent ? AGENT_IDENTITY_COLOR : 'blue'),
+      partition: agent && this.store.getIdentity(this.store.activeIdentityId) ? this.store.activeIdentity.partition : `persist:identity-${crypto.randomUUID().slice(0, 8)}`,
       ownership: input.ownership ?? 'user',
       taskId: input.taskId,
     });
-    if (activate) this.activateSpace(space.id);
-    return space;
+    if (activate) this.activateIdentity(identity.id);
+    return identity;
   }
 
-  activateSpace(spaceId: number): void {
-    if (!this.store.getSpace(spaceId)) return;
-    this.store.setActiveSpace(spaceId);
-    const active = this.store.activeTab(spaceId);
+  activateIdentity(identityId: number): void {
+    if (!this.store.getIdentity(identityId)) return;
+    this.store.setActiveIdentity(identityId);
+    const active = this.store.activeTab(identityId);
     if (active) this.activateTab(active.id);
     else this.window.setContentView(null);
     this.window.focusShell();
   }
 
-  stepSpace(delta: 1 | -1): void {
-    const spaces = this.store.allSpaces();
-    const i = spaces.findIndex((s) => s.id === this.store.activeSpaceId);
-    const next = spaces[(i + delta + spaces.length) % spaces.length];
-    if (next) this.activateSpace(next.id);
+  stepIdentity(delta: 1 | -1): void {
+    const identities = this.store.allIdentities();
+    const i = identities.findIndex((s) => s.id === this.store.activeIdentityId);
+    const next = identities[(i + delta + identities.length) % identities.length];
+    if (next) this.activateIdentity(next.id);
   }
 
-  updateSpace(spaceId: number, patch: { name?: string; emoji?: string; color?: SpaceColor }): void {
-    this.store.updateSpace(spaceId, patch);
+  updateIdentity(identityId: number, patch: { name?: string; icon?: IdentityIcon; color?: IdentityColor }): void {
+    this.store.updateIdentity(identityId, patch);
   }
 
-  reorderSpace(spaceId: number, index: number): void {
-    this.store.reorderSpace(spaceId, index);
+  reorderIdentity(identityId: number, index: number): void {
+    this.store.reorderIdentity(identityId, index);
   }
 
-  deleteSpace(spaceId: number): void {
-    if (this.store.allSpaces().length <= 1) return; // 至少保留一个 Space
-    for (const tab of this.store.tabsInSpace(spaceId)) {
+  deleteIdentity(identityId: number): void {
+    if (this.store.allIdentities().length <= 1) return; // 至少保留一个 Identity
+    for (const tab of this.store.tabsInIdentity(identityId)) {
       this.destroyView(tab.id);
       this.store.removeTab(tab.id);
     }
-    const wasActive = this.store.activeSpaceId === spaceId;
-    this.store.deleteSpace(spaceId);
-    if (wasActive) this.activateSpace(this.store.activeSpaceId);
+    const wasActive = this.store.activeIdentityId === identityId;
+    this.store.deleteIdentity(identityId);
+    if (wasActive) this.activateIdentity(this.store.activeIdentityId);
   }
 
-  /** 用户接管 agent Space：命令继续可用，agent 侧收到 USER_IN_CONTROL */
-  takeControl(spaceId: number): void {
-    this.store.updateSpace(spaceId, { ownership: 'agentDelegatedToUser' });
+  /** 用户接管 agent Identity：命令继续可用，agent 侧收到 USER_IN_CONTROL */
+  takeControl(identityId: number): void {
+    this.store.updateIdentity(identityId, { ownership: 'agentDelegatedToUser' });
   }
   /** 用户把控制权交还 agent */
-  handBack(spaceId: number): void {
-    this.store.updateSpace(spaceId, { ownership: 'agent' });
+  handBack(identityId: number): void {
+    this.store.updateIdentity(identityId, { ownership: 'agent' });
   }
-  setOwnership(spaceId: number, ownership: Ownership, agentState: string | null = null): void {
-    this.store.updateSpace(spaceId, { ownership, agentState });
+  setOwnership(identityId: number, ownership: Ownership, agentState: string | null = null): void {
+    this.store.updateIdentity(identityId, { ownership, agentState });
   }
 
   // ============ 视图生命周期 ============
@@ -330,13 +337,13 @@ export class BrowserEngine {
     const tab = this.store.getTab(tabId);
     if (!tab) throw new Error(`unknown tab ${tabId}`);
 
+    const tabSession = this.sessionFor(tab.partition);
     const view = new WebContentsView({
       webPreferences: {
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
-        partition: TAB_PARTITION,
-        session: session.fromPartition(TAB_PARTITION),
+        session: tabSession,
       },
     });
     view.setBackgroundColor('#ffffff');
@@ -360,8 +367,24 @@ export class BrowserEngine {
     return view;
   }
 
+  /** 分区 → session；首次触达时通知宿主（下载监听等） */
+  sessionFor(partition: string): Session {
+    const ses = session.fromPartition(partition);
+    if (!this.knownPartitions.has(partition)) {
+      this.knownPartitions.add(partition);
+      this.options.onSession?.(ses, partition);
+    }
+    return ses;
+  }
+
   shellWebContents(): WebContents {
     return this.window.shellView.webContents;
+  }
+  overlayWebContents(): WebContents {
+    return this.window.overlayView.webContents;
+  }
+  overlayVisible(): boolean {
+    return this.window.overlayView.getVisible();
   }
 
   webContentsOf(tabId: string): WebContents | undefined {
@@ -371,10 +394,10 @@ export class BrowserEngine {
 
   private openFromTab(openerId: string, url: string, background: boolean): void {
     const opener = this.store.getTab(openerId);
-    const spaceId = opener?.spaceId ?? this.store.activeSpaceId;
-    const section = opener && opener.spaceId !== null ? this.store.sectionTabs({ spaceId, pinned: false, folderId: opener.folderId }) : [];
+    const identityId = opener?.identityId ?? this.store.activeIdentityId;
+    const section = opener && opener.identityId !== null ? this.store.sectionTabs({ identityId, pinned: false, folderId: opener.folderId }) : [];
     const at = opener ? section.findIndex((t) => t.id === openerId) + 1 : undefined;
-    this.createTab({ url, spaceId, folderId: opener?.spaceId !== null ? opener?.folderId : null, activate: !background, index: at === 0 ? 0 : at });
+    this.createTab({ url, identityId, folderId: opener?.identityId !== null ? opener?.folderId : null, activate: !background, index: at === 0 ? 0 : at });
   }
 
   private destroyView(tabId: string): void {
@@ -386,15 +409,15 @@ export class BrowserEngine {
   }
 
   /**
-   * 后台层对账：每个 agent 持有的 Space，其活动标签若不在前台，就压到壳之下继续绘制。
+   * 后台层对账：每个 agent 持有的 Identity，其活动标签若不在前台，就压到壳之下继续绘制。
    * 幂等；由 store 变更触发。ensureLoaded 可能再次触发 emit，下一轮对账无事可做即收敛。
    */
   private reconcileBackground(): void {
     const shown = this.window.currentContentView;
     const wanted = new Set<WebContentsView>();
-    for (const space of this.store.allSpaces()) {
-      if (space.ownership === 'user') continue;
-      const tab = this.store.activeTab(space.id);
+    for (const identity of this.store.allIdentities()) {
+      if (identity.ownership === 'user') continue;
+      const tab = this.store.activeTab(identity.id);
       if (!tab) continue;
       const view = this.ensureLoaded(tab.id);
       if (view !== shown) wanted.add(view);

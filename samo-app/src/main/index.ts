@@ -1,14 +1,15 @@
 /**
- * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme/session，node:path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/gateway
+ * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/gateway
  * [OUTPUT]: 无导出；主进程引导——装配 store→window→engine→ipc/menu→gateway，并处理生命周期（恢复/落盘/退出）、系统外观跟随与开发态 Dock 图标
  * [POS]: samo-app 主进程的根，唯一知道所有模块如何拼在一起的地方；各模块彼此通过构造注入相识，不互相 import 单例
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { app, nativeImage, nativeTheme, session } from 'electron';
+import { app, nativeImage, nativeTheme } from 'electron';
 import { BrowserStore } from './browser/store';
-import { BrowserEngine, TAB_PARTITION } from './browser/engine';
+import { BrowserEngine } from './browser/engine';
 import { createSaver, loadState } from './browser/persistence';
 import { HistoryStore } from './browser/history';
 import { DownloadManager } from './browser/downloads';
@@ -22,7 +23,7 @@ app.setName('Samo');
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL;
 
 // ============ 渲染资源定位：dev 走 Vite 服务（HMR），prod 走打包产物 ============
-function rendererUrl(page: 'index' | 'newtab'): string {
+function rendererUrl(page: 'index' | 'newtab' | 'overlay'): string {
   if (isDev) return `${process.env.ELECTRON_RENDERER_URL}/${page}.html`;
   return pathToFileURL(join(__dirname, `../renderer/${page}.html`)).href;
 }
@@ -50,10 +51,13 @@ async function bootstrap(): Promise<void> {
   const history = new HistoryStore(join(userData, 'history.json'));
   await history.load();
 
-  const window = new ShellWindow({ preloadPath: join(__dirname, '../preload/index.js'), shellUrl: rendererUrl('index'), isDev });
-  const engine = new BrowserEngine(store, history, window, { newTabUrl: rendererUrl('newtab') });
+  const window = new ShellWindow({ preloadPath: join(__dirname, '../preload/index.js'), shellUrl: rendererUrl('index'), overlayUrl: rendererUrl('overlay'), isDev });
   const downloads = new DownloadManager(store);
-  downloads.attach(session.fromPartition(TAB_PARTITION));
+  const engine = new BrowserEngine(store, history, window, {
+    newTabUrl: rendererUrl('newtab'),
+    onSession: (ses) => downloads.attach(ses),
+    legacyPartitionExists: existsSync(join(userData, 'Partitions', 'samo')),
+  });
   const menus = new ContextMenus(engine, window);
 
   registerIpc({ engine, downloads, menus, window });
@@ -61,7 +65,8 @@ async function bootstrap(): Promise<void> {
 
   const stateFile = join(userData, 'browser-state.json');
   const persisted = await loadState(stateFile);
-  if (persisted && persisted.spaces.length > 0) {
+  const restorable = persisted && ('identities' in persisted ? persisted.identities.length : persisted.spaces.length) > 0;
+  if (persisted && restorable) {
     store.hydrate(persisted);
     engine.wake();
   } else {

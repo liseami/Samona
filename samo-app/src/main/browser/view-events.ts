@@ -51,7 +51,7 @@ export function wireTabEvents(host: ViewEventHost, tabId: string, wc: WebContent
   });
   wc.on('destroyed', () => host.onViewGone(tabId, wc));
 
-  // 新窗口请求 → 同 Space 新标签（Arc 语义：紧随其后；后台标签不抢焦点）
+  // 新窗口请求 → 同 Identity 新标签（Arc 语义：紧随其后；后台标签不抢焦点）
   wc.setWindowOpenHandler(({ url, disposition }) => {
     if (/^(https?|file|about):/i.test(url)) host.openFromTab(tabId, url, disposition === 'background-tab');
     else void shell.openExternal(url);

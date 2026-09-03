@@ -40,7 +40,7 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
     switch (command.type) {
       // ---- 标签 ----
       case 'tab.create':
-        engine.createTab({ url: command.url, spaceId: command.spaceId, pinned: command.pinned, folderId: command.folderId, activate: command.activate ?? true });
+        engine.createTab({ url: command.url, identityId: command.identityId, pinned: command.pinned, folderId: command.folderId, activate: command.activate ?? true });
         break;
       case 'tab.activate':
         engine.activateTab(command.tabId);
@@ -55,7 +55,7 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
         engine.closeBelow(command.tabId);
         break;
       case 'tab.closeUnpinned':
-        engine.closeUnpinned(command.spaceId);
+        engine.closeUnpinned(command.identityId);
         break;
       case 'tab.reopen':
         engine.reopenClosed();
@@ -98,7 +98,7 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
         break;
       // ---- 文件夹 ----
       case 'folder.create':
-        engine.createFolder(command.spaceId, command.name, command.tabIds);
+        engine.createFolder(command.identityId, command.name, command.tabIds);
         break;
       case 'folder.update':
         engine.updateFolder(command.folderId, { name: command.name, color: command.color, collapsed: command.collapsed });
@@ -106,45 +106,45 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
       case 'folder.delete':
         engine.deleteFolder(command.folderId, command.closeTabs);
         break;
-      // ---- Space ----
-      case 'space.create': {
-        const space = engine.createSpace({ name: command.name, emoji: command.emoji, color: command.color });
-        if (command.edit) window.send(CHANNELS.event, { type: 'editSpace', spaceId: space.id } satisfies ShellEvent);
+      // ---- Identity ----
+      case 'identity.create': {
+        const identity = engine.createIdentity({ name: command.name, icon: command.icon, color: command.color });
+        if (command.edit) window.send(CHANNELS.event, { type: 'editIdentity', identityId: identity.id } satisfies ShellEvent);
         break;
       }
-      case 'space.activate':
-        engine.activateSpace(command.spaceId);
+      case 'identity.activate':
+        engine.activateIdentity(command.identityId);
         break;
-      case 'space.step':
-        engine.stepSpace(command.delta);
+      case 'identity.step':
+        engine.stepIdentity(command.delta);
         break;
-      case 'space.update':
-        engine.updateSpace(command.spaceId, { name: command.name, emoji: command.emoji, color: command.color });
+      case 'identity.update':
+        engine.updateIdentity(command.identityId, { name: command.name, icon: command.icon, color: command.color });
         break;
-      case 'space.reorder':
-        engine.reorderSpace(command.spaceId, command.index);
+      case 'identity.reorder':
+        engine.reorderIdentity(command.identityId, command.index);
         break;
-      case 'space.delete':
-        engine.deleteSpace(command.spaceId);
+      case 'identity.delete':
+        engine.deleteIdentity(command.identityId);
         break;
-      case 'space.takeControl':
-        engine.takeControl(command.spaceId);
+      case 'identity.takeControl':
+        engine.takeControl(command.identityId);
         break;
-      case 'space.handBack':
-        engine.handBack(command.spaceId);
+      case 'identity.handBack':
+        engine.handBack(command.identityId);
         break;
       // ---- 原生菜单 ----
       case 'menu.tab':
         menus.tab(command.tabId);
         break;
-      case 'menu.space':
-        menus.space(command.spaceId);
+      case 'menu.identity':
+        menus.identity(command.identityId);
         break;
       case 'menu.folder':
         menus.folder(command.folderId);
         break;
       case 'menu.tabList':
-        menus.tabList(command.spaceId);
+        menus.tabList(command.identityId);
         break;
       // ---- 下载 ----
       case 'download.open':
@@ -158,6 +158,13 @@ export function registerIpc({ engine, downloads, menus, window }: IpcDeps): void
         break;
       case 'download.clear':
         downloads.clear();
+        break;
+      // ---- 命令面板 ----
+      case 'palette.open':
+        window.openPalette({ type: 'openPalette', mode: command.mode, url: store.activeTab()?.url ?? '' });
+        break;
+      case 'palette.close':
+        window.closePalette();
         break;
       // ---- 布局与壳 ----
       case 'layout.sidebar':
@@ -187,7 +194,7 @@ function suggest(engine: BrowserEngine, input: string, limit: number, tabsOnly: 
   const out: Suggestion[] = [];
   const { store } = engine;
   if (!q && !tabsOnly) return out; // 地址模式下空输入不出建议；标签搜索模式下空输入列出全部
-  const allTabs = [...store.favorites(), ...store.allSpaces().flatMap((s) => store.tabsInSpace(s.id))].filter((t) => t.url !== NEW_TAB_URL);
+  const allTabs = [...store.favorites(), ...store.allIdentities().flatMap((s) => store.tabsInIdentity(s.id))].filter((t) => t.url !== NEW_TAB_URL);
   const openTabs = allTabs.filter((t) => !lower || tabTitle(t).toLowerCase().includes(lower) || t.url.toLowerCase().includes(lower)).slice(0, tabsOnly ? limit : 3);
   for (const t of openTabs) out.push({ kind: 'tab', tabId: t.id, title: tabTitle(t), url: t.url });
   if (tabsOnly || !q) return out;

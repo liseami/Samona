@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 @shared/model 的 Space/Ownership 类型
- * [OUTPUT]: 对外提供 toTaskSpace（Space → ego task space 线形）、EgoError 工厂 egoError/EgoRejection、EGO_CODE 常量
- * [POS]: agent 模块的语义翻译层：Samo 的 Space 与 ego-browser 的 task space 是同一实体的两个名字，这里是唯一的换算点
+ * [INPUT]: 依赖 @shared/model 的 Identity/Ownership 类型
+ * [OUTPUT]: 对外提供 toTaskSpace（Identity → ego task identity 线形）、EgoError 工厂 egoError/EgoRejection、EGO_CODE 常量
+ * [POS]: agent 模块的语义翻译层：Samo 的 Identity 与 ego-browser 的 task identity 是同一实体的两个名字，这里是唯一的换算点
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { Space } from '@shared/model';
+import type { Identity } from '@shared/model';
 
 // ============ ego-browser 识别的稳定错误码（见 ego-errors.ts） ============
 export const EGO_CODE = {
@@ -42,18 +42,18 @@ export interface TaskSpaceWire {
   id: number;
   name: string;
   taskId: string;
-  ownership: Space['ownership'];
+  ownership: Identity['ownership'];
   active: boolean;
   state: string | null;
 }
 
-export function toTaskSpace(space: Space, selectedId: number | null): TaskSpaceWire {
+export function toTaskSpace(identity: Identity, selectedId: number | null): TaskSpaceWire {
   return {
-    id: space.id,
-    name: space.name,
-    taskId: space.taskId ?? space.name,
-    ownership: space.ownership,
-    active: space.id === selectedId,
-    state: space.agentState,
+    id: identity.id,
+    name: identity.name,
+    taskId: identity.taskId ?? identity.name,
+    ownership: identity.ownership,
+    active: identity.id === selectedId,
+    state: identity.agentState,
   };
 }

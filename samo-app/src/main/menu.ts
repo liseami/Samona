@@ -5,27 +5,28 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { Menu, app, type MenuItemConstructorOptions } from 'electron';
-import { CHANNELS, type ShellEvent } from '@shared/ipc';
+import { CHANNELS, type PaletteMode, type ShellEvent } from '@shared/ipc';
 import type { BrowserEngine } from './browser/engine';
 import type { ShellWindow } from './shell/window';
 
 export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
   // 需要键盘落到壳里的事件，先把 OS 焦点从网页视图挪回壳视图，否则 ⌘T/⌘L 之后敲的字会进网页
+  const { store } = engine;
   const emit = (event: ShellEvent) => {
     window.focusShell();
     window.send(CHANNELS.event, event);
   };
+  const palette = (mode: PaletteMode) => window.openPalette({ type: 'openPalette', mode, url: store.activeTab()?.url ?? '' });
   const isMac = process.platform === 'darwin';
-  const { store } = engine;
 
   const tabByOrdinal = (n: number) => {
-    const tabs = store.tabsInSpace(store.activeSpaceId);
+    const tabs = store.tabsInIdentity(store.activeIdentityId);
     const target = n === 9 ? tabs[tabs.length - 1] : tabs[n - 1];
     if (target) engine.activateTab(target.id);
   };
   const spaceByOrdinal = (n: number) => {
-    const target = store.allSpaces()[n - 1];
-    if (target) engine.activateSpace(target.id);
+    const target = store.allIdentities()[n - 1];
+    if (target) engine.activateIdentity(target.id);
   };
 
   const template: MenuItemConstructorOptions[] = [
@@ -33,9 +34,9 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
     {
       label: 'File',
       submenu: [
-        { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: () => emit({ type: 'focusOmnibox', mode: 'newTab' }) },
+        { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: () => palette('newTab') },
         { label: 'New Folder', accelerator: 'CmdOrCtrl+Shift+F', click: () => emit({ type: 'renameFolder', folderId: engine.createFolder() }) },
-        { label: 'New Space', accelerator: 'CmdOrCtrl+Shift+N', click: () => emit({ type: 'editSpace', spaceId: engine.createSpace({ name: 'New Space' }).id }) },
+        { label: 'New Identity', accelerator: 'CmdOrCtrl+Shift+N', click: () => emit({ type: 'editIdentity', identityId: engine.createIdentity({ name: 'New Identity' }).id }) },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => engine.closeTab() },
         { label: 'Reopen Closed Tab', accelerator: 'CmdOrCtrl+Shift+T', click: () => engine.reopenClosed() },
@@ -49,8 +50,8 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
     {
       label: 'View',
       submenu: [
-        { label: 'Focus Address', accelerator: 'CmdOrCtrl+L', click: () => emit({ type: 'focusOmnibox', mode: 'editUrl' }) },
-        { label: 'Search Tabs', accelerator: 'CmdOrCtrl+Shift+A', click: () => emit({ type: 'focusOmnibox', mode: 'searchTabs' }) },
+        { label: 'Open Location', accelerator: 'CmdOrCtrl+L', click: () => palette('editUrl') },
+        { label: 'Search Tabs', accelerator: 'CmdOrCtrl+Shift+A', click: () => palette('searchTabs') },
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+S', click: () => store.setLayout({ sidebarCollapsed: !store.getLayout().sidebarCollapsed }) },
         { type: 'separator' },
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => engine.reload() },
@@ -80,12 +81,12 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow): void {
       ],
     },
     {
-      label: 'Spaces',
+      label: 'Identities',
       submenu: [
-        { label: 'Next Space', accelerator: isMac ? 'Alt+Cmd+Right' : 'Ctrl+Alt+Right', click: () => engine.stepSpace(1) },
-        { label: 'Previous Space', accelerator: isMac ? 'Alt+Cmd+Left' : 'Ctrl+Alt+Left', click: () => engine.stepSpace(-1) },
+        { label: 'Next Identity', accelerator: isMac ? 'Alt+Cmd+Right' : 'Ctrl+Alt+Right', click: () => engine.stepIdentity(1) },
+        { label: 'Previous Identity', accelerator: isMac ? 'Alt+Cmd+Left' : 'Ctrl+Alt+Left', click: () => engine.stepIdentity(-1) },
         { type: 'separator' },
-        ...Array.from({ length: 9 }, (_, i) => ({ label: `Space ${i + 1}`, accelerator: `Ctrl+${i + 1}`, click: () => spaceByOrdinal(i + 1) })),
+        ...Array.from({ length: 9 }, (_, i) => ({ label: `Identity ${i + 1}`, accelerator: `Ctrl+${i + 1}`, click: () => spaceByOrdinal(i + 1) })),
       ],
     },
     { role: 'windowMenu' },

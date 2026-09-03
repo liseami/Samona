@@ -10,6 +10,7 @@ tooltip.tsx: TooltipProvider/Tooltip/TooltipTrigger/TooltipContent 与一行式 
 popover.tsx: Popover/PopoverTrigger/PopoverAnchor/PopoverContent——菜单表面契约。
 scroll-area.tsx: ScrollArea——Radix 滚动容器 + 2px 细滚动条。
 kbd.tsx: Kbd——快捷键小标签。
+keycap.tsx: Keycap——Laper KeyboardHint 形态的键帽（渐变 muted 底、1.5px 边线 + 4px 底边），命令面板页脚用。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

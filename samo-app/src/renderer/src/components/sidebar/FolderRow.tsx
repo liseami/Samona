@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 @dnd-kit/core 的 useDroppable，@dnd-kit/sortable（SortableContext/verticalListSortingStrategy），../../icons 的 ChevronRight/Folder，../../lib/dnd 的 folderContainerId/folderHeadId/tabDragId，../../lib/utils 的 cn，../../store/browser，./TabItem，./InlineEdit，@shared/model 的 Folder/Tab/SPACE_COLOR_HEX
+ * [INPUT]: 依赖 @dnd-kit/core 的 useDroppable，@dnd-kit/sortable（SortableContext/verticalListSortingStrategy），../../icons 的 ChevronRight/Folder，../../lib/dnd 的 folderContainerId/folderHeadId/tabDragId，../../lib/utils 的 cn，../../store/browser，./TabItem，./InlineEdit，@shared/model 的 Folder/Tab/IDENTITY_COLOR_HEX
  * [OUTPUT]: 对外提供 FolderRow 组件：文件夹头（折叠箭头 + 着色文件夹图标 + 名称/内联重命名 + 计数；本身是落点）+ 成员标签的排序上下文（缩进一级）
  * [POS]: renderer/components/sidebar 的分组单元，TabList 为每个文件夹渲染一个
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,7 +7,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ChevronRight, Folder as FolderIcon } from '../../icons';
-import { SPACE_COLOR_HEX, type Folder, type Tab } from '@shared/model';
+import { IDENTITY_COLOR_HEX, type Folder, type Tab } from '@shared/model';
 import { folderContainerId, folderHeadId, tabDragId } from '../../lib/dnd';
 import { cn } from '../../lib/utils';
 import { send, useBrowser } from '../../store/browser';
@@ -20,7 +20,7 @@ export function FolderRow({ folder, tabs, activeId }: { folder: Folder; tabs: Ta
   const renaming = rename?.value.kind === 'folder' && rename.value.id === folder.id;
   const head = useDroppable({ id: folderHeadId(folder.id) });
   const body = useDroppable({ id: folderContainerId(folder.id) });
-  const color = folder.color === 'grey' ? undefined : SPACE_COLOR_HEX[folder.color];
+  const color = folder.color === 'grey' ? undefined : IDENTITY_COLOR_HEX[folder.color];
   const containsActive = tabs.some((t) => t.id === activeId);
 
   return (

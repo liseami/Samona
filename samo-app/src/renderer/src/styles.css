@@ -28,7 +28,8 @@
   --chart-3: oklch(0.6534 0 0);
   --chart-4: oklch(0.7316 0 0);
   --chart-5: oklch(0.8078 0 0);
-  --sidebar: var(--background); /* 与内容区同底色，网页卡片才能「浮」起来 */
+  --panel: oklch(0.9702 0 0); /* 三级梯度：sidebar(页面底) < panel(内容面板) < card(卡片)；面板靠色阶浮起 */
+  --sidebar: oklch(0.937 0 0);
   --sidebar-foreground: oklch(0.3211 0 0);
   --sidebar-primary: oklch(0.4891 0 0);
   --sidebar-primary-foreground: oklch(1 0 0);
@@ -53,7 +54,7 @@
   --shadow-dropdown: 0 4px 16px 0 rgba(16, 22, 26, 0.12), 0 2px 6px 0 rgba(16, 22, 26, 0.08);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  --space: #3a6ff8; /* 运行时由 App 写入活动 Space 的强调色，仅用于小面积点缀 */
+  --identity: #3a6ff8; /* 运行时由 App 写入活动 Identity 的强调色，仅用于小面积点缀 */
   color-scheme: light;
 }
 
@@ -82,7 +83,8 @@
   --chart-3: oklch(0.5452 0 0);
   --chart-4: oklch(0.4604 0 0);
   --chart-5: oklch(0.3715 0 0);
-  --sidebar: var(--background);
+  --panel: oklch(0.2435 0 0);
+  --sidebar: oklch(0.2178 0 0);
   --sidebar-foreground: oklch(0.8853 0 0);
   --sidebar-primary: oklch(0.7058 0 0);
   --sidebar-primary-foreground: oklch(0.2178 0 0);
@@ -130,6 +132,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-panel: var(--panel);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -138,7 +141,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-space: var(--space);
+  --color-identity: var(--identity);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -311,6 +314,32 @@
 .laper-menu-motion {
   transform-origin: var(--radix-popover-content-transform-origin, center);
   animation: laper-menu-pop-in var(--duration-motion-fast) ease-out both;
+}
+
+/* ---- 对话框（Laper VARIANTS.dialogPop / backdropFade，TRANSITION.dialog = 150ms standard） ---- */
+@keyframes laper-dialog-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+@keyframes laper-backdrop-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.laper-dialog-pop {
+  animation: laper-dialog-pop var(--duration-motion-fast) var(--ease-standard) both;
+}
+.laper-backdrop-fade {
+  animation: laper-backdrop-fade var(--duration-motion-fast) var(--ease-standard) both;
 }
 
 /* ---- 滚动条（Laper：5px，常显，随 muted-foreground 混色） ---- */

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron-vite 的 defineConfig/externalizeDepsPlugin，@vitejs/plugin-react 与 @tailwindcss/vite 插件
- * [OUTPUT]: 对外提供 main/preload/renderer 三段构建配置（renderer 为双页：index 壳 + newtab 新标签页）
+ * [OUTPUT]: 对外提供 main/preload/renderer 三段构建配置（renderer 为三页：index 壳 + newtab 新标签页 + overlay 命令面板）
  * [POS]: samo-app 的构建宪法，决定三个进程各自的入口、别名与产物位置
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,6 +32,7 @@ export default defineConfig({
         input: {
           index: resolve('src/renderer/index.html'),
           newtab: resolve('src/renderer/newtab.html'),
+          overlay: resolve('src/renderer/overlay.html'),
         },
       },
     },

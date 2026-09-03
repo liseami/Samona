@@ -1,13 +1,13 @@
 /**
- * [INPUT]: 依赖 ../browser/engine 的 BrowserEngine，./cdp-bridge 的 CdpBridge，./snapshot 的 buildSnapshot，./task-spaces 的翻译与错误工厂，@shared/model 的 NEW_TAB_URL/AGENT_SPACE_COLOR
- * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task space 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell（开发态驱动壳），按连接持有「当前选中的 task space」；SHELL_TARGET 常量
+ * [INPUT]: 依赖 ../browser/engine 的 BrowserEngine，./cdp-bridge 的 CdpBridge，./snapshot 的 buildSnapshot，./task-spaces 的翻译与错误工厂，@shared/model 的 NEW_TAB_URL/AGENT_IDENTITY_COLOR
+ * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task identity 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell（开发态驱动壳），按连接持有「当前选中的 task identity」；SHELL_TARGET 常量
  * [POS]: agent 模块的业务层，是 ego-browser 眼里的「浏览器」；所有可见性都以 selectedSpaceId 为界（phi 缺的服务端过滤在这里补上）。gateway 负责传输，它负责语义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { app, type WebContents } from 'electron';
-import { AGENT_SPACE_COLOR, NEW_TAB_URL } from '@shared/model';
+import { AGENT_IDENTITY_COLOR, NEW_TAB_URL } from '@shared/model';
 import type { BrowserEngine } from '../browser/engine';
 import { CdpBridge } from './cdp-bridge';
 import { buildSnapshot, type SnapshotOptions } from './snapshot';
@@ -18,10 +18,11 @@ export type RpcHandler = (...args: RpcParams) => Promise<unknown> | unknown;
 
 /** 开发态：SAMO_DEBUG_SHELL=1 时 agent 可把壳本身当作 target 来驱动（用于自动化测试侧栏） */
 export const SHELL_TARGET = 'shell';
+export const OVERLAY_TARGET = 'overlay';
 
 export class AgentSession {
   private selectedSpaceId: number | null = null;
-  private shellMode = false;
+  private shellMode: 'shell' | 'overlay' | null = null;
   readonly bridge: CdpBridge;
   readonly methods: Record<string, RpcHandler>;
 
@@ -44,7 +45,7 @@ export class AgentSession {
       snapshot: (options) => this.snapshot((options ?? {}) as SnapshotOptions),
       listTaskSpaces: () => ({
         taskSpaces: this.engine.store
-          .allSpaces()
+          .allIdentities()
           .filter((s) => s.ownership !== 'user' || s.taskId)
           .map((s) => toTaskSpace(s, this.selectedSpaceId)),
       }),
@@ -54,20 +55,21 @@ export class AgentSession {
       completeTaskSpace: () => this.mutateSelected((id) => this.engine.setOwnership(id, 'user', null)),
       closeTaskSpace: () =>
         this.mutateSelected((id) => {
-          this.engine.deleteSpace(id);
+          this.engine.deleteIdentity(id);
           this.selectedSpaceId = null;
         }),
       handOffTaskSpace: () => this.mutateSelected((id) => this.engine.setOwnership(id, 'agentDelegatedToUser')),
       takeOverTaskSpace: () => this.mutateSelected((id) => this.engine.setOwnership(id, 'agent')),
       setAgentTaskState: (label) => {
-        if (this.selectedSpaceId !== null) this.engine.store.updateSpace(this.selectedSpaceId, { agentState: label == null ? null : String(label) });
+        if (this.selectedSpaceId !== null) this.engine.store.updateIdentity(this.selectedSpaceId, { agentState: label == null ? null : String(label) });
         return {};
       },
       animationHighlightMouseToPosition: () => ({}), // 第一版无光标镜像
       captureWindow: (dir) => this.captureWindow(dir ? String(dir) : undefined),
-      useShell: () => {
+      useShell: (which) => {
         if (!process.env.SAMO_DEBUG_SHELL) return egoError(EGO_CODE.operationFailed, 'useShell requires SAMO_DEBUG_SHELL=1');
-        this.shellMode = true;
+        this.shellMode = which === 'overlay' ? 'overlay' : 'shell';
+        this.bridge.dispose(); // 切换目标时丢掉旧附着
         return {};
       },
       ping: () => ({ ok: true }),
@@ -81,20 +83,20 @@ export class AgentSession {
   dispose(): void {
     this.bridge.dispose();
     if (this.selectedSpaceId !== null) {
-      const space = this.engine.store.getSpace(this.selectedSpaceId);
-      if (space?.ownership === 'agent') this.engine.store.updateSpace(space.id, { agentState: null });
+      const identity = this.engine.store.getIdentity(this.selectedSpaceId);
+      if (identity?.ownership === 'agent') this.engine.store.updateIdentity(identity.id, { agentState: null });
     }
   }
 
-  // ============ 可见性：只看选中的 Space ============
+  // ============ 可见性：只看选中的 Identity ============
   private visibleTabs() {
     if (this.shellMode) {
-      const wc = this.engine.shellWebContents();
-      return [{ targetId: SHELL_TARGET, url: wc.getURL(), title: 'Samo Shell', active: true }];
+      const wc = this.shellMode === 'overlay' ? this.engine.overlayWebContents() : this.engine.shellWebContents();
+      return [{ targetId: this.shellMode === 'overlay' ? OVERLAY_TARGET : SHELL_TARGET, url: wc.getURL(), title: this.shellMode === 'overlay' ? 'Samo Palette' : 'Samo Shell', active: true }];
     }
     if (this.selectedSpaceId === null) return [];
     const activeId = this.engine.store.activeTabId(this.selectedSpaceId);
-    return this.engine.store.tabsInSpace(this.selectedSpaceId).map((t) => ({
+    return this.engine.store.tabsInIdentity(this.selectedSpaceId).map((t) => ({
       targetId: t.id,
       url: t.url === NEW_TAB_URL ? 'about:blank' : t.url,
       title: t.title,
@@ -103,48 +105,48 @@ export class AgentSession {
   }
 
   private createTabIn(url: string): string {
-    const spaceId = this.selectedSpaceId ?? this.engine.store.activeSpaceId;
-    const tab = this.engine.createTab({ url: url === 'about:blank' ? undefined : url, spaceId, activate: false });
-    this.engine.selectTab(tab.id); // agent 语义上的「当前标签」；只有用户正看着这个 Space 时才切到前台
+    const identityId = this.selectedSpaceId ?? this.engine.store.activeIdentityId;
+    const tab = this.engine.createTab({ url: url === 'about:blank' ? undefined : url, identityId, activate: false });
+    this.engine.selectTab(tab.id); // agent 语义上的「当前标签」；只有用户正看着这个 Identity 时才切到前台
     return tab.id;
   }
 
   private guardSelected(): EgoErrorResult | null {
     if (this.shellMode) return null;
-    if (this.selectedSpaceId === null) return egoError(EGO_CODE.spaceNotSelected, 'No task space selected. Call useOrCreateTaskSpace(name) first.');
-    const space = this.engine.store.getSpace(this.selectedSpaceId);
-    if (!space) return egoError(EGO_CODE.spaceNotFound, 'The selected task space no longer exists.');
-    if (space.ownership === 'agentDelegatedToUser') return egoError(EGO_CODE.userInControl, 'The user has taken control of this task space.');
-    if (space.ownership === 'user' && space.taskId) return egoError(EGO_CODE.spaceInactive, 'This task space has been handed to the user.');
+    if (this.selectedSpaceId === null) return egoError(EGO_CODE.spaceNotSelected, 'No task identity selected. Call useOrCreateTaskSpace(name) first.');
+    const identity = this.engine.store.getIdentity(this.selectedSpaceId);
+    if (!identity) return egoError(EGO_CODE.spaceNotFound, 'The selected task identity no longer exists.');
+    if (identity.ownership === 'agentDelegatedToUser') return egoError(EGO_CODE.userInControl, 'The user has taken control of this task identity.');
+    if (identity.ownership === 'user' && identity.taskId) return egoError(EGO_CODE.spaceInactive, 'This task identity has been handed to the user.');
     return null;
   }
 
-  // ============ Task space 生命周期 ============
+  // ============ Task identity 生命周期 ============
   private createTaskSpace(name: string) {
     if (!name) return egoError(EGO_CODE.invalidArgument, 'createTaskSpace requires a name');
-    const space = this.engine.createSpace({ name, emoji: '🤖', color: AGENT_SPACE_COLOR, ownership: 'agent', taskId: name }, false);
-    this.selectedSpaceId = space.id;
-    return toTaskSpace(space, this.selectedSpaceId);
+    const identity = this.engine.createIdentity({ name, icon: 'bot', color: AGENT_IDENTITY_COLOR, ownership: 'agent', taskId: name }, false);
+    this.selectedSpaceId = identity.id;
+    return toTaskSpace(identity, this.selectedSpaceId);
   }
 
   private useTaskSpace(id: number) {
-    const space = this.engine.store.getSpace(id);
-    if (!space) return egoError(EGO_CODE.spaceNotFound, `task space not found: ${id}`);
+    const identity = this.engine.store.getIdentity(id);
+    if (!identity) return egoError(EGO_CODE.spaceNotFound, `task identity not found: ${id}`);
     this.selectedSpaceId = id;
     return {};
   }
 
   private claimTaskSpace(id: number, name?: string) {
-    const space = this.engine.store.getSpace(id);
-    if (!space) return egoError(EGO_CODE.spaceNotFound, `task space not found: ${id}`);
-    this.engine.store.updateSpace(id, { ownership: 'agent', taskId: space.taskId ?? name ?? space.name, agentState: null });
+    const identity = this.engine.store.getIdentity(id);
+    if (!identity) return egoError(EGO_CODE.spaceNotFound, `task identity not found: ${id}`);
+    this.engine.store.updateIdentity(id, { ownership: 'agent', taskId: identity.taskId ?? name ?? identity.name, agentState: null });
     this.selectedSpaceId = id;
-    return toTaskSpace(this.engine.store.getSpace(id)!, id);
+    return toTaskSpace(this.engine.store.getIdentity(id)!, id);
   }
 
-  private mutateSelected(fn: (spaceId: number) => void) {
-    if (this.selectedSpaceId === null) return egoError(EGO_CODE.spaceNotSelected, 'No task space selected.');
-    if (!this.engine.store.getSpace(this.selectedSpaceId)) return egoError(EGO_CODE.spaceNotFound, 'The selected task space no longer exists.');
+  private mutateSelected(fn: (identityId: number) => void) {
+    if (this.selectedSpaceId === null) return egoError(EGO_CODE.spaceNotSelected, 'No task identity selected.');
+    if (!this.engine.store.getIdentity(this.selectedSpaceId)) return egoError(EGO_CODE.spaceNotFound, 'The selected task identity no longer exists.');
     fn(this.selectedSpaceId);
     return {};
   }
@@ -166,6 +168,7 @@ export class AgentSession {
       }
     };
     await grab('shell', this.engine.shellWebContents());
+    if (this.engine.overlayVisible()) await grab('overlay', this.engine.overlayWebContents());
     const tab = this.selectedSpaceId !== null ? this.engine.store.activeTab(this.selectedSpaceId) : this.engine.store.activeTab();
     await grab('content', tab ? this.engine.webContentsOf(tab.id) : undefined);
     return Object.keys(errors).length ? { ...files, errors } : files;
@@ -176,8 +179,8 @@ export class AgentSession {
     const guard = this.guardSelected();
     if (guard) throw new EgoRejection(guard.error_code, guard.error);
     const tab = this.shellMode ? null : this.engine.store.activeTab(this.selectedSpaceId!);
-    if (!this.shellMode && !tab) throw new EgoRejection(EGO_CODE.webContentsUnavailable, 'No tab in the selected task space.');
-    const wc = this.shellMode ? this.engine.shellWebContents() : this.engine.ensureLoaded(tab!.id).webContents;
+    if (!this.shellMode && !tab) throw new EgoRejection(EGO_CODE.webContentsUnavailable, 'No tab in the selected task identity.');
+    const wc = this.shellMode === 'overlay' ? this.engine.overlayWebContents() : this.shellMode ? this.engine.shellWebContents() : this.engine.ensureLoaded(tab!.id).webContents;
     if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
     try {
       return await buildSnapshot(wc, options);

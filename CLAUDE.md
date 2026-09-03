@@ -17,11 +17,11 @@ bun.lock - 单一锁文件
 
 <product>
 Samo 解决的问题：编程小白用 vibe coding 造的工作台散落在 localhost；Samo 让这些 App 以标准化壳封装、由 Samo 服务器部署（预览版/正式版），常驻在浏览器侧栏一键打开、持续迭代，部署/数据库/登录全由 Samo 负责。
-第一阶段（当前）：可运行、可迭代、可热更新的轻量版——Arc 式壳 + 真实标签页 + Space + agent 网关。侧栏「固定标签」即未来的 App 位。
+第一阶段（当前）：可运行、可迭代、可热更新的轻量版——Arc 式壳 + 真实标签页 + 身份（独立登录态）+ 命令面板 + agent 网关。侧栏「收藏/固定标签」即未来的 App 位。
 </product>
 
 <agent>
-Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时。agent 在自己的 Space（sidebar 里带角标）工作，用户随时 Take control / Hand back。
+Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时。agent 在自己的身份（继承用户登录态，sidebar 底部带角标）里工作，用户随时 Take control / Hand back。
 </agent>
 
 法则: 极简·稳定·导航·版本精确

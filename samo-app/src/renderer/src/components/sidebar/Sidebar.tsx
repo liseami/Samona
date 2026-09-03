@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react，@dnd-kit/core（DndContext/DragOverlay/sensors），../../store/browser，../../lib/dnd 的解析与碰撞检测，./{SidebarHeader,SpacesStrip,SpaceEditor,Omnibox,AgentBanner,FavoritesGrid,PinnedGrid,TabList,SidebarFooter,Resizer,DragGhost}，./useSpaceSwipe
- * [OUTPUT]: 对外提供 Sidebar 组件：Arc 式纵向侧栏的骨架（头部 → Space 条 → 地址栏 → agent 横幅 → 收藏 → 固定 → 文件夹与标签 → 底栏）+ 唯一的 DndContext（所有拖拽落点在 onDragEnd 统一换算为 tab.move / space.reorder）+ 双指横滑切 Space + 折叠态 peek 的收回
+ * [INPUT]: 依赖 react，@dnd-kit/core（DndContext/DragOverlay/sensors），../../store/browser，../../lib/dnd 的解析与碰撞检测，./{SidebarHeader,Omnibox,AgentBanner,FavoritesGrid,PinnedGrid,TabList,IdentityBar,IdentityEditor,Resizer,DragGhost}，./useSpaceSwipe
+ * [OUTPUT]: 对外提供 Sidebar 组件：Arc 式纵向侧栏的骨架（头部 → 地址栏 → agent 横幅 → 收藏 → 固定 → 文件夹与标签 → 底部身份栏）+ 唯一的 DndContext（所有拖拽落点在 onDragEnd 统一换算为 tab.move / identity.reorder）+ 双指横滑切 Identity + 折叠态 peek 的收回
  * [POS]: renderer/components/sidebar 的容器，只负责纵向编排、拖拽仲裁与宽度；每个分段自管数据
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,14 +10,13 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { parseDndId, resolveDrop, sidebarCollision } from '../../lib/dnd';
 import { send, useBrowser } from '../../store/browser';
 import { SidebarHeader } from './SidebarHeader';
-import { SpacesStrip } from './SpacesStrip';
-import { SpaceEditor } from './SpaceEditor';
+import { IdentityBar } from './IdentityBar';
+import { IdentityEditor } from './IdentityEditor';
 import { Omnibox } from './Omnibox';
 import { AgentBanner } from './AgentBanner';
 import { FavoritesGrid } from './FavoritesGrid';
 import { PinnedGrid } from './PinnedGrid';
 import { TabList } from './TabList';
-import { SidebarFooter } from './SidebarFooter';
 import { Resizer } from './Resizer';
 import { DragGhost } from './DragGhost';
 import { useSpaceSwipe } from './useSpaceSwipe';
@@ -45,11 +44,11 @@ export function Sidebar() {
     const active = parseDndId(String(e.active.id));
     const over = parseDndId(String(e.over.id));
     if (!active || !over) return;
-    if (active.kind === 'space') {
-      if (over.kind === 'space' && over.id !== active.id) {
+    if (active.kind === 'identity') {
+      if (over.kind === 'identity' && over.id !== active.id) {
         const overId = over.id;
-        const index = snapshot.spaces.findIndex((s) => s.id === overId);
-        if (index >= 0) send({ type: 'space.reorder', spaceId: active.id, index });
+        const index = snapshot.identities.findIndex((s) => s.id === overId);
+        if (index >= 0) send({ type: 'identity.reorder', identityId: active.id, index });
       }
       return;
     }
@@ -57,7 +56,7 @@ export function Sidebar() {
     const activeId = active.id;
     const tab = snapshot.tabs.find((t) => t.id === activeId);
     if (!tab) return;
-    const target = resolveDrop(tab, over, snapshot.tabs, snapshot.activeSpaceId);
+    const target = resolveDrop(tab, over, snapshot.tabs, snapshot.activeIdentityId);
     if (target) send({ type: 'tab.move', tabId: tab.id, to: target });
   };
 
@@ -74,15 +73,14 @@ export function Sidebar() {
       <DraggingContext.Provider value={dragging}>
         <DndContext sensors={sensors} collisionDetection={sidebarCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
           <SidebarHeader />
-          <SpaceEditor>
-            <SpacesStrip />
-          </SpaceEditor>
           <Omnibox />
           <AgentBanner />
           <FavoritesGrid />
           <PinnedGrid />
           <TabList />
-          <SidebarFooter />
+          <IdentityEditor>
+            <IdentityBar />
+          </IdentityEditor>
           <DragOverlay dropAnimation={null}>{ghost}</DragOverlay>
         </DndContext>
       </DraggingContext.Provider>
