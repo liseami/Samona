@@ -18,7 +18,7 @@ config.ts: ChatConfigStore——userData/config.json（0600）里的 anthropicAp
 service.ts: ChatService——openWorkspaceThread（切到目录的对话）、send（用户消息 → ChatDelta 流 → 文字消息与工具胶囊：tool.start 收束当前文字、tool.end 收束胶囊并立刻占位新文字让思考指示不断）、stop、线程操作、形态切换、setProvider 热切换；ChatStore 的唯一写者。
 window.ts: ChatWindow——不透明子窗口：showAt/restBounds（尺寸记住、锚在角落）/defaultBounds/rememberSize/close（隐藏 + 焦点归还主窗口）/focus/send/window/isOpen；关闭事件即隐藏并把形态回到 closed。
 launcher-window.ts: LauncherWindow——药丸子窗口：pillBounds 钉在主窗口内容区右下角，随其 resize/show/focus 同步；setVisible/webContents/send。
-choreographer.ts: ChatChoreographer——init 在壳就绪后按形态放出；apply(snapshot)：closed = 药丸；floating = 面板窗口在安放位并聚焦；docked = 停靠卡；同形态重复快照只同步停靠宽度并兜底药丸可见。
+choreographer.ts: ChatChoreographer——init 在壳就绪后按形态放出；setSuppressed（工作区维度隐藏药丸）；apply(snapshot)：closed = 药丸；floating = 面板窗口在安放位并聚焦；docked = 停靠卡；同形态重复快照只同步停靠宽度并兜底药丸可见。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

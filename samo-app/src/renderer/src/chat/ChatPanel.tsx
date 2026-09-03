@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react，react-markdown + remark-gfm，@shared/chat 的 ChatMessage/ChatThread，./store 的 useChat/chatSend/bindChat，../icons，../lib/utils 的 cn
- * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked' | 'workspace'，workspace 不带内部头部）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；工具胶囊 ToolBubble 展示 agent 的每一步浏览器动作；思考指示；错误提示胶囊；接入卡 KeyCard；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
+ * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked' | 'workspace'，workspace 不带内部头部，消息列与输入卡以 --chat-column 固定宽度居中）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；工具胶囊 ToolBubble 展示 agent 的每一步浏览器动作；思考指示；错误提示胶囊；接入卡 KeyCard；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
  * [POS]: renderer/chat 的面板本体，浮窗页与壳内停靠卡共用同一份组件；形态只影响头部动作与拖拽区
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,7 +31,10 @@ export function ChatPanel({ variant }: { variant: Variant }) {
 
   if (!snap) return null;
   return (
-    <div className="agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-foreground">
+    <div
+      className="agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-foreground"
+      style={{ ['--chat-column' as string]: variant === 'workspace' ? '760px' : '100%' }} // 工作区：整面 bg-card，消息与输入卡固定宽度居中
+    >
       <Aurora active={snap.generating} />
       <div className="relative z-1 flex min-h-0 flex-1 flex-col">
         {variant !== 'workspace' && <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />}
@@ -121,7 +124,7 @@ function MessageList({ messages, generating, needsKey }: { messages: ChatMessage
   if (messages.length === 0) return <WelcomeEmpty needsKey={needsKey} />;
   return (
     <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
-      <div className="flex min-h-full flex-col gap-4 px-4 py-4">
+      <div className="mx-auto flex min-h-full w-full flex-col gap-4 px-4 py-4" style={{ maxWidth: 'var(--chat-column)' }}>
         {needsKey && <KeyCard compact />}
         {messages.map((m) => (m.kind === 'tool' ? <ToolBubble key={m.id} message={m} /> : m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantMessage key={m.id} message={m} />))}
         {showThinking && <ThinkingBubble />}
@@ -383,7 +386,7 @@ function Composer({ generating, collapsed, placeholder }: { generating: boolean;
   );
 
   return (
-    <div className="no-drag shrink-0 p-2">
+    <div className="no-drag mx-auto w-full shrink-0 p-2" style={{ maxWidth: 'var(--chat-column)' }}>
       <div
         className="relative overflow-hidden rounded-[20px] border bg-card transition-[border-color,background-color,box-shadow] duration-300"
         style={{ borderColor: lit ? 'color-mix(in srgb, var(--primary) 22%, var(--border))' : 'var(--border)', boxShadow }}

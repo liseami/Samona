@@ -121,6 +121,7 @@ async function bootstrap(): Promise<void> {
     chatSaver.schedule(() => chatStore.toPersisted());
   });
   window.shellView.webContents.once('did-finish-load', () => choreographer.init(chatStore.currentMode, chatStore.snapshot().dockWidth));
+  store.subscribe((snap) => choreographer.setSuppressed(snap.layout.module === 'workspace')); // 工作区维度自身就是对话，不显示药丸
 
   const workspaces = new WorkspaceService(store, chat, join(userData, 'workspaces.json')); // 工作区维度：本机目录 = 工作区
   menus.attachWorkspaces(workspaces);

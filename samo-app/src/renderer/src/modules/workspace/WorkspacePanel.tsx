@@ -29,7 +29,7 @@ export function WorkspacePanel() {
     );
   }
   return (
-    <div className="mx-auto h-full w-full max-w-[880px]">
+    <div className="h-full w-full bg-card">
       <ChatPanel variant="workspace" />
     </div>
   );

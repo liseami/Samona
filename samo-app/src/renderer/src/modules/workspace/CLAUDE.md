@@ -5,7 +5,7 @@
 
 ## 成员清单
 WorkspaceSidebar.tsx: Workspaces 计数 + Add folder（原生目录选择器）；WorkspaceRow（Folder/FolderOpen + 目录名 + ~ 路径），右键 menu.workspace；空态引导。
-WorkspacePanel.tsx: 选中工作区 → ChatPanel variant=workspace（居中 880px）；否则「Pick a workspace」空态。
+WorkspacePanel.tsx: 选中工作区 → 整面 bg-card 的 ChatPanel variant=workspace（消息列与输入卡 760px 固定宽度居中）；否则「Pick a workspace」空态。
 WorkspacePanelHeader.tsx: 三槽——空 | 当前工作区（名 + 路径）| 新对话（重新选中即切回该工作区的线程）。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
