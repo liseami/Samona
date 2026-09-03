@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页贴边、上缘藏进面板头部之下；setContentVisible 随模块显隐）+ 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口）+ 最上层的 overlay 视图（平时只有面板头部条那么大、承载头部；openPalette 时铺满全窗承载命令面板）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/headerStrip/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,9 +11,17 @@ import { CHANNELS, type ShellEvent } from '@shared/ipc';
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
 const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
 const PANEL_BORDER = 1; // 网页视图内缩 1px，露出壳画的面板边线
-const CONTENT_RADIUS = 13; // 面板 rounded-2xl ≈ 13.6，视图内缩 1px 后取 13：下缘随面板圆角
-// 上缘直角的做法：Electron 的圆角四角统一，于是让网页视图向上多伸一个半径、藏到面板头部之下——头部住在最上层的 overlay 视图里（与 ⌘T 命令面板同层），
-// 盖住网页的上圆角；壳视图里同一头部保留一份作为几何占位与命中兜底。网页贴边渲染，没有内边距
+// 网页视图是直角矩形、贴边渲染、不切内容；面板的圆角只在底部两角可见，由两块 16×16 的「角落遮罩」视图盖在网页之上画出：
+// 遮罩里一个大 div 用 box-shadow 扩散画出圆角之外的地板色与 1px 边线，圆角之内透明露出网页（Electron 的圆角四角统一、父 View 又裁不到 WebContentsView，
+// 而向上藏进头部会切掉页面顶部——所以只用遮罩处理底部两角）
+const CORNER_MASK = 16; // 角落遮罩边长：盖住 rounded-2xl（13.6px）+ 1px 边线
+const CARD_RADIUS_PX = 13.6; // rounded-2xl = calc(var(--radius) + 8px) = 5.6 + 8
+const cornerMaskHtml = (side: 'left' | 'right') =>
+  `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html><style>
+html,body{margin:0;background:transparent;overflow:hidden}
+.c{position:fixed;bottom:0;${side}:0;width:60px;height:60px;border:1px solid oklch(0.91 0 0);border-bottom-${side}-radius:${CARD_RADIUS_PX}px;corner-shape:squircle;box-shadow:0 0 0 40px oklch(0.937 0 0);background:transparent}
+@media (prefers-color-scheme: dark){.c{border-color:oklch(0.35 0 0);box-shadow:0 0 0 40px oklch(0.2178 0 0)}}
+</style><div class="c"></div>`)}`;
 const COLLAPSED_TOP = HEADER_HEIGHT + GUTTER; // 折叠时顶部是 h-10 的控制条（红绿灯 + 展开）+ 一个 gap
 
 export interface ShellWindowOptions {
@@ -27,6 +35,7 @@ export class ShellWindow {
   readonly win: BaseWindow;
   readonly shellView: WebContentsView;
   readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
+  private readonly cornerMasks: [WebContentsView, WebContentsView]; // 网页底部两角的圆角遮罩（左、右）
   private contentView: WebContentsView | null = null;
   private contentVisible = true; // 非浏览器模块时隐藏网页视图，面板由模块自己渲染
   private dockWidth = 0; // 停靠的对话卡宽度（0 = 未停靠）
@@ -71,6 +80,16 @@ export class ShellWindow {
     });
     this.overlayView.setBackgroundColor('#00000000');
     this.win.contentView.addChildView(this.overlayView);
+
+    // ---- 角落遮罩：两个 16×16 的透明小视图，画出面板底部两角的圆角与边线 ----
+    this.cornerMasks = [new WebContentsView({ webPreferences: { sandbox: true } }), new WebContentsView({ webPreferences: { sandbox: true } })];
+    this.cornerMasks.forEach((mask, i) => {
+      mask.setBackgroundColor('#00000000');
+      mask.setVisible(false);
+      this.win.contentView.addChildView(mask);
+      void mask.webContents.loadURL(cornerMaskHtml(i === 0 ? 'left' : 'right'));
+    });
+    this.raise(this.overlayView);
     void this.overlayView.webContents.loadURL(options.overlayUrl);
 
 
@@ -93,16 +112,15 @@ export class ShellWindow {
   }
 
   /** 内容区矩形：rail 40 → gap 8 → 侧栏卡（宽 sidebarWidth）→ gap 8 → 面板卡；上下右留 8；再内缩 1px 边线（Laper ProjectEditorShell 的一行三卡） */
-  /** 网页视图矩形：面板卡内缩 1px 边线、贴边；有面板头部时上缘再向上伸 CONTENT_RADIUS 藏进头部（头部由 overlay 盖住） */
+  /** 网页视图矩形：面板卡内缩 1px 边线、贴边，从面板头部下方开始；直角矩形，不切内容 */
   contentBounds(): Rectangle {
     const card = this.panelCardBounds();
     const header = this.hasPanelHeader() ? HEADER_HEIGHT : 0;
-    const tuck = header ? CONTENT_RADIUS : 0;
     return {
       x: card.x + PANEL_BORDER,
-      y: card.y + PANEL_BORDER + header - tuck,
+      y: card.y + PANEL_BORDER + header,
       width: Math.max(0, card.width - PANEL_BORDER * 2),
-      height: Math.max(0, card.height - PANEL_BORDER * 2 - header + tuck),
+      height: Math.max(0, card.height - PANEL_BORDER * 2 - header),
     };
   }
 
@@ -121,12 +139,6 @@ export class ShellWindow {
     return this.layout.module === 'browser' || this.layout.module === 'apps';
   }
 
-  /** 面板头部条（含卡片上边线）在窗口里的矩形：overlay 平时就只有这么大 */
-  headerStrip(): Rectangle | null {
-    if (!this.hasPanelHeader()) return null;
-    const card = this.panelCardBounds();
-    return { x: card.x, y: card.y, width: card.width, height: HEADER_HEIGHT + PANEL_BORDER };
-  }
 
   private applyBounds(): void {
     const { width, height } = this.win.getContentBounds();
@@ -135,19 +147,29 @@ export class ShellWindow {
     const bounds = this.contentBounds();
     this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
+    this.applyCornerMasks();
     for (const l of this.boundsListeners) l();
   }
 
-  /** overlay：命令面板打开时铺满全窗，否则只有面板头部条那么大（盖住网页的上圆角、承接头部点击） */
+  /** overlay 只在命令面板打开时铺满全窗，否则隐藏（不参与命中） */
   private applyOverlayBounds(): void {
     const { width, height } = this.win.getContentBounds();
-    const strip = this.headerStrip();
-    if (this.paletteOpen) this.overlayView.setBounds({ x: 0, y: 0, width, height });
-    else this.overlayView.setBounds(strip ?? { x: 0, y: 0, width: 0, height: 0 });
-    this.overlayView.setVisible(this.paletteOpen || !!strip);
-    this.overlayView.webContents.send(CHANNELS.event, { type: 'overlayLayout', header: strip, full: this.paletteOpen } satisfies ShellEvent);
+    this.overlayView.setBounds({ x: 0, y: 0, width, height });
+    this.overlayView.setVisible(this.paletteOpen);
   }
   private paletteOpen = false;
+
+  /** 角落遮罩贴在面板卡底部两角；只在网页视图可见时出现 */
+  private applyCornerMasks(): void {
+    const card = this.panelCardBounds();
+    const visible = this.contentVisible && !!this.contentView && card.width > CORNER_MASK * 2;
+    const y = card.y + card.height - CORNER_MASK;
+    const [left, right] = this.cornerMasks;
+    left.setBounds({ x: card.x, y, width: CORNER_MASK, height: CORNER_MASK });
+    right.setBounds({ x: card.x + card.width - CORNER_MASK, y, width: CORNER_MASK, height: CORNER_MASK });
+    left.setVisible(visible);
+    right.setVisible(visible);
+  }
 
   /** 内容区（网页视图）在屏幕上的矩形：agent 光标层这张透明子窗口精确盖在它上面 */
   contentScreenBounds(): Rectangle {
@@ -198,8 +220,9 @@ export class ShellWindow {
     this.contentView = view;
     if (view) {
       this.background.delete(view);
-      applyRadius(view, CONTENT_RADIUS);
+      applyRadius(view, 0);
       this.win.contentView.addChildView(view);
+      for (const mask of this.cornerMasks) this.raise(mask); // 角落遮罩压在网页之上
       this.raise(this.overlayView); // overlay 永远最上
       view.setBounds(this.contentBounds());
       view.setVisible(this.contentVisible);
@@ -207,6 +230,7 @@ export class ShellWindow {
     } else {
       this.shellView.webContents.focus();
     }
+    this.applyCornerMasks();
   }
 
   /** 模块切换：非浏览器模块时把网页视图藏起来（不销毁、不改活动标签） */
@@ -214,6 +238,7 @@ export class ShellWindow {
     if (this.contentVisible === visible) return;
     this.contentVisible = visible;
     this.contentView?.setVisible(visible);
+    this.applyCornerMasks();
     if (!visible) this.shellView.webContents.focus();
   }
 
@@ -248,7 +273,7 @@ export class ShellWindow {
   attachBackground(view: WebContentsView): void {
     if (view === this.contentView || this.background.has(view)) return;
     this.background.add(view);
-    applyRadius(view, CONTENT_RADIUS);
+    applyRadius(view, 0);
     this.win.contentView.addChildView(view, 0); // index 0 = 最底层，被不透明的壳视图完全遮住
     view.setBounds(this.contentBounds());
   }

@@ -19,6 +19,7 @@ downloads.ts: DownloadManager——will-download 投影进 store，open/reveal/c
 persistence.ts: loadJson / loadState（v3 或 v1/v2 legacy）/ createSaver<T>——400ms 防抖 + tmp→rename 原子写。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
+网页缩放（engine.zoom）作用于当前呈现的视图，Chromium 按站点记住级别。
 后台层规则（engine.reconcileBackground）：所有已加载但未呈现的视图都挂在壳之下，未挂窗口的视图视口为 0×0 会让页面布局残缺。
 呈现规则（engine.present）：每个维度呈现自己的标签——浏览器 = 身份的活动标签，应用 = 当前应用在本身份里的 appId 标签，其他维度 = 无；activateTab 收到应用标签时切到应用维度而不改浏览器活动标签。
 

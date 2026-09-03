@@ -115,7 +115,6 @@ export type ShellEvent =
   | { type: 'renameTab'; tabId: string }
   | { type: 'renameFolder'; folderId: string }
   | { type: 'editIdentity'; identityId: number }
-  | { type: 'overlayLayout'; header: { x: number; y: number; width: number; height: number } | null; full: boolean } // overlay 页：面板头部条的位置（full = 命令面板打开、overlay 铺满全窗时以窗口坐标定位；否则 overlay 本身就是头部条）
   | { type: 'agentPresence'; active: boolean; label: string | null } // agent 光标层：当前可见身份是否有 agent 在工作 + 动作标签
   | { type: 'agentCursor'; x: number; y: number } // agent 光标层：agent 即将点击/悬停的页面坐标（CSS px）
   | { type: 'toast'; text: string };

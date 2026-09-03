@@ -227,6 +227,13 @@ export class BrowserEngine {
     const wc = this.webContentsOf(tabId);
     if (wc?.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
   }
+  /** 网页缩放（作用于当前呈现的视图）：step ±1 = 20%，0 = 还原；Chromium 按站点记住 */
+  zoom(step: 1 | -1 | 0): void {
+    const wc = this.window.currentContentView?.webContents;
+    if (!wc || wc.isDestroyed()) return;
+    if (step === 0) wc.setZoomLevel(0);
+    else wc.setZoomLevel(Math.max(-3, Math.min(5, wc.getZoomLevel() + step)));
+  }
   reload(tabId = this.store.activeTabId() ?? ''): void {
     const tab = this.store.getTab(tabId);
     if (!tab) return;
