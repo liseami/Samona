@@ -13,7 +13,7 @@ NavRail.tsx: 模块导航（z-5，全应用最高层）——40px 列与页面�
 Resizer.tsx: 侧栏卡与面板卡之间 8px 空档上的拖拽热区（rAF 节流写回 layout.sidebar）。
 EdgePeek.tsx: 折叠态 rail 与面板卡之间空档上的贴边条（悬停 peek），从控制条下方（top-12）开始。
 DockResizer.tsx: 停靠对话卡左缘的拖宽热区。
-UserButton.tsx: rail 底部的账户入口（Laper CollapsedUserButton + UserButton 合体）——已登录：20px 头像占图标位、展开态昵称 + 等级 + 下拉箭头，点击用 Popover 向右弹出 UserMenu；未登录：灰头像占位 / 展开态 Log in，点击登录（暂为本地 mock）。
+UserButton.tsx: rail 底部的账户入口——折叠态 20px 头像占图标位（Laper CollapsedUserButton），展开态项目页极简用户卡（Laper ProjectUserButton：bg-background 圆角卡 + 36px 头像 + 昵称 + 等级 · 积分 + 下拉箭头）；未登录折叠态灰头像、展开态 Sign in。菜单经 Portal 以固定锚点从按钮上方弹出（打开时算一次，不随 rail 伸缩漂移），全屏透明幕/Esc 关闭，打开期间通知 rail 保持展开；登录暂为本地 mock。
 UserMenu.tsx: Laper UserMenu 的 Samo 版——账户卡（头像 + 昵称 + 等级键帽 + Upgrade）/ Credits / Add credits / Invite friends / Samo docs / Contact us / Language（悬停子菜单）/ Appearance（悬停子菜单，真的切 nativeTheme）/ Settings / Log out；menu-pop 入场、submenu-slide 子菜单；账号体系接上前多数动作是占位。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
