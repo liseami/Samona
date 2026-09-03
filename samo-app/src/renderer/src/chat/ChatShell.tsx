@@ -67,10 +67,10 @@ export function ChatShell() {
         className="absolute origin-bottom-right"
         style={{ inset: bleed, transform: expandedNow ? 'none' : `scale(${sx}, ${sy})`, transition: `transform ${transition}` }}
       >
-        {/* 面板底纹 + 阴影：收起时淡出，免得非均匀缩放的圆角与阴影从药丸四角露出来 */}
+        {/* 面板底纹 + 阴影（设计系统的 --shadow-dropdown 平阴影，20px 内收进 bleed，不会被窗口边缘切）：收起时淡出，免得非均匀缩放的圆角与阴影从药丸四角露出来 */}
         <div
           className="absolute inset-0 rounded-3xl border border-border bg-card"
-          style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)', opacity: expandedNow ? 1 : 0, transition: `opacity ${transition}` }}
+          style={{ boxShadow: 'var(--shadow-dropdown)', opacity: expandedNow ? 1 : 0, transition: `opacity ${transition}` }}
         />
         {/* 展开内容 */}
         <div className={cn('absolute inset-0 overflow-hidden rounded-3xl', !expandedNow && 'pointer-events-none')} style={{ opacity: expandedNow ? 1 : 0, transition: `opacity ${transition}` }}>
