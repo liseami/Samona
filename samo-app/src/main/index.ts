@@ -153,15 +153,21 @@ async function bootstrap(): Promise<void> {
   await gateway.start();
   apps.start();
 
-  app.on('second-instance', () => {
+  const reveal = () => {
+    if (window.win.isDestroyed()) return;
     if (window.win.isMinimized()) window.win.restore();
+    window.win.show();
     window.win.focus();
-  });
+  };
+  app.on('second-instance', reveal);
+  app.on('activate', reveal); // Dock 点击：红灯只是隐藏了窗口，这里再显示
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
   });
-  app.on('activate', () => window.win.show());
-  app.on('before-quit', () => gateway.stop());
+  app.on('before-quit', () => {
+    window.allowClose();
+    gateway.stop();
+  });
   app.on('will-quit', (event) => {
     event.preventDefault();
     void Promise.all([saver.flush(), history.flush(), chatSaver.flush()]).finally(() => app.exit(0));

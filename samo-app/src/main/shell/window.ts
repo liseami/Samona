@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT/HEADER_HEIGHT/RAIL_WIDTH，@shared/ipc 的 ShellEvent，./palette-window 的 PaletteWindow
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保证呈现视图的 NSView 最后挂载以独占命中）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保证呈现视图的 NSView 最后挂载以独占命中）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化）+ 红灯即隐藏（allowClose 后才真正关闭），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -41,6 +41,7 @@ export class ShellWindow {
   private dockWidth = 0; // 停靠的对话卡宽度（0 = 未停靠）
   private background = new Set<WebContentsView>(); // 压在壳视图之下、用户看不见但仍在绘制的视图（agent 后台标签）
   private layout: Layout = { ...DEFAULT_LAYOUT };
+  private quitting = false;
 
   constructor(options: ShellWindowOptions) {
     const dark = nativeTheme.shouldUseDarkColors;
@@ -89,6 +90,12 @@ export class ShellWindow {
     });
 
     this.win.on('resize', () => this.applyBounds());
+    // 红灯 = 隐藏而非销毁：应用继续跑（agent 在后台工作），Dock 点击 / activate 再显示；只有退出时才真正关闭
+    this.win.on('close', (e) => {
+      if (this.quitting) return;
+      e.preventDefault();
+      this.win.hide();
+    });
     this.shellView.webContents.once('did-finish-load', () => {
       if (!this.win.isVisible()) this.win.show();
     });
@@ -98,6 +105,11 @@ export class ShellWindow {
       });
     }
     this.applyBounds();
+  }
+
+  /** 退出流程开始：允许窗口真正关闭 */
+  allowClose(): void {
+    this.quitting = true;
   }
 
   // ---------- 布局 ----------
