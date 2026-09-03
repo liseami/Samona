@@ -518,7 +518,15 @@ export class BrowserEngine {
   }
   private publicUrl(url: string): string {
     if (!url) return NEW_TAB_URL;
-    return url.startsWith(this.options.newTabUrl) ? NEW_TAB_URL : url;
+    if (!url.startsWith(this.options.newTabUrl)) return url;
+    // 错误页：对外仍是那个加载失败的地址（地址栏、历史、重试都认它）
+    try {
+      const failed = new URL(url).searchParams.get('url');
+      if (failed) return failed;
+    } catch {
+      /* 非法 */
+    }
+    return NEW_TAB_URL;
   }
 
   /** 供菜单与日志使用的可读标题 */

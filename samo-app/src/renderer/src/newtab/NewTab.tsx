@@ -31,6 +31,7 @@ export function NewTab() {
     } catch {
       /* 原样 */
     }
+    document.title = host; // 标签标题显示出错的主机，而不是「New Tab」
     return (
       <div className="flex h-full w-full flex-col items-center justify-center bg-background px-6 text-center">
         <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-card text-2xl font-semibold text-muted-foreground shadow-sm select-none">!</div>
