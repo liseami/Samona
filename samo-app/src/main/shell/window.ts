@@ -6,7 +6,6 @@
  */
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, HEADER_HEIGHT, RAIL_WIDTH, type Layout } from '@shared/model';
-import type { ShellEvent } from '@shared/ipc';
 import { PaletteWindow, type OverlayEvent } from './palette-window';
 
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
