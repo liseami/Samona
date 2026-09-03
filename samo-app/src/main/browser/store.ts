@@ -8,6 +8,7 @@ import {
   CLOSED_STACK_MAX,
   DEFAULT_LAYOUT,
   LEGACY_PARTITION,
+  PRIMARY_PARTITION,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
   type BrowserSnapshot,
@@ -419,6 +420,28 @@ export class BrowserStore {
   }
 
   // ---------- 持久化 ----------
+  /** 拔掉「身份」后的迁移：所有用户工作区合并为第一个，文件夹与标签归入其中，分区统一为 PRIMARY_PARTITION（冷标签重新加载即进入统一登录态） */
+  private mergeIntoPrimary(): void {
+    const users = this.identityOrder.filter((id) => this.identities.get(id)?.ownership === 'user');
+    const primary = users[0];
+    if (primary === undefined) return;
+    for (const id of users.slice(1)) {
+      for (const f of this.folders.values()) if (f.identityId === id) f.identityId = primary;
+      for (const t of this.tabs.values()) if (t.identityId === id) t.identityId = primary;
+      this.identities.delete(id);
+      this.identityOrder = this.identityOrder.filter((x) => x !== id);
+      delete this.activeTabIdByIdentity[id];
+    }
+    for (const identity of this.identities.values()) identity.partition = PRIMARY_PARTITION;
+    for (const t of this.tabs.values()) t.partition = PRIMARY_PARTITION;
+    if (!this.identities.has(this._activeSpaceId)) this._activeSpaceId = primary;
+  }
+
+  /** 全部标签（含应用视图），按侧栏顺序 */
+  allTabs(): Tab[] {
+    return this.order.map((id) => this.tabs.get(id)!).filter(Boolean);
+  }
+
   toPersisted(): PersistedState {
     return {
       version: 3,
@@ -485,9 +508,11 @@ export class BrowserStore {
         muted: t.muted ?? false,
         lastActiveAt: t.lastActiveAt ?? 0,
         createdAt: t.createdAt ?? Date.now(),
+        appId: null, // 应用视图不落盘
       });
       this.order.push(t.id);
     }
+    this.mergeIntoPrimary();
     this.closed = state.closed.slice(0, CLOSED_STACK_MAX);
     this.activeTabIdByIdentity = {};
     for (const id of this.identities.keys()) {

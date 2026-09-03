@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ipcMain } from 'electron';
-import { CHANNELS, type Command, type Query, type ShellEvent } from '@shared/ipc';
+import { CHANNELS, type Command, type Query } from '@shared/ipc';
 import { NEW_TAB_URL, tabTitle, type Suggestion } from '@shared/model';
 import { resolveInput } from '@shared/url';
 import type { BrowserEngine } from '../browser/engine';
@@ -114,26 +114,9 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, setA
       case 'folder.delete':
         engine.deleteFolder(command.folderId, command.closeTabs);
         break;
-      // ---- Identity ----
-      case 'identity.create': {
-        const identity = engine.createIdentity({ name: command.name, icon: command.icon, color: command.color });
-        if (command.edit) window.send(CHANNELS.event, { type: 'editIdentity', identityId: identity.id } satisfies ShellEvent);
-        break;
-      }
+      // ---- 工作区：用户主工作区 / agent 任务空间 ----
       case 'identity.activate':
         engine.activateIdentity(command.identityId);
-        break;
-      case 'identity.step':
-        engine.stepIdentity(command.delta);
-        break;
-      case 'identity.update':
-        engine.updateIdentity(command.identityId, { name: command.name, icon: command.icon, color: command.color });
-        break;
-      case 'identity.reorder':
-        engine.reorderIdentity(command.identityId, command.index);
-        break;
-      case 'identity.delete':
-        engine.deleteIdentity(command.identityId);
         break;
       case 'identity.takeControl':
         engine.takeControl(command.identityId);
@@ -144,9 +127,6 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, setA
       // ---- 原生菜单 ----
       case 'menu.tab':
         menus.tab(command.tabId);
-        break;
-      case 'menu.identity':
-        menus.identity(command.identityId);
         break;
       case 'menu.folder':
         menus.folder(command.folderId);
@@ -218,6 +198,9 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, setA
         break;
       case 'apps.open':
         apps.open(command.id);
+        break;
+      case 'apps.home':
+        apps.home();
         break;
       case 'apps.rescan':
         void apps.rescan();

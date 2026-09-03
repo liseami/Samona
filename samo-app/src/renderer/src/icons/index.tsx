@@ -121,6 +121,7 @@ export const CrossCircle = d(MultipleCrossCancelCircle); // 工具胶囊：失�
 export const Eye = d(EyeOn); // 工具胶囊：Watch，切到 agent 身份
 export const Key = d(KeyLeft); // 接入卡：API 密钥
 export const AgentCursor = d(PointerCursorDefault); // agent 光标层
+export const Home = d(HomeDefault); // 应用维度：回桌面
 export const AppLocal = d(TerminalConsoleSquare); // 应用卡：本地 dev server
 export const AppCloud = d(CloudDefault); // 应用卡：Samo 云端
 export const TabsOverview = decorative(LayoutGridTwoHorizontal); // 面板头部：Safari 式标签矩阵

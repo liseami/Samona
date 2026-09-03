@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 node:fs 同步读写（apps.json），./scanner 的 scanLocalApps，../browser/engine 的 BrowserEngine（store 读写 + 标签新建/呈现），@shared/model 的 AppEntry
- * [OUTPUT]: 对外提供 AppsService：启动扫描 + 在应用维度里每 12s 重扫（其余 60s）；固定项落盘 apps.json 并与扫描结果合并（固定但没在跑的标 offline）；open(id) 在当前身份复用/新建带 appId 的标签交给引擎呈现；openInBrowser(id) 在浏览器维度开普通标签；pin(id, pinned)；进入应用维度且无选中时默认打开第一张
+ * [OUTPUT]: 对外提供 AppsService：启动扫描 + 在应用维度里每 12s 重扫（其余 60s）；固定项落盘 apps.json 并与扫描结果合并（固定但没在跑的标 offline）；open(id) 复用/新建带 appId 的应用视图（不落盘、不进浏览器）交给引擎呈现；home() 回桌面；pin(id, pinned)；扫描发现应用不在跑就关掉它的视图——本地应用不积累标签
  * [POS]: apps 模块的指挥：把「用户的应用」投影成 store 里的 apps/activeAppId；网页本身仍由浏览器引擎承载（应用 = 一个带 appId 的标签），云端列表预留给 Samo 部署
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,9 +31,6 @@ export class AppsService {
     private readonly excludePorts: ReadonlySet<number> = new Set(),
   ) {
     this.pinned = this.load();
-    engine.store.subscribe((snap) => {
-      if (snap.layout.module === 'apps' && snap.activeAppId === null && snap.apps.length > 0) this.open(snap.apps[0].id);
-    });
   }
 
   start(): void {
@@ -67,7 +64,23 @@ export class AppsService {
     const pinned = this.pinned.map((p) => ({ ...p, ...(byId.get(p.id) ?? {}), pinned: true, offline: !byId.has(p.id) }));
     const pinnedIds = new Set(pinned.map((p) => p.id));
     const rest = [...this.scanned, ...this.cloud].filter((a) => !pinnedIds.has(a.id)).map((a) => ({ ...a, pinned: false, offline: false }));
-    this.engine.store.setApps([...pinned, ...rest]);
+    const apps = [...pinned, ...rest];
+    this.engine.store.setApps(apps);
+    // 本地应用不积累标签：不在跑的应用，把它的应用视图关掉；正呈现的就回桌面
+    const alive = new Set(apps.filter((a) => !a.offline).map((a) => a.id));
+    for (const tab of this.engine.store.allTabs()) {
+      if (tab.appId && !alive.has(tab.appId)) {
+        if (this.engine.store.currentAppId === tab.appId) this.engine.store.setActiveApp(null);
+        this.engine.closeTab(tab.id);
+      }
+    }
+    this.engine.present();
+  }
+
+  /** 回到桌面：不呈现任何应用视图（视图仍在后台，下次点开即现） */
+  home(): void {
+    this.engine.store.setActiveApp(null);
+    this.engine.present();
   }
 
   pin(id: string, pinned: boolean): void {
@@ -87,12 +100,6 @@ export class AppsService {
     if (!store.appTab(id)) this.engine.createTab({ url: app.url, activate: false, appId: id });
     store.setActiveApp(id);
     this.engine.present();
-  }
-
-  /** 在浏览器维度开一个普通标签 */
-  openInBrowser(id: string): void {
-    const app = this.engine.store.appList.find((a) => a.id === id);
-    if (app) this.engine.createTab({ url: app.url, activate: true });
   }
 
   private load(): AppEntry[] {

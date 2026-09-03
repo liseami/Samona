@@ -16,7 +16,7 @@ import { Tip } from '../../../components/ui/tooltip';
 import { sidebarButtonClass } from '../../../components/ui/sidebar-button';
 
 export function TabList() {
-  const identityId = useBrowser((s) => s.snapshot?.activeIdentityId ?? 0);
+  const identityId = useBrowser((s) => s.snapshot?.identities.find((i) => i.ownership === 'user')?.id ?? 0);
   const tabs = useIdentityTabs();
   const folders = useIdentityFolders();
   const activeId = useBrowser(selectActiveTabId);

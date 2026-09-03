@@ -25,10 +25,6 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow, chat: Ch
     const target = n === 9 ? tabs[tabs.length - 1] : tabs[n - 1];
     if (target) engine.activateTab(target.id);
   };
-  const spaceByOrdinal = (n: number) => {
-    const target = store.allIdentities()[n - 1];
-    if (target) engine.activateIdentity(target.id);
-  };
 
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ role: 'appMenu' as const }] : []),
@@ -37,7 +33,6 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow, chat: Ch
       submenu: [
         { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: () => palette('newTab') },
         { label: 'New Folder', accelerator: 'CmdOrCtrl+Shift+F', click: () => emit({ type: 'renameFolder', folderId: engine.createFolder() }) },
-        { label: 'New Identity', accelerator: 'CmdOrCtrl+Shift+N', click: () => emit({ type: 'editIdentity', identityId: engine.createIdentity({ name: 'New Identity' }).id }) },
         { type: 'separator' },
         { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => engine.closeTab() },
         { label: 'Reopen Closed Tab', accelerator: 'CmdOrCtrl+Shift+T', click: () => engine.reopenClosed() },
@@ -91,10 +86,7 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow, chat: Ch
     {
       label: 'Identities',
       submenu: [
-        { label: 'Next Identity', accelerator: isMac ? 'Alt+Cmd+Right' : 'Ctrl+Alt+Right', click: () => engine.stepIdentity(1) },
-        { label: 'Previous Identity', accelerator: isMac ? 'Alt+Cmd+Left' : 'Ctrl+Alt+Left', click: () => engine.stepIdentity(-1) },
         { type: 'separator' },
-        ...Array.from({ length: 9 }, (_, i) => ({ label: `Identity ${i + 1}`, accelerator: `Ctrl+${i + 1}`, click: () => spaceByOrdinal(i + 1) })),
       ],
     },
     { role: 'windowMenu' },

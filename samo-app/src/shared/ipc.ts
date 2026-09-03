@@ -4,7 +4,7 @@
  * [POS]: shared 的进程间契约；preload 按 SamoBridge 暴露 window.samo，主进程 ipc/handlers 按 Command/Query 分发。新增能力 = 新增一个联合成员 + 一个 case，不改旧路径
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { BrowserSnapshot, FolderColor, IdentityColor, IdentityIcon, ModuleId, Suggestion } from './model';
+import type { BrowserSnapshot, FolderColor, ModuleId, Suggestion } from './model';
 import type { ChatMode, ChatSnapshot } from './chat';
 
 export const CHANNELS = {
@@ -52,17 +52,11 @@ export type Command =
   | { type: 'folder.update'; folderId: string; name?: string; color?: FolderColor; collapsed?: boolean }
   | { type: 'folder.delete'; folderId: string; closeTabs?: boolean }
   // ---- Identity ----
-  | { type: 'identity.create'; name: string; icon?: IdentityIcon; color?: IdentityColor; edit?: boolean } // edit: 创建后打开编辑器
-  | { type: 'identity.activate'; identityId: number }
-  | { type: 'identity.step'; delta: 1 | -1 }
-  | { type: 'identity.update'; identityId: number; name?: string; icon?: IdentityIcon; color?: IdentityColor }
-  | { type: 'identity.reorder'; identityId: number; index: number }
-  | { type: 'identity.delete'; identityId: number }
+  | { type: 'identity.activate'; identityId: number } // 切到某个工作区（用户主工作区或 agent 任务空间）呈现它的活动标签
   | { type: 'identity.takeControl'; identityId: number } // 用户从 agent 手中接管
   | { type: 'identity.handBack'; identityId: number } // 用户把控制权交还 agent
   // ---- 原生右键菜单（主进程弹出） ----
   | { type: 'menu.tab'; tabId: string }
-  | { type: 'menu.identity'; identityId: number }
   | { type: 'menu.folder'; folderId: string }
   | { type: 'menu.tabList'; identityId: number }
   // ---- 下载 ----
@@ -83,7 +77,8 @@ export type Command =
   | { type: 'chat.setDockWidth'; width: number }
   | { type: 'chat.setApiKey'; key: string } // 保存 Anthropic 密钥（主进程落盘 0600），空串即清除
   // ---- 应用维度 ----
-  | { type: 'apps.open'; id: string } // 打开一张应用卡：在当前身份复用/新建该地址的标签并激活
+  | { type: 'apps.open'; id: string } // 打开一个应用：复用/新建它的（不落盘的）应用视图并呈现
+  | { type: 'apps.home' } // 回到应用维度的桌面（dashboard）
   | { type: 'apps.rescan' } // 立即重扫 localhost
   | { type: 'apps.pin'; id: string; pinned: boolean } // 固定/取消固定到侧栏顶部
   | { type: 'menu.app'; id: string } // 应用卡的原生右键菜单
@@ -113,7 +108,6 @@ export type ShellEvent =
   | { type: 'openPalette'; mode: PaletteMode; url: string } // 发给 overlay 页
   | { type: 'renameTab'; tabId: string }
   | { type: 'renameFolder'; folderId: string }
-  | { type: 'editIdentity'; identityId: number }
   | { type: 'agentPresence'; active: boolean; label: string | null } // agent 光标层：当前可见身份是否有 agent 在工作 + 动作标签
   | { type: 'agentCursor'; x: number; y: number } // agent 光标层：agent 即将点击/悬停的页面坐标（CSS px）
   | { type: 'toast'; text: string };

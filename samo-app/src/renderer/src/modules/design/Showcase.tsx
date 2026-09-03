@@ -1,11 +1,11 @@
 /**
- * [INPUT]: 依赖 react，../../components/ui/{button,input,tooltip,popover,kbd,keycap,sidebar-button}，../../icons，@shared/model 的 IDENTITY_ICONS/MODULES
+ * [INPUT]: 依赖 react，../../components/ui/{button,input,tooltip,popover,kbd,keycap,sidebar-button}，../../icons，@shared/model 的 MODULES
  * [OUTPUT]: 对外提供各章节陈列组件：ButtonsShowcase / SidebarButtonShowcase / InputsShowcase / OverlaysShowcase / KeycapsShowcase / SurfacesShowcase / ColorsShowcase / TypographyShowcase / IconsShowcase，以及 Kumo 文档站的陈列原语 Section(h2)/Group(h3)/Example(h4 + 预览面 + 代码块)/PropsTable
  * [POS]: modules/design 的内容层；预览面上的一切都是真实组件，不是截图；每个示例的代码块就是它旁边渲染的那段 JSX
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState, type ReactNode } from 'react';
-import { IDENTITY_ICONS, MODULES } from '@shared/model';
+import { MODULES } from '@shared/model';
 import { Button, type ButtonSize, type ButtonVariant } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Kbd } from '../../components/ui/kbd';
@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/pop
 import { sidebarButtonClass } from '../../components/ui/sidebar-button';
 import { Tip } from '../../components/ui/tooltip';
 import * as Icons from '../../icons';
-import { IDENTITY_ICON, MODULE_ICON } from '../../icons';
+import { MODULE_ICON } from '../../icons';
 import { cn } from '../../lib/utils';
 
 // ============ Kumo 文档站陈列原语（Heading levelStyles / ComponentExample / PropsTable 原样） ============
@@ -376,16 +376,6 @@ export function IconsShowcase() {
               <span className="font-mono text-xs text-muted-foreground" style={{ letterSpacing: 'normal' }}>
                 {name}
               </span>
-            </div>
-          );
-        })}
-      </Example>
-      <Example title="Identity">
-        {IDENTITY_ICONS.map((key) => {
-          const Icon = IDENTITY_ICON[key];
-          return (
-            <div key={key} className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-card shadow-sm" title={key}>
-              <Icon size={15} />
             </div>
           );
         })}

@@ -7,6 +7,6 @@
 context-menu.ts: ContextMenus——tab（重命名/固定/收藏/复制/移到 Identity/加入文件夹/静音/复制 URL/关闭系列）、identity（编辑/新建/清空/删除，删除经 dialog 确认）、folder（重命名/颜色/折叠/新标签/关闭全部/删除）、tabList（新标签/新文件夹/重开/清空）。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
-app(id)：应用卡菜单——固定到顶部/取消、在浏览器打开、复制地址、重扫 localhost（经 AppsService）。
+app(id)：应用卡菜单——固定到顶部/取消、复制地址、重扫 localhost（经 AppsService）。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

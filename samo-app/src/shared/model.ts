@@ -61,6 +61,10 @@ export type IdentityIcon = (typeof IDENTITY_ICONS)[number];
 export type FolderColor = 'grey' | IdentityColor;
 
 // ============ Identity：身份 = 一套独立的登录态（session 分区）+ 它名下的标签；同时也是 agent 的 task space ============
+/**
+ * 内部工作区（对用户不可见的概念）：恰有一个 ownership='user' 的主工作区承载用户的全部标签，
+ * 其余是 agent 的任务空间（ego-browser 的 task space），在侧栏里以「agent 分组」呈现。登录态不再按工作区分割
+ */
 export interface Identity {
   id: number; // 数字 id：ego-browser 要求 task space id 为 number
   name: string;
@@ -141,7 +145,9 @@ export const RAIL_WIDTH = 40; // 左缘 icon 导航栏（Laper ProjectNavRail �
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 420;
 export const CLOSED_STACK_MAX = 25;
-export const LEGACY_PARTITION = 'persist:samo'; // v1/v2 时代所有标签共用的分区，迁移时保留以不丢登录态
+export const LEGACY_PARTITION = 'persist:samo'; // v1/v2 时代所有标签共用的分区
+/** 唯一的登录态分区：Samo 不再有「身份」——所有标签、agent 的任务空间共用同一套 cookie/存储（与 ego lite 一致：agent 继承用户登录态） */
+export const PRIMARY_PARTITION = LEGACY_PARTITION;
 
 // ============ 快照：主进程推给渲染层的完整真相 ============
 /** 「应用」维度里的一张卡：本地 = 正在 localhost 端口上跑的 dev server；云端 = Samo 部署的应用（预留） */

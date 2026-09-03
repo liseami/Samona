@@ -16,13 +16,13 @@ bun.lock - 单一锁文件
 </config>
 
 <product>
-架构主张：Samo = 身份 × 模块。壳提供窗口、icon navi（浏览器 / 应用 / 邮件 / 知识库 / 网盘）与侧栏几何；每个模块交出自己的侧栏、面板与面板头部。浏览器是第一个模块，也是其余模块的运行时基座（网页视图、登录态、agent 网关）；「应用」维度已落地第一步：扫描 localhost 上的应用陈列为卡片，点开即成标签。
+架构主张：Samo = 模块 × agent。壳提供窗口、icon navi（浏览器 / 应用 / 邮件 / 知识库 / 网盘）与侧栏几何；每个模块交出自己的侧栏、面板与面板头部；登录态只有一套，没有 Space/身份。浏览器是第一个模块，也是其余模块的运行时基座（网页视图、登录态、agent 网关）；「应用」维度已落地第一步：桌面（应用图标 + 用户主页 + 热力图）与列表，扫描 localhost 上的应用，点开即在应用维度呈现（不进浏览器、不积累标签）。
 Samo 解决的问题：编程小白用 vibe coding 造的工作台散落在 localhost；Samo 让这些 App 以标准化壳封装、由 Samo 服务器部署（预览版/正式版），常驻在浏览器侧栏一键打开、持续迭代，部署/数据库/登录全由 Samo 负责。
-第一阶段（当前）：可运行、可迭代、可热更新的轻量版——Arc 式壳 + 真实标签页 + 身份（独立登录态）+ 命令面板 + AI 对话（launcher / 浮窗 / 停靠三形态，回答者插槽待接模型）+ agent 网关。侧栏「收藏/固定标签」即未来的 App 位。
+第一阶段（当前）：可运行、可迭代、可热更新的轻量版——Arc 式壳 + 真实标签页 + 命令面板 + AI 对话（launcher / 浮窗 / 停靠三形态，回答者插槽待接模型）+ agent 网关。侧栏「收藏/固定标签」即未来的 App 位。
 </product>
 
 <agent>
-Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时（Playwright 风格的 page/locator/browser/taskSpaces 门面）。应用内的 Samo AI（Claude）走的是同一个 CLI：模型写脚本 → 子进程执行 → 网关驱动标签。agent 在自己的身份（继承用户登录态，sidebar 底部带角标）里工作，用户随时 Take control / Hand back。
+Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时（Playwright 风格的 page/locator/browser/taskSpaces 门面）。应用内的 Samo AI（Claude）走的是同一个 CLI：模型写脚本 → 子进程执行 → 网关驱动标签。agent 在自己的任务空间（与用户同一套登录态，侧栏里的 agent 分组）里工作，用户随时 Take control / Hand back。
 </agent>
 
 法则: 极简·稳定·导航·版本精确

@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { WebContentsView, clipboard, session, type Session, type WebContents } from 'electron';
-import { AGENT_IDENTITY_COLOR, LEGACY_PARTITION, NEW_TAB_URL, tabTitle, type FolderColor, type Identity, type IdentityColor, type IdentityIcon, type Ownership, type Tab } from '@shared/model';
+import { AGENT_IDENTITY_COLOR, NEW_TAB_URL, PRIMARY_PARTITION, tabTitle, type FolderColor, type Identity, type IdentityColor, type IdentityIcon, type Ownership, type Tab } from '@shared/model';
 import type { TabTarget, Thumbnail } from '@shared/ipc';
 import { resolveInput } from '@shared/url';
 import { BrowserStore } from './store';
@@ -60,7 +60,6 @@ export class BrowserEngine {
   /** 首次启动：一个默认 Identity + 一个新标签页 */
   seed(): void {
     const identity = this.createIdentity({ name: 'Personal', icon: 'user', color: 'blue' }, false);
-    if (this.options.legacyPartitionExists) this.store.updateIdentity(identity.id, { partition: LEGACY_PARTITION });
     this.createTab({ identityId: identity.id, activate: true });
   }
 
@@ -325,7 +324,7 @@ export class BrowserEngine {
       name: input.name,
       icon: input.icon ?? (agent ? 'bot' : 'user'),
       color: input.color ?? (agent ? AGENT_IDENTITY_COLOR : 'blue'),
-      partition: agent && this.store.getIdentity(this.store.activeIdentityId) ? this.store.activeIdentity.partition : `persist:identity-${crypto.randomUUID().slice(0, 8)}`,
+      partition: PRIMARY_PARTITION, // 没有「身份」：所有工作区共用一套登录态
       ownership: input.ownership ?? 'user',
       taskId: input.taskId,
     });
@@ -342,20 +341,8 @@ export class BrowserEngine {
     this.window.focusShell();
   }
 
-  stepIdentity(delta: 1 | -1): void {
-    const identities = this.store.allIdentities();
-    const i = identities.findIndex((s) => s.id === this.store.activeIdentityId);
-    const next = identities[(i + delta + identities.length) % identities.length];
-    if (next) this.activateIdentity(next.id);
-  }
 
-  updateIdentity(identityId: number, patch: { name?: string; icon?: IdentityIcon; color?: IdentityColor }): void {
-    this.store.updateIdentity(identityId, patch);
-  }
 
-  reorderIdentity(identityId: number, index: number): void {
-    this.store.reorderIdentity(identityId, index);
-  }
 
   deleteIdentity(identityId: number): void {
     if (this.store.allIdentities().length <= 1) return; // 至少保留一个 Identity

@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 electron 的 Menu/clipboard/dialog/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，../apps/service 的 AppsService，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 IDENTITY_COLORS/FolderColor
- * [OUTPUT]: 对外提供 ContextMenus 类：tab/identity/folder/tabList/app 五种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
+ * [INPUT]: 依赖 electron 的 Menu/clipboard/MenuItemConstructorOptions，../browser/engine 的 BrowserEngine，../shell/window 的 ShellWindow，../apps/service 的 AppsService，@shared/ipc 的 CHANNELS/ShellEvent，@shared/model 的 IDENTITY_COLORS/FolderColor
+ * [OUTPUT]: 对外提供 ContextMenus 类：tab/folder/tabList/app 四种原生右键菜单（Menu.popup 于壳窗口，跟随鼠标位置）
  * [POS]: menus 模块的唯一成员；原生菜单保证与系统观感一致并天然浮在 WebContentsView 之上，重命名/编辑等需要内联 UI 的动作通过 ShellEvent 交回渲染层
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { Menu, clipboard, dialog, type MenuItemConstructorOptions } from 'electron';
+import { Menu, clipboard, type MenuItemConstructorOptions } from 'electron';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 import { IDENTITY_COLORS, type FolderColor } from '@shared/model';
 import type { BrowserEngine } from '../browser/engine';
@@ -35,7 +35,6 @@ export class ContextMenus {
     const tab = store.getTab(tabId);
     if (!tab) return;
     const isFavorite = tab.identityId === null;
-    const identities = store.allIdentities().filter((s) => s.id !== tab.identityId && s.ownership === 'user');
     const folders = tab.identityId !== null ? store.foldersInIdentity(tab.identityId).filter((f) => f.id !== tab.folderId) : [];
 
     this.popup([
@@ -48,14 +47,6 @@ export class ContextMenus {
             { label: 'Add to Favorites', click: () => this.engine.favoriteTab(tabId, true) },
           ]),
       { label: 'Duplicate', click: () => this.engine.duplicateTab(tabId) },
-      {
-        label: 'Move to Identity',
-        enabled: identities.length > 0,
-        submenu: identities.map((s) => ({
-          label: s.name,
-          click: () => this.engine.moveTab(tabId, { identityId: s.id, pinned: !isFavorite && tab.pinned, folderId: null, index: Number.MAX_SAFE_INTEGER }),
-        })),
-      },
       ...(isFavorite || tab.pinned
         ? []
         : [
@@ -95,35 +86,6 @@ export class ContextMenus {
     ]);
   }
 
-  // ============ Identity ============
-  identity(identityId: number): void {
-    const { store } = this.engine;
-    const identity = store.getIdentity(identityId);
-    if (!identity) return;
-    this.popup([
-      { label: 'Edit Identity…', click: () => this.emit({ type: 'editIdentity', identityId }) },
-      { label: 'New Identity', click: () => this.emit({ type: 'editIdentity', identityId: this.engine.createIdentity({ name: 'New Identity' }).id }) },
-      { type: 'separator' },
-      { label: 'Close All Unpinned Tabs', click: () => this.engine.closeUnpinned(identityId) },
-      { type: 'separator' },
-      {
-        label: 'Delete Identity',
-        enabled: store.allIdentities().length > 1,
-        click: async () => {
-          const { response } = await dialog.showMessageBox(this.window.win, {
-            type: 'warning',
-            message: `Delete “${identity.name}”?`,
-            detail: 'All tabs in this identity will be closed. Favorites are kept.',
-            buttons: ['Delete', 'Cancel'],
-            defaultId: 1,
-            cancelId: 1,
-          });
-          if (response === 0) this.engine.deleteIdentity(identityId);
-        },
-      },
-    ]);
-  }
-
   // ============ 文件夹 ============
   folder(folderId: string): void {
     const folder = this.engine.store.getFolder(folderId);
@@ -151,7 +113,6 @@ export class ContextMenus {
     this.popup([
       { label: app.pinned ? 'Unpin' : 'Pin to Top', click: () => this.apps.pin(id, !app.pinned) },
       { type: 'separator' },
-      { label: 'Open in Browser', enabled: !app.offline, click: () => this.apps.openInBrowser(id) },
       { label: 'Copy URL', click: () => clipboard.writeText(app.url) },
       { type: 'separator' },
       { label: 'Rescan localhost', click: () => void this.apps.rescan() },

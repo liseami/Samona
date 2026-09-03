@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 @dnd-kit/core 的碰撞检测函数与类型，@shared/model 的 Tab，@shared/ipc 的 TabTarget
- * [OUTPUT]: 对外提供拖拽 id 编解码（tabDragId/identityDragId/containerId/parseDndId）、sectionOf(tab)、resolveDrop（把 dnd-kit 的 over 解析为 tab.move 的落点）、sidebarCollision（元素优先于容器的碰撞检测）
+ * [OUTPUT]: 对外提供拖拽 id 编解码（tabDragId/containerId/parseDndId）、sectionOf(tab)、resolveDrop（把 dnd-kit 的 over 解析为 tab.move 的落点）、sidebarCollision（元素优先于容器的碰撞检测）
  * [POS]: renderer/lib 的拖拽语义层——组件只负责把元素登记为 draggable/droppable，落点如何换算为主进程命令全在这里
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,7 +11,6 @@ import type { TabTarget } from '@shared/ipc';
 export type DndId = string;
 export type Parsed =
   | { kind: 'tab'; id: string }
-  | { kind: 'identity'; id: number }
   | { kind: 'favorites' }
   | { kind: 'pinned' }
   | { kind: 'loose' }
@@ -19,14 +18,12 @@ export type Parsed =
   | { kind: 'folderHead'; id: string };
 
 export const tabDragId = (id: string): DndId => `tab:${id}`;
-export const identityDragId = (id: number): DndId => `identity:${id}`;
 export const CONTAINER = { favorites: 'c:favorites', pinned: 'c:pinned', loose: 'c:loose' } as const;
 export const folderContainerId = (id: string): DndId => `c:folder:${id}`;
 export const folderHeadId = (id: string): DndId => `head:folder:${id}`;
 
 export function parseDndId(raw: DndId): Parsed | null {
   if (raw.startsWith('tab:')) return { kind: 'tab', id: raw.slice(4) };
-  if (raw.startsWith('identity:')) return { kind: 'identity', id: Number(raw.slice(9)) };
   if (raw === CONTAINER.favorites) return { kind: 'favorites' };
   if (raw === CONTAINER.pinned) return { kind: 'pinned' };
   if (raw === CONTAINER.loose) return { kind: 'loose' };
@@ -55,7 +52,7 @@ const sameSection = (a: Pick<TabTarget, 'identityId' | 'pinned' | 'folderId'>, b
 
 /**
  * 把 dnd-kit 的 over 解析为 tab.move 的落点。
- * 落在元素上 = 插到该元素的位置（同分区内等价于 arrayMove）；落在容器/文件夹头上 = 追加到末尾；落在 Identity pip 上 = 移到该 Identity 的散装区末尾。
+ * 落在元素上 = 插到该元素的位置（同分区内等价于 arrayMove）；落在容器/文件夹头上 = 追加到末尾。
  */
 export function resolveDrop(active: Tab, over: Parsed, tabs: Tab[], activeIdentityId: number): TabTarget | null {
   const END = Number.MAX_SAFE_INTEGER;
@@ -77,9 +74,6 @@ export function resolveDrop(active: Tab, over: Parsed, tabs: Tab[], activeIdenti
     case 'folder':
     case 'folderHead':
       return { identityId: activeIdentityId, pinned: false, folderId: over.id, index: END };
-    case 'identity':
-      if (over.id === active.identityId) return null;
-      return { identityId: over.id, pinned: false, folderId: null, index: END };
     default:
       return null;
   }
