@@ -33,6 +33,7 @@ export default defineConfig({
           index: resolve('src/renderer/index.html'),
           newtab: resolve('src/renderer/newtab.html'),
           overlay: resolve('src/renderer/overlay.html'),
+          launcher: resolve('src/renderer/launcher.html'),
           chat: resolve('src/renderer/chat.html'),
           agent: resolve('src/renderer/agent.html'),
         },

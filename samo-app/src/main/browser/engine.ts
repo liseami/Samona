@@ -445,11 +445,11 @@ export class BrowserEngine {
     }
     return out;
   }
-  overlayWebContents(): WebContents {
-    return this.window.overlayView.webContents;
+  overlayWebContents(): WebContents | null {
+    return this.window.palette.webContents();
   }
   overlayVisible(): boolean {
-    return this.window.overlayView.getVisible();
+    return this.window.palette.isOpen();
   }
 
   webContentsOf(tabId: string): WebContents | undefined {

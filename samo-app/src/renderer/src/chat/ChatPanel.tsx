@@ -31,7 +31,7 @@ export function ChatPanel({ variant }: { variant: Variant }) {
 
   if (!snap) return null;
   return (
-    <div className={cn('agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden text-foreground', variant === 'docked' ? 'bg-card' : 'bg-transparent')}>
+    <div className="agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-foreground">
       <Aurora active={snap.generating} />
       <div className="relative z-1 flex min-h-0 flex-1 flex-col">
         <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />

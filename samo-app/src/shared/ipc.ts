@@ -82,7 +82,6 @@ export type Command =
   | { type: 'chat.deleteThread'; threadId: string }
   | { type: 'chat.setDockWidth'; width: number }
   | { type: 'chat.setApiKey'; key: string } // 保存 Anthropic 密钥（主进程落盘 0600），空串即清除
-  | { type: 'chat.setBounds'; x: number; y: number; width: number; height: number } // 浮层页内拖拽边缘缩放（透明窗口没有原生缩放）；坐标是内容矩形（面板），不含阴影呼吸区
   // ---- 应用维度 ----
   | { type: 'apps.open'; id: string } // 打开一张应用卡：在当前身份复用/新建该地址的标签并激活
   | { type: 'apps.rescan' } // 立即重扫 localhost

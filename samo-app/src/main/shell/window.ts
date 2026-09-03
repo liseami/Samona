@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT，@shared/ipc 的 CHANNELS/ShellEvent
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口）+ 最上层透明的命令面板 overlay（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT/HEADER_HEIGHT/RAIL_WIDTH，@shared/ipc 的 ShellEvent，./palette-window 的 PaletteWindow
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保证呈现视图的 NSView 最后挂载以独占命中）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, HEADER_HEIGHT, RAIL_WIDTH, type Layout } from '@shared/model';
-import { CHANNELS, type ShellEvent } from '@shared/ipc';
+import type { ShellEvent } from '@shared/ipc';
+import { PaletteWindow } from './palette-window';
 
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
 const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
@@ -34,7 +35,6 @@ export interface ShellWindowOptions {
 export class ShellWindow {
   readonly win: BaseWindow;
   readonly shellView: WebContentsView;
-  readonly overlayView: WebContentsView; // 透明的最上层：命令面板；不显示时不参与命中
   private readonly cornerMasks: [WebContentsView, WebContentsView]; // 网页底部两角的圆角遮罩（左、右）
   private contentView: WebContentsView | null = null;
   private contentVisible = true; // 非浏览器模块时隐藏网页视图，面板由模块自己渲染
@@ -74,12 +74,10 @@ export class ShellWindow {
     });
     void this.shellView.webContents.loadURL(options.shellUrl);
 
-    // ---- 最上层：命令面板 overlay（透明背景，默认隐藏） ----
-    this.overlayView = new WebContentsView({
-      webPreferences: { preload: options.preloadPath, sandbox: true, contextIsolation: true, nodeIntegration: false },
-    });
-    this.overlayView.setBackgroundColor('#00000000');
-    this.win.contentView.addChildView(this.overlayView);
+
+
+    // ---- 命令面板：独立子窗口（见 palette-window） ----
+    this.palette = new PaletteWindow(this, { preloadPath: options.preloadPath, overlayUrl: options.overlayUrl });
 
     // ---- 角落遮罩：两个 16×16 的透明小视图，画出面板底部两角的圆角与边线 ----
     this.cornerMasks = [new WebContentsView({ webPreferences: { sandbox: true } }), new WebContentsView({ webPreferences: { sandbox: true } })];
@@ -89,9 +87,6 @@ export class ShellWindow {
       this.win.contentView.addChildView(mask);
       void mask.webContents.loadURL(cornerMaskHtml(i === 0 ? 'left' : 'right'));
     });
-    this.raise(this.overlayView);
-    void this.overlayView.webContents.loadURL(options.overlayUrl);
-
 
     this.win.on('resize', () => this.applyBounds());
     this.shellView.webContents.once('did-finish-load', () => {
@@ -143,7 +138,6 @@ export class ShellWindow {
   private applyBounds(): void {
     const { width, height } = this.win.getContentBounds();
     this.shellView.setBounds({ x: 0, y: 0, width, height });
-    this.applyOverlayBounds();
     const bounds = this.contentBounds();
     this.contentView?.setBounds(bounds);
     for (const view of this.background) view.setBounds(bounds);
@@ -151,13 +145,6 @@ export class ShellWindow {
     for (const l of this.boundsListeners) l();
   }
 
-  /** overlay 只在命令面板打开时铺满全窗，否则隐藏（不参与命中） */
-  private applyOverlayBounds(): void {
-    const { width, height } = this.win.getContentBounds();
-    this.overlayView.setBounds({ x: 0, y: 0, width, height });
-    this.overlayView.setVisible(this.paletteOpen);
-  }
-  private paletteOpen = false;
 
   /** 角落遮罩贴在面板卡底部两角；只在网页视图可见时出现 */
   private applyCornerMasks(): void {
@@ -198,16 +185,6 @@ export class ShellWindow {
     this.applyBounds();
   }
 
-  /**
-   * 把已存在的子视图抬到最上层。Electron 对已是子视图的 addChildView 不会重排原生 NSView 顺序，
-   * overlay 若在第一次放入网页视图后停在网页之下，CDP 注入的点击照常工作（绕过原生命中测试），
-   * 真实鼠标却全被网页吃掉。移除再添加才是真正的「抬起」。（launcher 因此改为独立子窗口，见 chat/launcher-window）
-   */
-  private raise(view: WebContentsView): void {
-    if (this.win.contentView.children.includes(view)) this.win.contentView.removeChildView(view);
-    this.win.contentView.addChildView(view);
-  }
-
   // ---------- 内容视图槽位（同一时刻只有一个标签页视图在窗口里） ----------
   setContentView(view: WebContentsView | null): void {
     if (this.contentView === view) {
@@ -221,9 +198,7 @@ export class ShellWindow {
     if (view) {
       this.background.delete(view);
       applyRadius(view, 0);
-      this.win.contentView.addChildView(view);
-      for (const mask of this.cornerMasks) this.raise(mask); // 角落遮罩压在网页之上
-      this.raise(this.overlayView); // overlay 永远最上
+      this.raiseContent(view);
       view.setBounds(this.contentBounds());
       view.setVisible(this.contentVisible);
       if (this.contentVisible) view.webContents.focus();
@@ -249,20 +224,13 @@ export class ShellWindow {
     else this.win.maximize();
   }
 
-  // ---------- 命令面板 ----------
+  // ---------- 命令面板（子窗口） ----------
+  readonly palette: PaletteWindow;
   openPalette(event: Extract<ShellEvent, { type: 'openPalette' }>): void {
-    this.paletteOpen = true;
-    this.raise(this.overlayView);
-    this.applyOverlayBounds();
-    this.overlayView.webContents.send(CHANNELS.event, event);
-    this.overlayView.webContents.focus();
+    this.palette.open(event);
   }
-
   closePalette(): void {
-    if (!this.paletteOpen) return;
-    this.paletteOpen = false;
-    this.applyOverlayBounds();
-    (this.contentView ?? this.shellView).webContents.focus();
+    this.palette.close();
   }
 
   get currentContentView(): WebContentsView | null {
@@ -276,6 +244,21 @@ export class ShellWindow {
     applyRadius(view, 0);
     this.win.contentView.addChildView(view, 0); // index 0 = 最底层，被不透明的壳视图完全遮住
     view.setBounds(this.contentBounds());
+    if (this.contentView) this.raiseContent(this.contentView); // 新挂的 NSView 会盖住呈现视图的命中，重新抬起
+  }
+
+  /**
+   * 把呈现中的网页视图「摘下再挂回」，让它的 NSView 成为最后挂载的那个。
+   * macOS 上鼠标命中测试按 NSView 的挂载顺序，不按 Electron 视图的 z 顺序（addChildView 重排只改绘制层级）：
+   * 后挂的后台标签视觉上在壳之下，却会在命中测试里压在你正看的网页之上，把点击全吃掉。角落遮罩随后挂回以保持在网页之上绘制
+   */
+  private raiseContent(view: WebContentsView): void {
+    if (this.win.contentView.children.includes(view)) this.win.contentView.removeChildView(view);
+    this.win.contentView.addChildView(view);
+    for (const mask of this.cornerMasks) {
+      if (this.win.contentView.children.includes(mask)) this.win.contentView.removeChildView(mask);
+      this.win.contentView.addChildView(mask);
+    }
   }
 
   backgroundViews(): WebContentsView[] {

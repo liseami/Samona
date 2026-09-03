@@ -12,7 +12,6 @@ import type { BrowserEngine } from '../browser/engine';
 import type { DownloadManager } from '../browser/downloads';
 import type { ContextMenus } from '../menus/context-menu';
 import type { ChatService } from '../chat/service';
-import type { ChatWindow } from '../chat/window';
 import type { AppsService } from '../apps/service';
 import type { ShellWindow } from '../shell/window';
 
@@ -22,12 +21,11 @@ export interface IpcDeps {
   menus: ContextMenus;
   window: ShellWindow;
   chat: ChatService;
-  chatWindow: ChatWindow; // 浮层：页内缩放
   apps: AppsService; // 应用维度
   setApiKey: (key: string) => void; // 保存密钥并热切换回答者
 }
 
-export function registerIpc({ engine, downloads, menus, window, chat, chatWindow, apps, setApiKey }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat, apps, setApiKey }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
   ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
@@ -179,9 +177,6 @@ export function registerIpc({ engine, downloads, menus, window, chat, chatWindow
       // ---- AI 对话 ----
       case 'chat.setApiKey':
         setApiKey(command.key);
-        break;
-      case 'chat.setBounds':
-        chatWindow.setContentBounds({ x: command.x, y: command.y, width: command.width, height: command.height });
         break;
       case 'chat.setMode':
         chat.setMode(command.mode);
