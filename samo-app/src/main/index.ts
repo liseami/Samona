@@ -36,6 +36,8 @@ import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
 
 app.setName('Samo');
+// About 面板：不留 Electron 的名字与构建号（开发态 Dock/About 的 bundle 名由 scripts/brand-dev-electron.mjs 改）
+app.setAboutPanelOptions({ applicationName: 'Samo', applicationVersion: app.getVersion(), version: '', copyright: '© 2026 Samo' });
 // UA 规范成纯 Chrome：带 Electron/Samo 标记的 UA 会被 Google 登录等判定为「不安全的浏览器」，也会触发各家的机器人策略
 app.userAgentFallback = app.userAgentFallback.replace(/ Samo\/\S+/, '').replace(/ samo-app\/\S+/, '').replace(/ Electron\/\S+/, '');
 const isDev = !app.isPackaged && !!process.env.ELECTRON_RENDERER_URL;
