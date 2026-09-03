@@ -4,7 +4,7 @@
  * [POS]: renderer/chat 的收起态形象，住在 ChatShell 的右下角并随外壳反缩放；配色遵循银灰范式，不出彩色
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useState, type MouseEventHandler } from 'react';
+import { useState } from 'react';
 import { ArrowLeftUpIcon } from '../icons';
 import { cn } from '../lib/utils';
 import { PrismaticBurst } from '../components/effects/PrismaticBurst';
@@ -13,20 +13,14 @@ import { PrismaticBurst } from '../components/effects/PrismaticBurst';
 const PRISMATIC_COLORS = ['#52525b', '#a1a1aa', '#e4e4e7', '#71717a', '#d4d4d8', '#3f3f46'];
 const ISOLATED_LAYER = { transform: 'translateZ(0)', backfaceVisibility: 'hidden', contain: 'strict', filter: 'blur(6px)' } as const;
 
-export function Fab({ busy, unread, active, onEnter, onLeave, onClick }: { busy: boolean; unread: number; active: boolean; onEnter: MouseEventHandler; onLeave: MouseEventHandler; onClick: () => void }) {
+export function Fab({ busy, unread, active, onClick }: { busy: boolean; unread: number; active: boolean; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
       type="button"
       aria-label="Open Samo AI (⌘I)"
-      onMouseEnter={(e) => {
-        setHovered(true);
-        onEnter(e);
-      }}
-      onMouseLeave={(e) => {
-        setHovered(false);
-        onLeave(e);
-      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       onClick={onClick}
       className="group relative isolate flex h-full w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-3xl border-0 text-white transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]"
       style={{ boxShadow: '0 4px 20px color-mix(in srgb, var(--primary) 35%, transparent)' }}

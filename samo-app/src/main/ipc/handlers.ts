@@ -22,7 +22,7 @@ export interface IpcDeps {
   menus: ContextMenus;
   window: ShellWindow;
   chat: ChatService;
-  chatWindow: ChatWindow; // 浮层：药丸悬停接收鼠标、页内缩放
+  chatWindow: ChatWindow; // 浮层：页内缩放
   apps: AppsService; // 应用维度
   setApiKey: (key: string) => void; // 保存密钥并热切换回答者
 }
@@ -180,11 +180,8 @@ export function registerIpc({ engine, downloads, menus, window, chat, chatWindow
       case 'chat.setApiKey':
         setApiKey(command.key);
         break;
-      case 'chat.hover':
-        if (chat.store.currentMode === 'closed') chatWindow.setInteractive(command.over);
-        break;
       case 'chat.setBounds':
-        chatWindow.setBounds({ x: command.x, y: command.y, width: command.width, height: command.height });
+        chatWindow.setContentBounds({ x: command.x, y: command.y, width: command.width, height: command.height });
         break;
       case 'chat.setMode':
         chat.setMode(command.mode);
