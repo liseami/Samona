@@ -2,25 +2,26 @@
   "name": "samona",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "packageManager": "bun@1.3.5",
+  "workspaces": [
+    "samo-web",
+    "samo-app",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "motion": "^11.15.0",
-    "ogl": "^1.0.11",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "dev": "bun run --cwd samo-app dev",
+    "dev:web": "bun run --cwd samo-web dev",
+    "build": "bun run --filter '*' build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "samo-browser": "node packages/samo-agent/dist/cli.js",
+    "agent:build": "bun run --cwd packages/samo-agent build"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.13",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
-    "tailwindcss": "^4.1.13",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.7"
-  }
+    "typescript": "^5.9.3"
+  },
+  "trustedDependencies": [
+    "electron",
+    "electron-builder",
+    "esbuild"
+  ]
 }

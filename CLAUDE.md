@@ -1,21 +1,28 @@
-# Samona - 人类唯一需要的 AI 应用
+# Samona - Samo：人类唯一需要的 AI 应用（类 Arc 的 AI 浏览器 + 落地页）
 
-Bun + Vite + React 18 + TypeScript + Tailwind CSS v4 · WebGL(OGL) 背景 · Motion 文字动效 · Cloudflare Pages 托管
+Bun 1.3 workspaces 单仓 · samo-app: Electron 44 + electron-vite 5 + React 19 + Tailwind v4 · samo-web: Vite + React 18 + Tailwind v4 · samo-agent: Node CLI 复用 ego-browser-v2
 
 <directory>
-src/ - 全部前端源码 (2 子目录: components 组件层, i18n 语言数据)
+samo-app/ - Samo 浏览器本体，Electron 桌面应用 (src/main 主进程, src/preload 桥, src/renderer React 壳与新标签页, src/shared 三方契约)
+samo-web/ - 落地页，20 国语言轮换的极简标语，Cloudflare Pages 托管 (src/components, src/i18n)
+packages/samo-agent/ - `samo-browser` CLI：任何 AI agent 经它驱动 Samo；ego-browser-v2 提供全部 helper，本包只做网关客户端与 `globalThis.ego` 宿主
+reference/ - 只读参考仓（git 忽略）：ego-lite（agent 浏览器 harness）、phibrowser-mac（macOS 原生壳与 UI 设计）
 </directory>
 
 <config>
-index.html - Vite 入口模板，挂载点 #root
-vite.config.ts - Vite 配置：@vitejs/plugin-react + @tailwindcss/vite 插件式集成
-tsconfig.json - TS 严格模式，bundler 解析，react-jsx
-package.json - 依赖清单与脚本 (dev/build/preview)，bun 管理
+package.json - workspaces 与根脚本（dev → samo-app，dev:web → samo-web，build/typecheck 全仓）；trustedDependencies 放行 electron 的二进制下载（bun 隔离安装默认拦截生命周期脚本）
+.gitignore - node_modules/out/dist/release、reference/、packages/samo-agent/workspace/（构建生成）
+bun.lock - 单一锁文件
 </config>
 
-<deploy>
-Cloudflare Pages：构建命令 `bun run build`，输出目录 `dist`，Node 18+
-</deploy>
+<product>
+Samo 解决的问题：编程小白用 vibe coding 造的工作台散落在 localhost；Samo 让这些 App 以标准化壳封装、由 Samo 服务器部署（预览版/正式版），常驻在浏览器侧栏一键打开、持续迭代，部署/数据库/登录全由 Samo 负责。
+第一阶段（当前）：可运行、可迭代、可热更新的轻量版——Arc 式壳 + 真实标签页 + Space + agent 网关。侧栏「固定标签」即未来的 App 位。
+</product>
+
+<agent>
+Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时。agent 在自己的 Space（sidebar 里带角标）工作，用户随时 Take control / Hand back。
+</agent>
 
 法则: 极简·稳定·导航·版本精确
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

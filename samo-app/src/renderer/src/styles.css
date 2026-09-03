@@ -1,0 +1,338 @@
+/* ============ Samo 壳的设计体系：配色为用户的 oklch 体系（原样），阴影/圆角/密度/交互取自 Laper index.css ============ */
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.9551 0 0);
+  --foreground: oklch(0.3211 0 0);
+  --card: oklch(0.9702 0 0);
+  --card-foreground: oklch(0.3211 0 0);
+  --popover: oklch(0.9702 0 0);
+  --popover-foreground: oklch(0.3211 0 0);
+  --primary: oklch(0.4891 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9067 0 0);
+  --secondary-foreground: oklch(0.3211 0 0);
+  --muted: oklch(0.8853 0 0);
+  --muted-foreground: oklch(0.5103 0 0);
+  --accent: oklch(0.8078 0 0);
+  --accent-foreground: oklch(0.3211 0 0);
+  --destructive: oklch(0.5594 0.19 25.8625);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.8576 0 0);
+  --input: oklch(0.9067 0 0);
+  --ring: oklch(0.4891 0 0);
+  --chart-1: oklch(0.4891 0 0);
+  --chart-2: oklch(0.4863 0.0361 196.0278);
+  --chart-3: oklch(0.6534 0 0);
+  --chart-4: oklch(0.7316 0 0);
+  --chart-5: oklch(0.8078 0 0);
+  --sidebar: var(--background); /* 与内容区同底色，网页卡片才能「浮」起来 */
+  --sidebar-foreground: oklch(0.3211 0 0);
+  --sidebar-primary: oklch(0.4891 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.8078 0 0);
+  --sidebar-accent-foreground: oklch(0.3211 0 0);
+  --sidebar-border: oklch(0.8576 0 0);
+  --sidebar-ring: oklch(0.4891 0 0);
+  --font-sans: Montserrat, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: 'Fira Code', 'SF Mono', Menlo, monospace;
+  --radius: 0.35rem;
+  --shadow-2xs: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.03);
+  --shadow-xs: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.03);
+  --shadow-sm: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.05);
+  --shadow-md: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.05), 0 2px 4px -1px hsl(0 0% 0% / 0.05);
+  --shadow-lg: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.05), 0 4px 6px -1px hsl(0 0% 0% / 0.05);
+  --shadow-xl: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.05), 0 8px 10px -1px hsl(0 0% 0% / 0.05);
+  --shadow-2xl: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.13);
+  --shadow-inset: inset 0 0 1.5px 0.5px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 1px 0 rgba(0, 0, 0, 0.03);
+  --shadow-dropdown: 0 4px 16px 0 rgba(16, 22, 26, 0.12), 0 2px 6px 0 rgba(16, 22, 26, 0.08);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+  --space: #3a6ff8; /* 运行时由 App 写入活动 Space 的强调色，仅用于小面积点缀 */
+  color-scheme: light;
+}
+
+.dark {
+  --background: oklch(0.2178 0 0);
+  --foreground: oklch(0.8853 0 0);
+  --card: oklch(0.2435 0 0);
+  --card-foreground: oklch(0.8853 0 0);
+  --popover: oklch(0.2435 0 0);
+  --popover-foreground: oklch(0.8853 0 0);
+  --primary: oklch(0.7058 0 0);
+  --primary-foreground: oklch(0.2178 0 0);
+  --secondary: oklch(0.3092 0 0);
+  --secondary-foreground: oklch(0.8853 0 0);
+  --muted: oklch(0.285 0 0);
+  --muted-foreground: oklch(0.5999 0 0);
+  --accent: oklch(0.3715 0 0);
+  --accent-foreground: oklch(0.8853 0 0);
+  --destructive: oklch(0.6591 0.153 22.1703);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.329 0 0);
+  --input: oklch(0.3092 0 0);
+  --ring: oklch(0.7058 0 0);
+  --chart-1: oklch(0.7058 0 0);
+  --chart-2: oklch(0.6714 0.0339 206.3482);
+  --chart-3: oklch(0.5452 0 0);
+  --chart-4: oklch(0.4604 0 0);
+  --chart-5: oklch(0.3715 0 0);
+  --sidebar: var(--background);
+  --sidebar-foreground: oklch(0.8853 0 0);
+  --sidebar-primary: oklch(0.7058 0 0);
+  --sidebar-primary-foreground: oklch(0.2178 0 0);
+  --sidebar-accent: oklch(0.3715 0 0);
+  --sidebar-accent-foreground: oklch(0.8853 0 0);
+  --sidebar-border: oklch(0.329 0 0);
+  --sidebar-ring: oklch(0.7058 0 0);
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --shadow-2xs: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.25);
+  --shadow-xs: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.25);
+  --shadow-sm: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.5), 0 1px 2px -1px hsl(0 0% 0% / 0.5);
+  --shadow: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.5), 0 1px 2px -1px hsl(0 0% 0% / 0.5);
+  --shadow-md: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.5);
+  --shadow-lg: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.5), 0 4px 6px -1px hsl(0 0% 0% / 0.5);
+  --shadow-xl: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.5), 0 8px 10px -1px hsl(0 0% 0% / 0.5);
+  --shadow-2xl: 0 0.125rem 0.25rem 0 hsl(0 0% 0% / 0.9);
+  --shadow-inset: inset 0 0 1.5px 0.5px rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.35), 0 0 1px 0 rgba(0, 0, 0, 0.25);
+  --shadow-dropdown: 0 4px 16px 0 rgba(0, 0, 0, 0.5), 0 2px 6px 0 rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-space: var(--space);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-2xs: var(--shadow-2xs);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
+
+  /* Laper 的压缩字号阶：密度来源 */
+  --text-xs: 0.625rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.8125rem;
+  --text-lg: 0.875rem;
+  --text-xl: 1rem;
+  --text-2xl: 1.25rem;
+}
+
+/* 缓动令牌用普通 @theme：inline 不会把变量落到 :root，纯 CSS 里的 var() 会静默失效 */
+@theme {
+  --duration-motion-fast: 150ms;
+  --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+  body {
+    @apply bg-transparent text-foreground;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    letter-spacing: var(--tracking-normal);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+  }
+  input,
+  textarea {
+    user-select: text;
+  }
+  input:focus,
+  input:focus-visible {
+    outline: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Apple Squircle 全局圆角 - 连续曲率圆角（取自 Laper index.css）
+ * Chromium 支持 corner-shape 时用真实 squircle；不支持时从 utility 层统一收敛圆角 scale。
+ * 不对按钮做特判，所有组件同源变克制；rounded-full 保持显式 pill 语义。
+ * ═══════════════════════════════════════════════════════════════════════════ */
+[class*='rounded'] {
+  corner-shape: squircle;
+}
+.rounded-full {
+  corner-shape: round;
+}
+@supports not (corner-shape: squircle) {
+  .rounded-sm {
+    border-radius: 0.0625rem;
+  }
+  .rounded,
+  .rounded-md {
+    border-radius: 0.1875rem;
+  }
+  .rounded-lg {
+    border-radius: 0.25rem;
+  }
+  .rounded-xl {
+    border-radius: 0.375rem;
+  }
+  .rounded-2xl {
+    border-radius: 0.5rem;
+  }
+  .rounded-3xl {
+    border-radius: 0.625rem;
+  }
+}
+
+/* ---- 面板阴影：Apple 风格多层淡雅阴影（Laper .panel-shadow），用于悬浮的网页卡片 ---- */
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-dropdown {
+    box-shadow: var(--shadow-dropdown);
+  }
+  .shadow-inset {
+    box-shadow: var(--shadow-inset);
+  }
+  .panel-shadow {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 4px 8px rgba(0, 0, 0, 0.04),
+      0 8px 16px rgba(0, 0, 0, 0.04),
+      0 16px 32px rgba(0, 0, 0, 0.05),
+      0 32px 64px rgba(0, 0, 0, 0.03);
+  }
+  .dark .panel-shadow {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.25),
+      0 4px 8px rgba(0, 0, 0, 0.28),
+      0 8px 16px rgba(0, 0, 0, 0.28),
+      0 16px 32px rgba(0, 0, 0, 0.3),
+      0 32px 64px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* ---- 侧栏内不显示焦点环（Laper 约定：归零 ring 变量而非 box-shadow，以免误杀选中态阴影） ---- */
+[data-panel='sidebar'] :focus,
+[data-panel='sidebar'] :focus-visible {
+  outline: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* ---- 无边框窗口：可拖拽区域与不可拖拽的控件 ---- */
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ---- 菜单 / 提示的入场动画（Laper） ---- */
+@keyframes laper-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes laper-menu-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.laper-tooltip-motion {
+  transform-origin: var(--radix-tooltip-content-transform-origin, center);
+  animation: laper-tooltip-in var(--duration-motion-fast) var(--ease-standard) both;
+}
+.laper-menu-motion {
+  transform-origin: var(--radix-popover-content-transform-origin, center);
+  animation: laper-menu-pop-in var(--duration-motion-fast) ease-out both;
+}
+
+/* ---- 滚动条（Laper：5px，常显，随 muted-foreground 混色） ---- */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 18%, transparent);
+  border-radius: 2.5px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--muted-foreground) 32%, transparent);
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background-color: color-mix(in oklch, var(--primary) 18%, transparent);
+}
