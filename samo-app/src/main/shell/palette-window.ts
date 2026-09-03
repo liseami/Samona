@@ -1,12 +1,14 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView，@shared/ipc 的 CHANNELS/ShellEvent，./window 的 ShellWindow
- * [OUTPUT]: 对外提供 PaletteWindow：⌘T 命令面板的承载——主窗口的透明、无边框子窗口，打开时铺满主窗口内容区（背景幕点击即关、Esc 即关），关闭即隐藏并把焦点还给主窗口；open/close/isOpen/webContents
- * [POS]: shell 的浮层之一。为什么是子窗口而不是主窗口里的 overlay 视图：压在网页之上的 WebContentsView 收不到真实鼠标与键盘（用户实测），独立 NSWindow 的输入路径最可靠
+ * [OUTPUT]: 对外提供 PaletteWindow 与 OverlayEvent：壳浮层的承载——主窗口的透明、无边框子窗口，打开时铺满主窗口内容区（背景幕点击即关、Esc 即关），关闭即隐藏、把焦点还给主窗口并向壳发 overlayClosed；承载 ⌘T 命令面板（openPalette）与用户菜单（openUserMenu）；open/close/isOpen/webContents
+ * [POS]: shell 的浮层之一，也是「必须压在网页之上还要能交互」的一切壳弹层的唯一去处：网页是原生视图、永远盖住壳的 DOM，壳里的 Portal/z-index 一进网页区域就死。为什么是子窗口而不是主窗口里的 overlay 视图：压在网页之上的 WebContentsView 收不到真实鼠标与键盘（用户实测），独立 NSWindow 的输入路径最可靠
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BaseWindow, WebContentsView } from 'electron';
 import { CHANNELS, type ShellEvent } from '@shared/ipc';
 import type { ShellWindow } from './window';
+
+export type OverlayEvent = Extract<ShellEvent, { type: 'openPalette' | 'openUserMenu' }>;
 
 export interface PaletteWindowOptions {
   preloadPath: string;
@@ -34,7 +36,7 @@ export class PaletteWindow {
     return this.view && !this.view.webContents.isDestroyed() ? this.view.webContents : null;
   }
 
-  open(event: Extract<ShellEvent, { type: 'openPalette' }>): void {
+  open(event: OverlayEvent): void {
     if (!this.win || this.win.isDestroyed()) this.create();
     this.fit();
     const win = this.win!;
@@ -55,6 +57,7 @@ export class PaletteWindow {
     if (!this.isOpen()) return;
     this.win!.hide();
     this.shell.win.focus(); // 焦点归还主窗口
+    this.shell.send(CHANNELS.event, { type: 'overlayClosed' } satisfies ShellEvent);
   }
 
   private fit(): void {

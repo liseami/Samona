@@ -7,7 +7,7 @@
 import { BaseWindow, WebContentsView, nativeTheme, shell, type Rectangle } from 'electron';
 import { DEFAULT_LAYOUT, HEADER_HEIGHT, RAIL_WIDTH, type Layout } from '@shared/model';
 import type { ShellEvent } from '@shared/ipc';
-import { PaletteWindow } from './palette-window';
+import { PaletteWindow, type OverlayEvent } from './palette-window';
 
 // ============ 几何常量（源自 Laper ProjectEditorShell：一行 gap-2 pt-2 pb-2 pl-0 pr-2，SoftPanel rounded-2xl + 1px 边线） ============
 const GUTTER = 8; // 上/下/右，也是各卡片之间的 gap
@@ -265,7 +265,7 @@ export class ShellWindow {
 
   // ---------- 命令面板（子窗口） ----------
   readonly palette: PaletteWindow;
-  openPalette(event: Extract<ShellEvent, { type: 'openPalette' }>): void {
+  openPalette(event: OverlayEvent): void {
     this.palette.open(event);
   }
   closePalette(): void {

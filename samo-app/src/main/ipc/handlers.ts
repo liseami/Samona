@@ -159,6 +159,9 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, work
       case 'palette.close':
         window.closePalette();
         break;
+      case 'userMenu.open':
+        window.openPalette({ type: 'openUserMenu', left: command.left, bottom: command.bottom });
+        break;
       // ---- AI 对话 ----
       case 'chat.setApiKey':
         setApiKey(command.key);

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 react，../store/session 的 useSession，../store/browser 的 send/useBrowser，../components/ui/{avatar,menu-row,kbd,button}，../icons 的 Globe/ChevronRight/SunIcon/MoonIcon/MonitorIcon/Settings/Support/Gift/Docs/LogOut，../lib/utils 的 cn
  * [OUTPUT]: 对外提供 UserMenu 组件：Laper UserMenu 的 Samo 版——账户卡（头像 + 昵称 + 会员键帽 + Upgrade）→ Credits / Add credits / Invite friends → 分隔 → Docs / Contact support → 分隔 → Language（悬停子菜单）/ Appearance（悬停子菜单：System / Light / Dark，真的切主进程 nativeTheme）→ Settings → 分隔 → Log out；menu-pop 入场、子菜单 submenu-slide
- * [POS]: shell 的账户入口菜单，由 UserButton 弹出；升级/积分/邀请/设置在 Samo 账号体系接上之前是占位动作
+ * [POS]: shell 的账户入口菜单，由 UserButton 触发、在 overlay 子窗口（UserMenuOverlay）里渲染——只有那里才真正压在网页之上；升级/积分/邀请/设置在 Samo 账号体系接上之前是占位动作
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react';
@@ -148,10 +148,10 @@ export function UserMenu({ onClose }: { onClose: () => void }) {
 
 const Separator = () => <div className="my-1 h-px w-full bg-border" />;
 
-/** 子菜单：右侧贴出（rail 场景），submenu-slide 入场 */
+/** 子菜单：右侧贴出（rail 场景），submenu-slide 入场；间隙用 padding 而非 margin——指针穿过 8px 间隙时仍在悬停子树内，子菜单不会中途收起 */
 function Submenu({ children }: { children: React.ReactNode }) {
   return (
-    <div className="submenu-slide absolute bottom-0 left-full z-2 ml-2">
+    <div className="submenu-slide absolute bottom-0 left-full z-2 pl-2">
       <div className="w-max min-w-40 rounded-2xl border border-border bg-card p-1.5" style={{ boxShadow: 'var(--shadow-dropdown)' }}>{children}</div>
     </div>
   );

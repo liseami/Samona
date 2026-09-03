@@ -66,7 +66,8 @@ export type Command =
   | { type: 'download.clear' }
   // ---- 命令面板（叠在网页之上的 overlay 视图） ----
   | { type: 'palette.open'; mode: PaletteMode }
-  | { type: 'palette.close' }
+  | { type: 'palette.close' } // 关闭 overlay（命令面板与用户菜单共用）
+  | { type: 'userMenu.open'; left: number; bottom: number } // 用户菜单开进 overlay 子窗口（锚点为壳视图 CSS px）
   // ---- AI 对话（launcher / 浮窗 / 停靠卡三处共用） ----
   | { type: 'chat.setMode'; mode: ChatMode }
   | { type: 'chat.send'; text: string }
@@ -116,6 +117,8 @@ export type PaletteMode = 'newTab' | 'editUrl' | 'searchTabs';
 
 export type ShellEvent =
   | { type: 'openPalette'; mode: PaletteMode; url: string } // 发给 overlay 页
+  | { type: 'openUserMenu'; left: number; bottom: number } // 发给 overlay 页：用户菜单以此锚点弹出
+  | { type: 'overlayClosed' } // 发给壳：overlay 子窗口已收起（UserButton 据此复位）
   | { type: 'renameTab'; tabId: string }
   | { type: 'focusFind' } // ⌘F：面板头部打开查找条
   | { type: 'renameFolder'; folderId: string }
