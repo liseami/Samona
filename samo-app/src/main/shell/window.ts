@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/shell，依赖 @shared/model 的 Layout/DEFAULT_LAYOUT/HEADER_HEIGHT/RAIL_WIDTH，@shared/ipc 的 ShellEvent，./palette-window 的 PaletteWindow
- * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保证呈现视图的 NSView 最后挂载以独占命中）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化）+ 红灯即隐藏（allowClose 后才真正关闭），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
+ * [OUTPUT]: 对外提供 ShellWindow 类：一个隐藏原生按钮的 BaseWindow + 壳视图（React）+ 内容视图槽位（网页直角贴边、从面板头部下方开始；setContentVisible 随模块显隐）+ 网页底部两角的圆角遮罩视图 + 壳之下的后台视图层（attachBackground/detach，所有已加载视图都有真实视口；raiseContent 保持呈现视图在最上）+ 命令面板子窗口 PaletteWindow（openPalette/closePalette）+ zoom（全屏/最大化）+ 红灯即隐藏（allowClose 后才真正关闭），以及含 rail 列、面板头部与停靠对话卡（setDock）的 contentBounds 布局算法、panelCardBounds/contentScreenBounds/dockSlotScreenBounds、onBoundsChange
  * [POS]: shell 模块的唯一成员，engine 通过它摆放标签页视图；它只懂几何与层叠，不懂标签页语义（参照 phi：edgesSpacing=8、内容圆角 8）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -256,21 +256,18 @@ export class ShellWindow {
     applyRadius(view, 0);
     this.win.contentView.addChildView(view, 0); // index 0 = 最底层，被不透明的壳视图完全遮住
     view.setBounds(this.contentBounds());
-    if (this.contentView) this.raiseContent(this.contentView); // 新挂的 NSView 会盖住呈现视图的命中，重新抬起
+    if (this.contentView) this.raiseContent(this.contentView); // 保持呈现视图在后台视图之上
   }
 
   /**
-   * 把呈现中的网页视图「摘下再挂回」，让它的 NSView 成为最后挂载的那个。
-   * macOS 上鼠标命中测试按 NSView 的挂载顺序，不按 Electron 视图的 z 顺序（addChildView 重排只改绘制层级）：
-   * 后挂的后台标签视觉上在壳之下，却会在命中测试里压在你正看的网页之上，把点击全吃掉。角落遮罩随后挂回以保持在网页之上绘制
+   * 把呈现中的网页视图排到最上（角落遮罩再压在它之上）。addChildView 对已有子视图只重排；
+   * Chromium 会把 NSView 子视图按 views 层级排序（SortSubviews），所以重排即可，不必摘下再挂。
+   * 真正决定「谁收到鼠标」的不是层级而是壳的可拖拽区：BridgedContentView.hitTest 先查 .drag 区再查子视图，
+   * 命中 .drag 就交给窗口拖拽/双击缩放——所以壳里凡是有原生视图或浮层压着的区域必须 no-drag（见 App.tsx）
    */
   private raiseContent(view: WebContentsView): void {
-    if (this.win.contentView.children.includes(view)) this.win.contentView.removeChildView(view);
     this.win.contentView.addChildView(view);
-    for (const mask of this.cornerMasks) {
-      if (this.win.contentView.children.includes(mask)) this.win.contentView.removeChildView(mask);
-      this.win.contentView.addChildView(mask);
-    }
+    for (const mask of this.cornerMasks) this.win.contentView.addChildView(mask);
   }
 
   backgroundViews(): WebContentsView[] {

@@ -45,7 +45,8 @@ export default function App() {
   const def = MODULE_REGISTRY[snapshot.layout.module];
   return (
     <TooltipProvider delayDuration={600} skipDelayDuration={300}>
-      {/* ---- 页面底：bg-sidebar；顶部 pt-2 的空档也是窗口拖拽区 ---- */}
+      {/* ---- 页面底：bg-sidebar；顶部 pt-2 的空档也是窗口拖拽区。铁律：面板体必须 no-drag——Chromium 先查可拖拽区再查子视图，
+           .drag 之下的网页视图与任何浮层永远收不到鼠标（点击无效、双击变成缩放窗口） ---- */}
       <div className="drag flex h-full w-full gap-2 bg-sidebar pt-2 pb-2 pl-0 pr-2">
         <NavRail />
         {collapsed ? (
@@ -54,7 +55,7 @@ export default function App() {
             <EdgePeek />
             <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${SOFT_PANEL} ${agentLive ? 'agent-glow' : ''}`}>
               {def.PanelHeader && <def.PanelHeader />}
-              <div className="relative min-h-0 flex-1">
+              <div className="no-drag relative min-h-0 flex-1">
                 <def.Panel />
               </div>
             </div>
@@ -70,7 +71,7 @@ export default function App() {
             </div>
             <div className={`relative flex h-full min-w-0 flex-1 flex-col overflow-hidden ${SOFT_PANEL} ${agentLive ? 'agent-glow' : ''}`}>
               {def.PanelHeader && <def.PanelHeader />}
-              <div className="relative min-h-0 flex-1">
+              <div className="no-drag relative min-h-0 flex-1">
                 <def.Panel />
               </div>
             </div>

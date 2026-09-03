@@ -4,7 +4,7 @@
 AI 对话——agent 与用户交互的基石。真相在主进程：线程、消息（文字 + 工具胶囊）、流式追加、形态（closed / floating / docked）都在 ChatStore；三处 UI（药丸子窗口、面板子窗口、壳内停靠卡）只读同一份快照，切换形态不丢对话。回答者是 ChatProvider 插槽：有 Anthropic 密钥时是 AgentProvider（Claude 驱动，唯一工具 = 写一段 ego-browser 脚本交给 samo-browser 运行时，真正驱动浏览器），没有时是 KeylessProvider（引导语 + UI 接入卡），StubProvider 留给链路自测。
 
 形态与承载（由 ChatChoreographer 一一对应，无开合动画，切换即到位）：
-- closed：LauncherWindow——主窗口的透明子窗口，只有药丸 + 12px 呼吸区那么大，钉在主窗口内容区右下角。为什么是子窗口而不是主窗口内的视图：macOS 上鼠标命中按 NSView 挂载顺序、不按 Electron 的 z 顺序，压在网页之上的视图收不到真实点击；为什么这么小：透明区域也会挡住网页的鼠标。
+- closed：LauncherWindow——主窗口的透明子窗口，只有药丸 + 12px 呼吸区那么大，钉在主窗口内容区右下角。为什么是子窗口而不是主窗口内的视图：主窗口内的视图会被壳的可拖拽区截胡（见 shell/CLAUDE.md 命中测试铁律），子窗口的输入路径与主窗口无关；为什么这么小：透明区域也会挡住网页的鼠标。
 - floating：ChatWindow——主窗口的不透明子窗口（永远在其上、随其移动、可拖出应用之外、原生拖边缩放、原生圆角与阴影）。大面积浮层一律不透明；位置永远锚在右下角（药丸处），只记住用户调过的尺寸。关闭即隐藏并把焦点还给主窗口。
 - docked：壳在面板卡右侧渲染第四张 SoftPanel（dock-in 入场），主进程把内容区右侧让出 dockWidth + gap。
 曾走过的弯路：透明大窗口 + 页内 scaleX/scaleY 变形（Laper 复刻）——bleed/尺寸状态/resize 事件/焦点归还处处脆弱，用户看到的是压扁的面板与失焦的壳；已废。
