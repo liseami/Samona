@@ -52,6 +52,7 @@ export function installMenu(engine: BrowserEngine, window: ShellWindow, chat: Ch
       label: 'View',
       submenu: [
         { label: 'Open Location', accelerator: 'CmdOrCtrl+L', click: () => palette('editUrl') },
+        { label: 'Show All Tabs', accelerator: 'CmdOrCtrl+Shift+\\', click: () => store.setLayout({ overview: !store.getLayout().overview }) },
         { label: 'Search Tabs', accelerator: 'CmdOrCtrl+Shift+A', click: () => palette('searchTabs') },
         { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+S', click: () => store.setLayout({ sidebarCollapsed: !store.getLayout().sidebarCollapsed }) },
         { label: 'Toggle Samo AI', accelerator: 'CmdOrCtrl+I', click: () => chat.setMode(chat.store.currentMode === 'closed' ? 'floating' : 'closed') },

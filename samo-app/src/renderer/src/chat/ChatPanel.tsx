@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react，react-markdown + remark-gfm，@shared/chat 的 ChatMessage/ChatThread，./store 的 useChat/chatSend/bindChat，../icons，../lib/utils 的 cn
- * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked'）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；思考指示；错误提示胶囊；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
+ * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked'）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；工具胶囊 ToolBubble 展示 agent 的每一步浏览器动作；思考指示；错误提示胶囊；接入卡 KeyCard；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
  * [POS]: renderer/chat 的面板本体，浮窗页与壳内停靠卡共用同一份组件；形态只影响头部动作与拖拽区
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,7 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { ChatMessage, ChatThread } from '@shared/chat';
-import { ArrowUpIcon, ChevronDown, Clipboard, ClipboardOk, Close, Maximize, Menu, Minimize, NewChat, Paperclip } from '../icons';
+import { ArrowUpIcon, CheckOk, ChevronDown, Clipboard, ClipboardOk, Close, CrossCircle, Eye, Globe, Key, Maximize, Menu, Minimize, NewChat, Paperclip, Spinner } from '../icons';
+import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { bindChat, chatSend, useChat } from './store';
 
@@ -34,7 +35,7 @@ export function ChatPanel({ variant }: { variant: Variant }) {
       <Aurora active={snap.generating} />
       <div className="relative z-1 flex min-h-0 flex-1 flex-col">
         <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />
-        <MessageList messages={snap.messages} generating={snap.generating} />
+        <MessageList messages={snap.messages} generating={snap.generating} needsKey={snap.needsKey} />
         <Composer generating={snap.generating} collapsed={false} />
       </div>
       {drawer && <SessionDrawer threads={snap.threads} activeId={snap.activeThreadId} onClose={() => setDrawer(false)} />}
@@ -94,7 +95,7 @@ function IconButton({ label, onClick, children, className }: { label: string; on
 const PIN_THRESHOLD_PX = 64;
 const PIN_MIN_INTERVAL_MS = 1000;
 
-function MessageList({ messages, generating }: { messages: ChatMessage[]; generating: boolean }) {
+function MessageList({ messages, generating, needsKey }: { messages: ChatMessage[]; generating: boolean; needsKey: boolean }) {
   const scroller = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
   const lastFollow = useRef(0);
@@ -116,12 +117,13 @@ function MessageList({ messages, generating }: { messages: ChatMessage[]; genera
     el.scrollTo({ top: el.scrollHeight, behavior: last?.status === 'streaming' ? 'smooth' : 'auto' });
   }, [messages.length, tailLength, last?.status]);
 
-  const showThinking = generating && (!last || last.role !== 'assistant' || last.content === '');
-  if (messages.length === 0) return <WelcomeEmpty />;
+  const showThinking = generating && (!last || last.role !== 'assistant' || (last.kind !== 'tool' && last.content === ''));
+  if (messages.length === 0) return <WelcomeEmpty needsKey={needsKey} />;
   return (
     <div ref={scroller} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
       <div className="flex min-h-full flex-col gap-4 px-4 py-4">
-        {messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantMessage key={m.id} message={m} />))}
+        {needsKey && <KeyCard compact />}
+        {messages.map((m) => (m.kind === 'tool' ? <ToolBubble key={m.id} message={m} /> : m.role === 'user' ? <UserBubble key={m.id} message={m} /> : <AssistantMessage key={m.id} message={m} />))}
         {showThinking && <ThinkingBubble />}
       </div>
     </div>
@@ -220,8 +222,79 @@ function HintBubble({ tone, children }: { tone: 'warning' | 'info'; children: Re
   );
 }
 
-// ---- 空态：3D 倾斜全息卡 36:9 + 三行文案（Laper WelcomeEmpty，无建议芯片） ----
-function WelcomeEmpty() {
+// ---- 工具胶囊（Laper ToolCallBubble）：agent 的一次浏览器动作——图标 + 标签 + 运行/完成/失败态；点标签展开脚本输出；Watch 切到 agent 身份 ----
+function ToolBubble({ message }: { message: ChatMessage }) {
+  const tool = message.tool!;
+  const [open, setOpen] = useState(false);
+  const running = message.status === 'streaming';
+  const failed = message.status === 'error' || tool.ok === false;
+  return (
+    <div className="flex w-full flex-col items-start gap-1.5">
+      <div className="inline-flex max-w-full items-center gap-2 rounded-2xl border border-border bg-background px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_0_rgba(255,255,255,0.7)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_0_rgba(255,255,255,0.04)_inset]">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex min-w-0 items-center gap-2 text-left">
+          <Globe size={15} className="shrink-0 text-foreground/55" />
+          <span className="min-w-0 text-[13px] break-words text-foreground/80 [overflow-wrap:anywhere]">{tool.label}</span>
+        </button>
+        {running && <Spinner size={15} className="shrink-0 animate-spin text-foreground/55" />}
+        {!running && !failed && <CheckOk size={15} className="shrink-0 text-emerald-500" />}
+        {!running && failed && <CrossCircle size={15} className="shrink-0 text-destructive" />}
+        {tool.identityId != null && (
+          <button
+            type="button"
+            aria-label="Watch the agent"
+            title="Watch"
+            onClick={() => chatSend({ type: 'identity.activate', identityId: tool.identityId! })}
+            className="ml-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          >
+            <Eye size={13} />
+          </button>
+        )}
+      </div>
+      {open && (
+        <pre className="max-h-48 w-full max-w-[95%] overflow-auto rounded-xl border border-border bg-muted/60 px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
+          {tool.output?.trim() || (running ? 'Running…' : '(no output)')}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// ---- 接入卡：没有模型密钥时的引导——密钥只经主进程落盘（0600），渲染层不保存 ----
+function KeyCard({ compact = false }: { compact?: boolean }) {
+  const [key, setKey] = useState('');
+  const save = () => {
+    const k = key.trim();
+    if (!k) return;
+    chatSend({ type: 'chat.setApiKey', key: k });
+    setKey('');
+  };
+  return (
+    <div className={cn('bubble-in w-full rounded-2xl border border-border bg-panel p-3 text-left shadow-sm', !compact && 'mt-5 max-w-[360px]')}>
+      <div className="mb-1 flex items-center gap-2 text-sm font-medium text-foreground">
+        <Key size={14} className="text-muted-foreground" /> Connect Claude
+      </div>
+      <div className="mb-2 text-xs leading-relaxed text-muted-foreground">Paste an Anthropic API key. It stays on this Mac (config.json, owner-only). Then Samo AI can browse for you in its own identity.</div>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="password"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && save()}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="sk-ant-…"
+          className="h-8 min-w-0 flex-1 rounded-2xl border border-border bg-input px-3 text-sm text-foreground outline-none transition-colors focus:border-primary/40"
+        />
+        <Button variant="primary" size="small" disabled={!key.trim()} onClick={save}>
+          Connect
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ---- 空态：3D 倾斜全息卡 36:9 + 三行文案（Laper WelcomeEmpty，无建议芯片）；无密钥时接入卡 ----
+function WelcomeEmpty({ needsKey }: { needsKey: boolean }) {
   const [tilt, setTilt] = useState({ rx: 0, ry: 0, sx: 50, sy: 50 });
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -252,6 +325,7 @@ function WelcomeEmpty() {
       <div className="text-[15px] font-medium text-foreground">Your Samo copilot, ready when you are.</div>
       <div className="mt-1 text-[14px] text-muted-foreground">It reads the page, drives the browser, and builds your apps.</div>
       <div className="text-[14px] text-muted-foreground">And much more.</div>
+      {needsKey && <KeyCard />}
     </div>
   );
 }

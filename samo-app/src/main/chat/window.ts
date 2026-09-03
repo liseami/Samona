@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 electron 的 BaseWindow/WebContentsView/nativeTheme/screen，@shared/chat 的 CHAT_DEFAULTS，../shell/window 的 ShellWindow
- * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮窗——主窗口的子窗口（永远在其上、随其移动），无边框、不透明、圆角、带系统阴影、可自由缩放、可拖出应用窗口；open/close/isOpen/send，记住上次几何，默认停在主窗口右下角
+ * [OUTPUT]: 对外提供 ChatWindow 类：AI 对话的浮窗——主窗口的子窗口（永远在其上、随其移动），无边框、不透明、圆角、带系统阴影、可自由缩放、可拖出应用窗口；open/showAt/restBounds/rememberBounds/close/isOpen/send/window，记住上次几何，默认停在主窗口右下角；编舞（chat/choreographer）用 showAt + window() 驱动几何动画
  * [POS]: chat 模块的浮动承载；停靠态不用它（停靠卡由壳渲染），launcher 也不用它（launcher 是主窗口内的视图）。选择不透明而非透明窗口：Electron 的透明窗口不能缩放也没有阴影
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -33,19 +33,39 @@ export class ChatWindow {
   }
 
   open(): void {
+    this.showAt(this.restBounds());
+    this.focus();
+  }
+
+  /** 浮窗的「安放位」：上次几何或默认几何 */
+  restBounds(): Rectangle {
+    return this.lastBounds ?? this.defaultBounds();
+  }
+
+  /** 以给定几何显示（不聚焦）——编舞的起点：从药丸/停靠卡的矩形出发再动画到安放位 */
+  showAt(bounds: Rectangle): void {
     if (!this.win || this.win.isDestroyed()) this.create();
     const win = this.win!;
-    if (!win.isVisible()) {
-      win.setBounds(this.lastBounds ?? this.defaultBounds());
-      win.show();
-    }
-    win.focus();
+    win.setBounds(bounds);
+    if (!win.isVisible()) win.show();
+  }
+
+  focus(): void {
+    this.win?.focus();
     this.view?.webContents.focus();
+  }
+
+  window(): BaseWindow | null {
+    return this.win && !this.win.isDestroyed() ? this.win : null;
+  }
+
+  /** 记住当前几何为安放位（动画中途不要记） */
+  rememberBounds(): void {
+    if (this.win && !this.win.isDestroyed() && this.win.isVisible()) this.lastBounds = this.win.getBounds();
   }
 
   close(): void {
     if (!this.win || this.win.isDestroyed()) return;
-    this.lastBounds = this.win.getBounds();
     this.win.hide();
   }
 

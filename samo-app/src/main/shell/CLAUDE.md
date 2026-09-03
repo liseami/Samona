@@ -1,10 +1,15 @@
 # shell/
 > L2 | 父级: ../CLAUDE.md
 
-窗口几何与视图层叠，不懂标签页语义。原生红绿灯用 setWindowButtonVisibility(false) 隐藏（titleBarStyle: hidden 保住圆角、全屏动画、双击缩放），按钮由壳自绘。五层：底层「后台视图」（agent 标签，被壳遮住但仍绘制）→ 壳视图（React，覆盖全窗）→ 内容视图（当前标签，几何取自 Laper ProjectEditorShell：rail 40 → gap 8 → 侧栏卡 → gap 8 → 面板卡，上下右留 8，内缩 1px 露出壳画的边线、圆角 13；折叠时顶部让出 48px 控制条；非浏览器模块时 setContentVisible(false)）→ 右下角 launcher（透明小视图，closed 形态可见）→ 最上层透明 overlay（命令面板，不显示时不参与命中）。停靠对话卡时内容区右侧让出 dockWidth + gap（setDock）。
+窗口几何与视图层叠，不懂标签页语义。原生红绿灯用 setWindowButtonVisibility(false) 隐藏（titleBarStyle: hidden 保住圆角、全屏动画、双击缩放），按钮由壳自绘。层叠：底层「后台视图」（agent 标签，被壳遮住但仍绘制）→ 壳视图（React，覆盖全窗）→ 圆角容器 frame（内含当前标签的网页视图）→ 最上层透明 overlay（命令面板，不显示时不参与命中）。launcher 与浮窗是子窗口，不在这棵树里。
+
+几何取自 Laper ProjectEditorShell：rail 40 → gap 8 → 侧栏卡 → gap 8 → 面板卡，上下右留 8；面板卡顶部是 HEADER_HEIGHT(40) 的模块头部（浏览器：后退前进刷新 · 地址 · 工具），网页视图从头部下方开始、内缩 1px 露出壳画的边线。上直下圆：Electron 的圆角四角统一，而头部在壳里、网页之上，所以圆角挂在容器 frame 上并让容器向上溢出一个半径藏到头部之下，网页视图在容器内下沉同样距离——容器只裁自己的四角，网页上缘直角、下缘随容器圆角 13。折叠时顶部让出 40 + 8 的控制条；非浏览器模块或标签矩阵打开时 setContentVisible(false)；停靠对话卡时内容区右侧让出 dockWidth + gap（setDock）。
+
+命中测试教训：NativeWindow::NonClientHitTest 遍历所有网页视图的拖拽区，壳的 `.drag` 会把落在其他视图上的真实按下变成拖窗口——凡是要接受真实点击又压在网页之上的东西，一律做成子窗口（launcher、浮窗、未来的 agent 光标层）。
 
 ## 成员清单
-window.ts: ShellWindow——BaseWindow（hidden 标题栏、交通灯内嵌）+ shellView + overlayView + contentView 槽位 + background 集合；contentBounds 按侧栏宽度/折叠态算内容矩形，resize 时统一重排；openPalette/closePalette 切 overlay 可见性并转移焦点；zoom 全屏/最大化；setBorderRadius 在支持的平台生效。
+window.ts: ShellWindow——BaseWindow（hidden 标题栏、交通灯内嵌）+ shellView + overlayView + frame 容器 + contentView 槽位 + background 集合；contentBounds 按侧栏宽度/折叠态/面板头部算内容矩形，resize 时统一重排；dockSlotScreenBounds 给编舞；openPalette/closePalette 切 overlay 可见性并转移焦点（raise 抬到最上）；zoom 全屏/最大化。
+animate.ts: animateBounds(win, to, {duration, ease, signal})——按 shared/motion 令牌曲线逐帧 setBounds 的窗口几何动画（macOS 自带 setBounds(animate) 曲线不可控）。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

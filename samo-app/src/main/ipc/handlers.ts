@@ -20,9 +20,10 @@ export interface IpcDeps {
   menus: ContextMenus;
   window: ShellWindow;
   chat: ChatService;
+  setApiKey: (key: string) => void; // 保存密钥并热切换回答者
 }
 
-export function registerIpc({ engine, downloads, menus, window, chat }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat, setApiKey }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
   ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
@@ -32,9 +33,11 @@ export function registerIpc({ engine, downloads, menus, window, chat }: IpcDeps)
     switch (query.type) {
       case 'suggest':
         return suggest(engine, query.input, query.limit ?? 6, query.tabsOnly ?? false);
+      case 'thumbnails':
+        return engine.captureThumbnails(query.identityId);
       default: {
-        const never: never = query.type;
-        throw new Error(`unknown query ${String(never)}`);
+        const never: never = query;
+        throw new Error(`unknown query ${JSON.stringify(never)}`);
       }
     }
   });
@@ -170,6 +173,9 @@ export function registerIpc({ engine, downloads, menus, window, chat }: IpcDeps)
         window.closePalette();
         break;
       // ---- AI 对话 ----
+      case 'chat.setApiKey':
+        setApiKey(command.key);
+        break;
       case 'chat.setMode':
         chat.setMode(command.mode);
         break;
@@ -207,6 +213,9 @@ export function registerIpc({ engine, downloads, menus, window, chat }: IpcDeps)
       // ---- 布局与壳 ----
       case 'layout.sidebar':
         store.setLayout({ sidebarWidth: command.width, sidebarCollapsed: command.collapsed });
+        break;
+      case 'layout.overview':
+        store.setLayout({ overview: command.open });
         break;
       case 'layout.peek':
         store.setPeek(command.peek);

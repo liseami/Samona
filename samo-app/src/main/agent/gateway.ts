@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -54,10 +54,12 @@ export class AgentGateway {
     for (const session of this.sessions) session.dispose();
     this.sessions.clear();
     this.server?.close();
+    // 只删自己写的指针：dev --watch 重启时旧进程晚于新进程退出，不加 pid 守卫会把新实例的指针删掉
     try {
-      rmSync(this.pointerPath, { force: true });
+      const current = JSON.parse(readFileSync(this.pointerPath, 'utf8')) as Partial<GatewayPointer>;
+      if (current.pid === process.pid) rmSync(this.pointerPath, { force: true });
     } catch {
-      /* 已不存在 */
+      /* 已不存在或不可读 */
     }
   }
 

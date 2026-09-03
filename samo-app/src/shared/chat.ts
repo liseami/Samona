@@ -1,12 +1,25 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 AI 对话的领域模型：ChatRole/ChatMessage/ChatThread/ChatMode/ChatSnapshot、CHAT_DEFAULTS（浮窗默认几何）
+ * [OUTPUT]: 对外提供 AI 对话的领域模型：ChatRole/ChatMessage（kind: text | tool）/ChatToolCall/ChatThread/ChatMode/ChatSnapshot（含 needsKey/model）、ChatDelta（回答者产出的流式事件）、CHAT_DEFAULTS（浮窗默认几何）
  * [POS]: shared 的对话模型根；主进程 chat/ 是唯一写者，浮窗页、壳内停靠卡、launcher 三处只读同一份快照。这是 agent 与用户交互的基石契约，字段只增不改
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
 export type ChatRole = 'user' | 'assistant' | 'system';
 export type ChatMessageStatus = 'streaming' | 'done' | 'error' | 'stopped';
+/** 消息形态：text 是文字；tool 是 agent 的一次浏览器动作（Laper 的 ToolCallBubble 胶囊） */
+export type ChatMessageKind = 'text' | 'tool';
+
+/** 一次工具调用：agent 交给 ego-browser 运行时的一段脚本，以及它的结果 */
+export interface ChatToolCall {
+  callId: string;
+  name: string; // 目前只有 'browser'
+  label: string; // 3-6 词的动作描述，胶囊里给用户看的文案
+  input: string; // 脚本源码
+  output?: string; // 脚本输出（已截断）
+  ok?: boolean;
+  identityId?: number | null; // 脚本工作的身份（agent 的 task space），供「Watch」跳转
+}
 
 export interface ChatMessage {
   id: string;
@@ -15,6 +28,8 @@ export interface ChatMessage {
   content: string; // Markdown 文本；流式时逐段追加
   status: ChatMessageStatus;
   createdAt: number;
+  kind?: ChatMessageKind; // 缺省 text
+  tool?: ChatToolCall; // kind === 'tool' 时存在
 }
 
 export interface ChatThread {
@@ -27,15 +42,23 @@ export interface ChatThread {
 /** 面板形态：closed 只留右下角 launcher；floating 是可拖出应用的独立子窗口；docked 是面板卡右侧的第四张卡 */
 export type ChatMode = 'closed' | 'floating' | 'docked';
 
+/** 回答者的流式事件：文字增量 / 工具开始 / 工具结束 */
+export type ChatDelta =
+  | { type: 'text'; text: string }
+  | { type: 'tool.start'; callId: string; name: string; label: string; input: string }
+  | { type: 'tool.end'; callId: string; output: string; ok: boolean; identityId?: number | null };
+
 export interface ChatSnapshot {
   mode: ChatMode;
   activeThreadId: string;
   threads: ChatThread[]; // updatedAt 倒序
   messages: ChatMessage[]; // 仅活动线程，createdAt 正序
-  generating: boolean; // 活动线程是否有流式中的回复
+  generating: boolean; // 活动线程是否有流式中的回复或运行中的工具
   unread: number; // closed 时到达的回复数
   dockWidth: number; // 停靠卡宽度
-  provider: string; // 当前回答者（stub / 未来的模型或 agent）
+  provider: string; // 当前回答者：claude / keyless / stub
+  needsKey: boolean; // 尚未配置模型密钥——UI 显示接入卡
+  model: string; // 当前模型 id（无模型时为空）
 }
 
 export const CHAT_DEFAULTS = {

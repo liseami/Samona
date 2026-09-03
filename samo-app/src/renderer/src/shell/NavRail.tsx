@@ -1,11 +1,11 @@
 /**
  * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip，../assets/logo.png
- * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；顶部 h-12 logo 行与侧栏卡头部对齐
+ * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；顶部 logo 行（HEADER_HEIGHT）与侧栏卡头部对齐
  * [POS]: shell 的第一层：切换「维度」（浏览器 / 邮件 / 知识库 / 网盘）；模块的侧栏与面板由 modules/registry 决定
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react';
-import { MODULES, type ModuleId } from '@shared/model';
+import { HEADER_HEIGHT, MODULES, type ModuleId } from '@shared/model';
 import { MODULE_ICON } from '../icons';
 import { cn } from '../lib/utils';
 import { send, useBrowser } from '../store/browser';
@@ -32,8 +32,8 @@ export function NavRail() {
           expanded ? 'w-60 border border-border bg-panel shadow-lg' : 'w-10 bg-sidebar',
         )}
       >
-        {/* ---- logo 行：h-12 与侧栏卡头部同高（Laper：mt-px h-12 pl-2） ---- */}
-        <div className="mt-px flex h-12 shrink-0 items-center pl-2 pr-0">
+        {/* ---- logo 行：与侧栏卡头部同高（Laper：mt-px h-12 pl-2，Samo 压到 40） ---- */}
+        <div className="mt-px flex shrink-0 items-center pl-2 pr-0" style={{ height: HEADER_HEIGHT }}>
           <span className="flex w-8 shrink-0 items-center justify-center">
             <img src={logo} alt="" width={24} height={24} className="size-6 select-none" draggable={false} />
           </span>

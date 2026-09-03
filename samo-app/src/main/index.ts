@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/gateway，./chat/{store,provider,service,window}
+ * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/{gateway,runner}，./chat/{store,provider,agent-provider,config,service,window,launcher-window,choreographer}
  * [OUTPUT]: 无导出；主进程引导——装配 store→window→engine→chat→ipc/menu→gateway，并处理生命周期（恢复/落盘/退出）、系统外观跟随与开发态 Dock 图标
  * [POS]: samo-app 主进程的根，唯一知道所有模块如何拼在一起的地方；各模块彼此通过构造注入相识，不互相 import 单例
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -19,9 +19,14 @@ import { installMenu } from './menu';
 import { ContextMenus } from './menus/context-menu';
 import { AgentGateway } from './agent/gateway';
 import { ChatStore, type PersistedChat } from './chat/store';
-import { StubProvider } from './chat/provider';
+import { KeylessProvider, type ChatProvider } from './chat/provider';
+import { AgentProvider } from './chat/agent-provider';
+import { ChatConfigStore } from './chat/config';
 import { ChatService } from './chat/service';
 import { ChatWindow } from './chat/window';
+import { LauncherWindow } from './chat/launcher-window';
+import { ChatChoreographer } from './chat/choreographer';
+import { locateCli, ScriptRunner } from './agent/runner';
 import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
 
@@ -58,7 +63,7 @@ async function bootstrap(): Promise<void> {
   await history.load();
 
   const preloadPath = join(__dirname, '../preload/index.js');
-  const window = new ShellWindow({ preloadPath, shellUrl: rendererUrl('index'), overlayUrl: rendererUrl('overlay'), launcherUrl: rendererUrl('launcher'), isDev });
+  const window = new ShellWindow({ preloadPath, shellUrl: rendererUrl('index'), overlayUrl: rendererUrl('overlay'), isDev });
   const downloads = new DownloadManager(store);
   const engine = new BrowserEngine(store, history, window, {
     newTabUrl: rendererUrl('newtab'),
@@ -71,23 +76,51 @@ async function bootstrap(): Promise<void> {
   const chatStore = new ChatStore();
   const persistedChat = await loadJson<PersistedChat>(join(userData, 'chat.json'));
   if (persistedChat?.version === 1) chatStore.hydrate(persistedChat);
-  const chat = new ChatService(chatStore, new StubProvider());
+  // 回答者：有密钥 → Claude + samo-browser 运行时（真正驱动浏览器）；无密钥 → 引导语
+  const chatConfig = new ChatConfigStore(join(userData, 'config.json'));
+  const runner = new ScriptRunner(locateCli());
+  const makeProvider = (): ChatProvider => {
+    const apiKey = chatConfig.resolveKey();
+    if (!apiKey) return new KeylessProvider();
+    return new AgentProvider({
+      apiKey,
+      model: chatConfig.resolveModel(),
+      runner,
+      context: () => {
+        const identity = store.activeIdentity;
+        const tab = store.activeTab(identity.id);
+        return { identityName: identity.name, activeUrl: tab?.url ?? null, activeTitle: tab?.title ?? null, tabCount: store.tabsInIdentity(identity.id).length };
+      },
+      identityForTask: (task) => store.allIdentities().find((i) => i.taskId === task)?.id ?? null,
+    });
+  };
+  const chat = new ChatService(chatStore, makeProvider());
   const chatWindow = new ChatWindow(window, { preloadPath, chatUrl: rendererUrl('chat'), onClosedByUser: () => chat.setMode('closed') });
+  const launcher = new LauncherWindow(window, { preloadPath, launcherUrl: rendererUrl('launcher') });
   const chatSaver = createSaver<PersistedChat>(join(userData, 'chat.json'));
-  engine.registerAux('launcher', () => (window.launcherView.getVisible() ? window.launcherView.webContents : null));
+  engine.registerAux('launcher', () => (launcher.isVisible() ? launcher.webContents() : null));
   engine.registerAux('chat', () => (chatWindow.isOpen() ? chatWindow.webContents() : null));
+  const choreographer = new ChatChoreographer(window, chatWindow, launcher);
   chatStore.subscribe((snap) => {
     window.send(CHANNELS.chat, snap);
-    window.launcherView.webContents.send(CHANNELS.chat, snap);
+    launcher.send(CHANNELS.chat, snap);
     chatWindow.send(CHANNELS.chat, snap);
-    if (snap.mode === 'floating') chatWindow.open();
-    else chatWindow.close();
-    window.setDock(snap.mode === 'docked' ? snap.dockWidth : 0);
-    window.setLauncherVisible(snap.mode === 'closed');
+    choreographer.apply(snap); // 形态切换 = 窗口几何编舞
     chatSaver.schedule(() => chatStore.toPersisted());
   });
+  window.shellView.webContents.once('did-finish-load', () => launcher.setVisible(chatStore.currentMode === 'closed'));
 
-  registerIpc({ engine, downloads, menus, window, chat });
+  registerIpc({
+    engine,
+    downloads,
+    menus,
+    window,
+    chat,
+    setApiKey: (key) => {
+      chatConfig.write({ anthropicApiKey: key.trim() });
+      chat.setProvider(makeProvider());
+    },
+  });
   installMenu(engine, window, chat);
   window.win.on('focus', () => store.setFocused(true));
   window.win.on('blur', () => store.setFocused(false));

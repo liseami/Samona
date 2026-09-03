@@ -6,7 +6,7 @@
  */
 import { WebContentsView, clipboard, session, type Session, type WebContents } from 'electron';
 import { AGENT_IDENTITY_COLOR, LEGACY_PARTITION, NEW_TAB_URL, tabTitle, type FolderColor, type Identity, type IdentityColor, type IdentityIcon, type Ownership, type Tab } from '@shared/model';
-import type { TabTarget } from '@shared/ipc';
+import type { TabTarget, Thumbnail } from '@shared/ipc';
 import { resolveInput } from '@shared/url';
 import { BrowserStore } from './store';
 import type { HistoryStore } from './history';
@@ -31,9 +31,26 @@ export class BrowserEngine {
   ) {
     store.subscribe((snap) => {
       window.setLayout({ ...snap.layout, sidebarCollapsed: snap.layout.sidebarCollapsed && !snap.sidebarPeek });
-      window.setContentVisible(snap.layout.module === 'browser');
+      window.setContentVisible(snap.layout.module === 'browser' && !snap.layout.overview); // 标签矩阵打开时网页让位
       this.reconcileBackground();
     });
+  }
+
+  /** 标签矩阵的缩略图：只截已加载的视图（后台视图也在绘制），JPEG 480 宽；应在网页视图隐藏之前调用 */
+  async captureThumbnails(identityId: number): Promise<Thumbnail[]> {
+    const out: Thumbnail[] = [];
+    for (const tab of this.store.tabsInIdentity(identityId)) {
+      const view = this.views.get(tab.id);
+      if (!view || view.webContents.isDestroyed()) continue;
+      try {
+        const image = await view.webContents.capturePage();
+        if (image.isEmpty()) continue;
+        out.push({ tabId: tab.id, dataUrl: `data:image/jpeg;base64,${image.resize({ width: 480 }).toJPEG(72).toString('base64')}` });
+      } catch {
+        /* 视图尚未绘制 */
+      }
+    }
+    return out;
   }
 
   // ============ 启动 ============

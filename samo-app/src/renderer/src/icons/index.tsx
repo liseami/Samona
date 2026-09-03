@@ -17,6 +17,12 @@ import {
   Code,
   CopyCopied,
   CopyDefault,
+  CheckTickCircle,
+  MultipleCrossCancelCircle,
+  EyeOn,
+  KeyLeft,
+  PointerCursorDefault,
+  LayoutGridTwoHorizontal,
   DiamondComponent,
   StopSmall,
   SendPlaneHorizontal,
@@ -109,6 +115,12 @@ export const Eraser = d(EraserDefault);
 export const Bug = d(PiBug);
 export const Settings = d(Settings01);
 export const Download = d(DownloadDown);
+export const CheckOk = d(CheckTickCircle); // 工具胶囊：完成
+export const CrossCircle = d(MultipleCrossCancelCircle); // 工具胶囊：失败
+export const Eye = d(EyeOn); // 工具胶囊：Watch，切到 agent 身份
+export const Key = d(KeyLeft); // 接入卡：API 密钥
+export const AgentCursor = d(PointerCursorDefault); // agent 光标层
+export const TabsOverview = decorative(LayoutGridTwoHorizontal); // 面板头部：Safari 式标签矩阵
 export const Copy = d(CopyDefault);
 export const StopIcon = d(StopSmall);
 export const SendIcon = d(SendPlaneHorizontal);

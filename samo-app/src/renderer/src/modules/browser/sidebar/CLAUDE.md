@@ -1,14 +1,13 @@
 # modules/browser/sidebar/
 > L2 | 父级: ../../CLAUDE.md
 
-浏览器模块的 Arc 级侧栏。自上而下（头部、宽度与拖拽调宽属于壳）：地址展示条（点击开命令面板）→ agent 控制条 → 收藏网格（跨身份）→ 固定网格（本身份）→ 文件夹与散装标签（分隔线上悬停 Clear）→ 底部身份栏（身份 pip + 新建 | 下载 + DevTools）；右缘拖拽调宽。
+浏览器模块的 Arc 级侧栏。自上而下（头部、宽度与拖拽调宽属于壳；地址与导航在面板头部）：顶部留白 pt-2 → agent 控制条 → 收藏网格（跨身份）→ 固定网格（本身份）→ 文件夹与散装标签（分隔线上悬停 Clear）→ 底部身份栏（身份 pip + 新建 | 下载 + DevTools）；右缘拖拽调宽。
 
 「身份」（Identity）取代 Arc 的 Space：一个身份 = 一套独立的登录态（session 分区）+ 它名下的标签；图标只用 Pika（禁止 emoji）。唯一的 DndContext 在 BrowserSidebar：每个分区只是登记 sortable/droppable，落点如何变成 `tab.move`/`identity.reorder` 全在 lib/dnd.ts 的 resolveDrop。所有右键菜单都是主进程的原生 Menu（menu.* 命令），需要内联 UI 的动作（重命名/编辑身份）由主进程用 ShellEvent 交回来。输入与建议全在 overlay 的命令面板里，侧栏不再有第二套建议 UI。密度与选中态取自 Laper：行高 32、活动项 = 浮起白卡（bg-card + border + shadow-sm）、悬停 sidebar-accent/66。
 
 ## 成员清单
 BrowserSidebar.tsx: 容器 + DndContext（PointerSensor 8px、键盘传感器、sidebarCollision）+ onDragEnd 仲裁 + DraggingContext（拖拽中显示空态落点）+ 双指横滑 + peek 收回。
 useSpaceSwipe.ts: 双指横滑切身份（轴锁定、阈值 50、每手势一次）。
-Omnibox.tsx: 地址展示条——显示当前标签短地址与 ⌘L/⌘T 键帽，点击打开命令面板。
 AgentBanner.tsx: agent 持有的身份显示动作标签与 Take control / Hand back。
 IconGrid.tsx: 收藏/固定共用的图标网格（rectSortingStrategy，整块是落点，拖拽中显示虚线空态）。
 FavoritesGrid.tsx / PinnedGrid.tsx: 给 IconGrid 不同容器 id 与标签集合。

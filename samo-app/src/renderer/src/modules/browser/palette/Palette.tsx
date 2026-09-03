@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Command, PaletteMode, Query } from '@shared/ipc';
+import type { Command, PaletteMode } from '@shared/ipc';
 import type { Suggestion } from '@shared/model';
 import { displayUrl } from '@shared/url';
 import { ArrowRight, Clock, Close, Globe, Search, Window } from '../../../icons';
@@ -14,7 +14,7 @@ import { cn } from '../../../lib/utils';
 
 const DEBOUNCE_MS = 100;
 const send = (c: Command) => void window.samo.invoke(c);
-const query = (q: Query) => window.samo.query(q);
+import { query } from '../../../store/browser';
 
 export function Palette() {
   const [open, setOpen] = useState(false);

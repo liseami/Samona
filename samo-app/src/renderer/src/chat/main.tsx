@@ -13,6 +13,12 @@ import '../styles.css';
 const syncDark = (dark: boolean) => document.documentElement.classList.toggle('dark', dark);
 void window.samo.getState().then((s) => syncDark(s.dark));
 window.samo.onState((s) => syncDark(s.dark));
+// 编舞相位：浮窗内容随窗口几何动画着陆/离场（CSS 见 styles.css 的 [data-phase]）
+window.samo.onEvent((e) => {
+  if (e.type !== 'chatPhase') return;
+  if (e.phase === 'panelIn') document.documentElement.dataset.phase = 'in';
+  else if (e.phase === 'panelOut') document.documentElement.dataset.phase = 'out';
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

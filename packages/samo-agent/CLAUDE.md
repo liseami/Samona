@@ -20,4 +20,6 @@ src/cli.ts: 可执行入口。定位 ego-browser-v2 的 dist/src/run.js，skill 
 scripts/sync-workspace.mjs: 从 npm 包复制 learnings/references/SKILL.md 到 workspace/，并重写 agent_helpers.js 为对 npm 包的裸导入（上游相对路径在 npm 布局下断裂）。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
+package.json 的 exports 除 `./protocol`（网关线形类型）外还暴露 `./cli`（dist/cli.js）：samo-app 主进程的 ScriptRunner 用 require.resolve('samo-agent/cli') 定位它，应用内的 Samo AI 与终端里的外部 agent 跑的是同一个入口。
+
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

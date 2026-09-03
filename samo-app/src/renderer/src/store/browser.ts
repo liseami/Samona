@@ -36,7 +36,10 @@ export const useBrowser = create<BrowserState>((set) => ({
 export function send(command: Command): void {
   void window.samo.invoke(command);
 }
-export function query<Q extends Query>(q: Q): Promise<QueryResult<Q>> {
+// 重载而非泛型：对象字面量里带条件表达式时 TS 会把 Q 推成整个联合，返回类型就散了
+export function query(q: Extract<Query, { type: 'suggest' }>): Promise<QueryResult<Extract<Query, { type: 'suggest' }>>>;
+export function query(q: Extract<Query, { type: 'thumbnails' }>): Promise<QueryResult<Extract<Query, { type: 'thumbnails' }>>>;
+export function query(q: Query): Promise<unknown> {
   return window.samo.query(q);
 }
 

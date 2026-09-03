@@ -361,6 +361,7 @@ export class BrowserStore {
       this.layout.sidebarCollapsed = patch.sidebarCollapsed;
       this.sidebarPeek = false;
     }
+    if (patch.overview !== undefined) this.layout.overview = patch.overview;
     this.emit();
   }
   setPeek(peek: boolean): void {
@@ -461,7 +462,7 @@ export class BrowserStore {
       this.activeTabIdByIdentity[id] = wanted && this.tabs.has(wanted) ? wanted : (this.tabsInIdentity(id)[0]?.id ?? null);
     }
     this._activeSpaceId = this.identities.has(state.activeIdentityId) ? state.activeIdentityId : (this.identityOrder[0] ?? 0);
-    this.layout = { ...DEFAULT_LAYOUT, ...state.layout };
+    this.layout = { ...DEFAULT_LAYOUT, ...state.layout, overview: false }; // 标签矩阵是瞬时态，不跨启动
     this.nextIdentityId = Math.max(state.nextIdentityId, ...[...this.identities.keys()].map((k) => k + 1), 1);
     this.emit();
   }

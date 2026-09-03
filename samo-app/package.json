@@ -13,6 +13,8 @@
     "package": "electron-vite build && electron-builder --mac --dir"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "ogl": "^1.0.11",
     "ws": "^8.18.3"
   },
   "devDependencies": {

@@ -1,49 +1,69 @@
 /**
- * [INPUT]: 依赖 react，../chat/store 的 useChat/bindChat/chatSend，../icons 的 ArrowLeftUpIcon，../lib/utils 的 cn
- * [OUTPUT]: 对外提供 Launcher 组件：Laper FAB 药丸（130×44、rounded-3xl、强调色受光底、ArrowLeftUp 18 + "Samo AI" text-sm font-semibold、primary 40% 的 20px 投影、AI 忙时换双弧 spinner、未读角标）；点击打开浮窗
- * [POS]: renderer/launcher 的唯一界面；主进程只在 closed 形态显示这个视图（Laper：展开后 FAB 即面板本身）
+ * [INPUT]: 依赖 react，../chat/store 的 useChat/bindChat/chatSend，../icons 的 ArrowLeftUpIcon，../components/effects/PrismaticBurst，../lib/utils 的 cn
+ * [OUTPUT]: 对外提供 Launcher 组件：Laper FAB 药丸的 Samo 版（130×44、rounded-3xl）——底层 primary→agent 渐变 + PrismaticBurst WebGL 炫彩层（blur 6px，performance high）+ Kumo 白色受光层（上亮下透 + 顶部 1px 高光）+ 悬停光晕脉冲；编舞相位 launcherIn/launcherOut 播放入场/退场；ArrowLeftUp 18 + "Samo AI"；AI 忙时换双弧 spinner；未读角标；点击打开浮窗
+ * [POS]: renderer/launcher 的唯一界面；承载它的是主进程的 LauncherWindow 子窗口（透明、不可聚焦），只在 closed 形态显示
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeftUpIcon } from '../icons';
 import { cn } from '../lib/utils';
+import { PrismaticBurst } from '../components/effects/PrismaticBurst';
 import { bindChat, chatSend, useChat } from '../chat/store';
+
+/** Laper PRISMATIC_CONFIG 的参数，配色换成 Samo 的 agent 色系（靛蓝 / 紫 / 青） */
+const PRISMATIC_COLORS = ['#4f46e5', '#7c3aed', '#06b6d4', '#8b5cf6', '#2563eb', '#a855f7'];
+const ISOLATED_LAYER = { transform: 'translateZ(0)', backfaceVisibility: 'hidden', contain: 'strict', filter: 'blur(6px)' } as const;
 
 export function Launcher() {
   useEffect(() => bindChat(), []);
   const snap = useChat((s) => s.snapshot);
   const busy = !!snap?.generating;
-  const [spec, setSpec] = useState({ x: 50, y: 50 });
-  const onMove = (e: MouseEvent<HTMLButtonElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    setSpec({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
-  };
+  const [hovered, setHovered] = useState(false);
+  const [phase, setPhase] = useState<'in' | 'out' | null>(null);
+  useEffect(
+    () =>
+      window.samo.onEvent((e) => {
+        if (e.type === 'chatPhase' && (e.phase === 'launcherIn' || e.phase === 'launcherOut')) setPhase(e.phase === 'launcherIn' ? 'in' : 'out');
+      }),
+    [],
+  );
   return (
     <div className="flex h-full w-full items-end justify-end bg-transparent p-6">
       <button
         type="button"
         aria-label="Open Samo AI (⌘I)"
-        onMouseMove={onMove}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         onClick={() => chatSend({ type: 'chat.setMode', mode: 'floating' })}
-        className="group relative isolate flex h-11 w-[130px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-3xl border-0 text-white"
-        style={{
-          boxShadow: '0 4px 20px color-mix(in srgb, var(--primary) 40%, transparent)',
-          background: 'linear-gradient(135deg, color-mix(in oklch, var(--primary), black 8%) 0%, var(--primary) 50%, color-mix(in oklch, var(--primary), white 18%) 100%)',
-        }}
+        className={cn(
+          'group relative isolate flex h-11 w-[130px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-3xl border-0 text-white transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]',
+          phase === 'in' && 'launcher-in',
+          phase === 'out' && 'launcher-out',
+        )}
+        style={{ boxShadow: '0 4px 20px color-mix(in srgb, var(--agent) 40%, transparent)' }}
       >
-        {/* 受光：跟手的高光 + 顶部 1px 内高光（Laper 的 PrismaticEffect 是 WebGL 多色，这里用同一层次的 CSS 近似） */}
+        {/* 底层渐变：primary → agent 色（Laper：主题色三段渐变） */}
+        <span aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, color-mix(in oklch, var(--primary), var(--agent) 35%) 55%, color-mix(in oklch, var(--agent), black 25%) 100%)' }} />
+        {/* PrismaticBurst 炫彩层（Laper：blur 6px，独立合成层，performance high） */}
+        {!busy && (
+          <span aria-hidden="true" className="absolute inset-0 overflow-hidden" style={ISOLATED_LAYER}>
+            <PrismaticBurst intensity={15} speed={0.4} animationType="rotate3d" distort={30} rayCount={18} mixBlendMode="normal" performanceMode="high" colors={PRISMATIC_COLORS} />
+          </span>
+        )}
+        {/* Kumo 同款受光层（白色透明度版）：上亮下透 + 顶部 1px 高光，压在 WebGL 之上、内容之下 */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-1 rounded-[inherit] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-          style={{ background: `radial-gradient(120px 60px at ${spec.x}% ${spec.y}%, rgba(255,255,255,0.28), transparent 70%)` }}
+          className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-200"
+          style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0))', boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.34)', opacity: hovered ? 1 : 0.85 }}
         />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-1 rounded-[inherit] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.35)]" />
+        {/* 悬停光晕脉冲（Laper：opacity 0→0.2→0，scale 1→1.3→1.6，1.2s 循环） */}
+        <span aria-hidden="true" className={cn('launcher-pulse pointer-events-none absolute inset-0 opacity-0', hovered && 'is-on')} style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--agent) 55%, transparent), transparent 70%)' }} />
         <span className="relative z-2 flex items-center justify-center gap-2">
           {busy ? <Spinner /> : <ArrowLeftUpIcon size={18} color="#ffffff" />}
           <span className="text-sm font-semibold text-white">Samo AI</span>
         </span>
         {!!snap?.unread && (
-          <span className={cn('absolute top-1.5 right-2 z-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-semibold text-primary')}>{snap.unread}</span>
+          <span className="absolute top-1.5 right-2 z-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-semibold text-primary">{snap.unread}</span>
         )}
       </button>
     </div>

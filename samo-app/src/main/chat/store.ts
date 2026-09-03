@@ -1,10 +1,10 @@
 /**
  * [INPUT]: 依赖 @shared/chat 的 ChatMessage/ChatThread/ChatMode/ChatSnapshot/CHAT_DEFAULTS
- * [OUTPUT]: 对外提供 ChatStore 类：线程/消息/流式追加/形态/未读/停靠宽度的内存真相 + 订阅 + 落盘形态
+ * [OUTPUT]: 对外提供 ChatStore 类：线程/消息（文字与工具胶囊）/流式追加/形态/未读/停靠宽度/回答者能力（needsKey、model）的内存真相 + 订阅 + 落盘形态
  * [POS]: chat 模块的状态心脏，零 Electron 依赖；ChatService 是唯一写者，窗口与 IPC 只读快照。与 BrowserStore 平行而独立：对话的节奏（流式）与标签的节奏不同，不混一条通道
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { CHAT_DEFAULTS, type ChatMessage, type ChatMode, type ChatSnapshot, type ChatThread } from '@shared/chat';
+import { CHAT_DEFAULTS, type ChatMessage, type ChatMode, type ChatSnapshot, type ChatThread, type ChatToolCall } from '@shared/chat';
 
 export interface PersistedChat {
   version: 1;
@@ -26,6 +26,8 @@ export class ChatStore {
   private unread = 0;
   private dockWidth: number = CHAT_DEFAULTS.dockWidth;
   private provider = 'stub';
+  private needsKey = false;
+  private model = '';
   private listeners = new Set<Listener>();
   private scheduled = false;
 
@@ -59,6 +61,8 @@ export class ChatStore {
       unread: this.unread,
       dockWidth: this.dockWidth,
       provider: this.provider,
+      needsKey: this.needsKey,
+      model: this.model,
     };
   }
 
@@ -90,8 +94,10 @@ export class ChatStore {
     this.dockWidth = Math.min(CHAT_DEFAULTS.dockMaxWidth, Math.max(CHAT_DEFAULTS.dockMinWidth, Math.round(width)));
     this.emit();
   }
-  setProvider(name: string): void {
+  setProvider(name: string, capability: { needsKey: boolean; model: string }): void {
     this.provider = name;
+    this.needsKey = capability.needsKey;
+    this.model = capability.model;
     this.emit();
   }
 
@@ -149,7 +155,34 @@ export class ChatStore {
     const m = this.messages.get(messageId);
     if (!m) return;
     m.status = status;
-    if (m.role === 'assistant' && this.mode === 'closed') this.unread += 1;
+    if (m.role === 'assistant' && m.kind !== 'tool' && this.mode === 'closed') this.unread += 1;
+    this.emit();
+  }
+  /** 删除一条消息（用于工具开始前尚未落字的空助手消息） */
+  remove(messageId: string): void {
+    if (!this.messages.delete(messageId)) return;
+    this.order = this.order.filter((id) => id !== messageId);
+    this.emit();
+  }
+  /** 工具胶囊：agent 的一次浏览器动作，status 随脚本运行 → 完成/失败 */
+  appendTool(threadId: string, call: ChatToolCall): ChatMessage {
+    const message: ChatMessage = { id: crypto.randomUUID(), threadId, role: 'assistant', content: '', status: 'streaming', createdAt: Date.now(), kind: 'tool', tool: call };
+    this.messages.set(message.id, message);
+    this.order.push(message.id);
+    const thread = this.threads.get(threadId);
+    if (thread) thread.updatedAt = message.createdAt;
+    this.emit();
+    return message;
+  }
+  updateTool(messageId: string, patch: Partial<ChatToolCall>): void {
+    const m = this.messages.get(messageId);
+    if (!m?.tool) return;
+    m.tool = { ...m.tool, ...patch };
+    this.emit();
+  }
+  /** 线程里所有流式中的消息一律标记为 stopped（用户中止或异常退出） */
+  stopStreaming(threadId: string): void {
+    for (const m of this.messagesOf(threadId)) if (m.status === 'streaming') m.status = 'stopped';
     this.emit();
   }
 

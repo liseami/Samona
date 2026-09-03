@@ -7,8 +7,7 @@
 import type { WebContents } from 'electron';
 import type { BrowserEngine } from '../browser/engine';
 
-const SHELL_TARGET = 'shell';
-const OVERLAY_TARGET = 'overlay';
+const VIEW_TARGET_PREFIX = 'view:';
 
 interface CdpRequest {
   id: number;
@@ -27,6 +26,8 @@ interface Attachment {
 export interface CdpBridgeHost {
   /** 当前会话可见的标签（已按 Identity 过滤） */
   visibleTabs(): { targetId: string; url: string; title: string; active: boolean }[];
+  /** 开发态：按名字取调试视图（shell / overlay / launcher / chat） */
+  debugWebContents?(name: string): WebContents | null;
   createTab(url: string): string;
   emit(message: string): void; // 推给 agent 的事件/响应
 }
@@ -113,7 +114,7 @@ export class CdpBridge {
     if (!this.host.visibleTabs().some((t) => t.targetId === targetId)) {
       throw new Error(`No target with given id found: ${targetId}`);
     }
-    const wc = targetId === SHELL_TARGET ? this.engine.shellWebContents() : targetId === OVERLAY_TARGET ? this.engine.overlayWebContents() : this.engine.ensureLoaded(targetId).webContents;
+    const wc = targetId.startsWith(VIEW_TARGET_PREFIX) ? this.host.debugWebContents?.(targetId.slice(VIEW_TARGET_PREFIX.length)) ?? this.engine.shellWebContents() : this.engine.ensureLoaded(targetId).webContents;
     if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
     const sessionId = crypto.randomUUID().replace(/-/g, '').toUpperCase();
     const attachment: Attachment = {

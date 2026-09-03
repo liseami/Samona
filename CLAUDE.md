@@ -22,7 +22,7 @@ Samo 解决的问题：编程小白用 vibe coding 造的工作台散落在 loca
 </product>
 
 <agent>
-Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时。agent 在自己的身份（继承用户登录态，sidebar 底部带角标）里工作，用户随时 Take control / Hand back。
+Samo 启动后在 ~/Library/Application Support/Samo/agent-gateway.json 写下网关地址与 token；`samo-browser <<'JS' … JS` 读它、连上、把 heredoc 交给 ego-browser 运行时（Playwright 风格的 page/locator/browser/taskSpaces 门面）。应用内的 Samo AI（Claude）走的是同一个 CLI：模型写脚本 → 子进程执行 → 网关驱动标签。agent 在自己的身份（继承用户登录态，sidebar 底部带角标）里工作，用户随时 Take control / Hand back。
 </agent>
 
 法则: 极简·稳定·导航·版本精确

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 ../browser/engine 的 BrowserEngine，./cdp-bridge 的 CdpBridge，./snapshot 的 buildSnapshot，./task-spaces 的翻译与错误工厂，@shared/model 的 NEW_TAB_URL/AGENT_IDENTITY_COLOR
- * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task identity 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell（开发态驱动壳），按连接持有「当前选中的 task identity」；SHELL_TARGET 常量
+ * [OUTPUT]: 对外提供 AgentSession 类：ego 宿主接口（listTabs/createTab/snapshot/task identity 全家桶/getBrowserVersion/…）的服务端实现 + Samo 扩展 captureWindow/useShell（开发态驱动壳），按连接持有「当前选中的 task identity」；VIEW_TARGET_PREFIX 常量
  * [POS]: agent 模块的业务层，是 ego-browser 眼里的「浏览器」；所有可见性都以 selectedSpaceId 为界（phi 缺的服务端过滤在这里补上）。gateway 负责传输，它负责语义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,12 +17,11 @@ type RpcParams = unknown[];
 export type RpcHandler = (...args: RpcParams) => Promise<unknown> | unknown;
 
 /** 开发态：SAMO_DEBUG_SHELL=1 时 agent 可把壳本身当作 target 来驱动（用于自动化测试侧栏） */
-export const SHELL_TARGET = 'shell';
-export const OVERLAY_TARGET = 'overlay';
+export const VIEW_TARGET_PREFIX = 'view:';
 
 export class AgentSession {
   private selectedSpaceId: number | null = null;
-  private shellMode: 'shell' | 'overlay' | null = null;
+  private shellMode: string | null = null; // 'shell' | 'overlay' | 辅助视图名（launcher / chat）
   readonly bridge: CdpBridge;
   readonly methods: Record<string, RpcHandler>;
 
@@ -35,6 +34,7 @@ export class AgentSession {
       visibleTabs: () => this.visibleTabs(),
       createTab: (url) => this.createTabIn(url),
       emit: (message) => this.emit(message),
+      debugWebContents: (name) => this.debugWebContents(name),
     });
 
     // ============ ego 宿主接口：方法名与 ego-browser 调用点逐字对应 ============
@@ -68,7 +68,11 @@ export class AgentSession {
       captureWindow: (dir) => this.captureWindow(dir ? String(dir) : undefined),
       useShell: (which) => {
         if (!process.env.SAMO_DEBUG_SHELL) return egoError(EGO_CODE.operationFailed, 'useShell requires SAMO_DEBUG_SHELL=1');
-        this.shellMode = which === 'overlay' ? 'overlay' : 'shell';
+        const name = which ? String(which) : 'shell';
+        if (name !== 'shell' && name !== 'overlay' && !this.engine.auxWebContents().some(([n]) => n === name)) {
+          return egoError(EGO_CODE.operationFailed, `useShell: unknown view ${name}`);
+        }
+        this.shellMode = name;
         this.bridge.dispose(); // 切换目标时丢掉旧附着
         return {};
       },
@@ -88,11 +92,19 @@ export class AgentSession {
     }
   }
 
+  /** 开发态调试视图：shell / overlay / 登记的辅助视图 */
+  debugWebContents(name: string) {
+    if (name === 'shell') return this.engine.shellWebContents();
+    if (name === 'overlay') return this.engine.overlayWebContents();
+    return this.engine.auxWebContents().find(([n]) => n === name)?.[1] ?? null;
+  }
+
   // ============ 可见性：只看选中的 Identity ============
   private visibleTabs() {
     if (this.shellMode) {
-      const wc = this.shellMode === 'overlay' ? this.engine.overlayWebContents() : this.engine.shellWebContents();
-      return [{ targetId: this.shellMode === 'overlay' ? OVERLAY_TARGET : SHELL_TARGET, url: wc.getURL(), title: this.shellMode === 'overlay' ? 'Samo Palette' : 'Samo Shell', active: true }];
+      const wc = this.debugWebContents(this.shellMode);
+      if (!wc) return [];
+      return [{ targetId: `view:${this.shellMode}`, url: wc.getURL(), title: `Samo ${this.shellMode}`, active: true }];
     }
     if (this.selectedSpaceId === null) return [];
     const activeId = this.engine.store.activeTabId(this.selectedSpaceId);
@@ -181,7 +193,7 @@ export class AgentSession {
     if (guard) throw new EgoRejection(guard.error_code, guard.error);
     const tab = this.shellMode ? null : this.engine.store.activeTab(this.selectedSpaceId!);
     if (!this.shellMode && !tab) throw new EgoRejection(EGO_CODE.webContentsUnavailable, 'No tab in the selected task identity.');
-    const wc = this.shellMode === 'overlay' ? this.engine.overlayWebContents() : this.shellMode ? this.engine.shellWebContents() : this.engine.ensureLoaded(tab!.id).webContents;
+    const wc = this.shellMode ? this.debugWebContents(this.shellMode)! : this.engine.ensureLoaded(tab!.id).webContents;
     if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
     try {
       return await buildSnapshot(wc, options);

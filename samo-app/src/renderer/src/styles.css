@@ -59,6 +59,7 @@
   --identity: #3a6ff8; /* 运行时由 App 写入活动 Identity 的强调色，仅用于小面积点缀 */
   --info: #3b82f6;
   --warning: #f59e0b;
+  --agent: #6d5cf5; /* AI 的唯一彩色信号：agent 光标、边缘发光、Samo AI 药丸 */
   /* 扫光三参数（Laper 2026-07-27 归一）：峰值 / 起边 / 止边 / 时长，全站流光只有这一档 */
   --shimmer-tint: #ffffff;
   --shimmer-peak: 9%;
@@ -155,6 +156,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-identity: var(--identity);
   --color-info: var(--info);
+  --color-agent: var(--agent);
   --color-warning: var(--warning);
 
   --font-sans: var(--font-sans);
@@ -526,4 +528,138 @@
 
 ::selection {
   background-color: color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+/* ---- 标签矩阵卡片入场：交错的上浮 + 放大（Safari 的 Show All Tabs） ---- */
+@keyframes overview-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.overview-in {
+  animation: overview-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ---- 暗色下 agent 色略提亮 ---- */
+.dark {
+  --agent: #8b7cff;
+}
+
+/* ---- Samo AI 药丸悬停光晕脉冲（Laper PrismaticEffect 的 framer 动画：opacity 0→0.2→0，scale 1→1.3→1.6） ---- */
+@keyframes launcher-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.launcher-pulse.is-on {
+  animation: launcher-pulse 1.2s ease-out infinite;
+}
+
+/* ---- agent 工作中的边缘发光：侧栏标签行、身份角标与面板卡共用一条呼吸 ---- */
+@keyframes agent-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1.5px color-mix(in srgb, var(--agent) 55%, transparent),
+      0 0 12px color-mix(in srgb, var(--agent) 28%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px color-mix(in srgb, var(--agent) 90%, transparent),
+      0 0 26px color-mix(in srgb, var(--agent) 48%, transparent);
+  }
+}
+.agent-glow {
+  animation: agent-breathe 2.2s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--agent) 60%, var(--border)) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 全局动画令牌（CSS 侧镜像）· 真相源 src/shared/motion.ts（DUR / EASE）
+ * 普通 @theme（非 inline）：既产出 ease-settle 等 utility，也向 :root 发射 var(--ease-*)
+ * 禁回弹铁律：全部曲线 y ≤ 1，终点零过冲，结尾慢而有阻尼
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@theme {
+  --duration-xfast: 120ms;
+  --duration-fast: 150ms;
+  --duration-quick: 200ms;
+  --duration-base: 240ms;
+  --duration-gentle: 320ms;
+  --duration-slow: 420ms;
+  --ease-settle: cubic-bezier(0.22, 0.8, 0.36, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-entrance: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-exit-hard: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* ---- Samo AI 编舞：药丸淡出/淡入（与浮窗几何动画同步）、浮窗内容着陆、停靠卡滑入 ---- */
+@keyframes launcher-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes launcher-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+.launcher-in {
+  animation: launcher-in var(--duration-quick) var(--ease-settle) both;
+}
+.launcher-out {
+  animation: launcher-out var(--duration-fast) var(--ease-exit-hard) both;
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+:root[data-phase='in'] .agent-chat-root > * {
+  animation: panel-in var(--duration-gentle) var(--ease-settle) both;
+}
+:root[data-phase='out'] .agent-chat-root > * {
+  animation: panel-in var(--duration-fast) var(--ease-exit-hard) reverse both;
+}
+@keyframes dock-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dock-in {
+  animation: dock-in var(--duration-base) var(--ease-settle) both;
 }

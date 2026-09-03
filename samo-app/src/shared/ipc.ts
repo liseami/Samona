@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 ./model 的 BrowserSnapshot/IdentityColor/IdentityIcon/ModuleId/FolderColor/Suggestion 类型，./chat 的 ChatMode/ChatSnapshot
- * [OUTPUT]: 对外提供 IPC 通道名常量 CHANNELS（含对话专用通道）、渲染→主进程的 Command 联合类型与 Query 联合类型（带返回映射 QueryResult）、主进程→渲染的 ShellEvent 联合类型、PaletteMode、TabTarget 落点、SamoBridge 接口
+ * [OUTPUT]: 对外提供 IPC 通道名常量 CHANNELS（含对话专用通道）、渲染→主进程的 Command 联合类型与 Query 联合类型（suggest / thumbnails，带返回映射 QueryResult）与 Thumbnail、主进程→渲染的 ShellEvent 联合类型、PaletteMode、TabTarget 落点、SamoBridge 接口
  * [POS]: shared 的进程间契约；preload 按 SamoBridge 暴露 window.samo，主进程 ipc/handlers 按 Command/Query 分发。新增能力 = 新增一个联合成员 + 一个 case，不改旧路径
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -81,6 +81,7 @@ export type Command =
   | { type: 'chat.switchThread'; threadId: string }
   | { type: 'chat.deleteThread'; threadId: string }
   | { type: 'chat.setDockWidth'; width: number }
+  | { type: 'chat.setApiKey'; key: string } // 保存 Anthropic 密钥（主进程落盘 0600），空串即清除
   // ---- 壳：模块与窗口（自绘红绿灯） ----
   | { type: 'module.activate'; module: ModuleId }
   | { type: 'window.close' }
@@ -89,12 +90,17 @@ export type Command =
   // ---- 布局与壳 ----
   | { type: 'layout.sidebar'; width?: number; collapsed?: boolean }
   | { type: 'layout.peek'; peek: boolean }
+  | { type: 'layout.overview'; open: boolean } // Safari 式标签矩阵
   | { type: 'shell.openDevTools'; tabId?: string }
   | { type: 'shell.copyUrl'; tabId?: string };
 
 // ============ 有返回值的查询 ============
-export type Query = { type: 'suggest'; input: string; limit?: number; tabsOnly?: boolean };
-export type QueryResult<Q extends Query> = Q extends { type: 'suggest' } ? Suggestion[] : never;
+export type Query = { type: 'suggest'; input: string; limit?: number; tabsOnly?: boolean } | { type: 'thumbnails'; identityId: number };
+export interface Thumbnail {
+  tabId: string;
+  dataUrl: string; // JPEG data URL，480 宽
+}
+export type QueryResult<Q extends Query> = Q extends { type: 'suggest' } ? Suggestion[] : Q extends { type: 'thumbnails' } ? Thumbnail[] : never;
 
 export type PaletteMode = 'newTab' | 'editUrl' | 'searchTabs';
 
@@ -103,6 +109,7 @@ export type ShellEvent =
   | { type: 'renameTab'; tabId: string }
   | { type: 'renameFolder'; folderId: string }
   | { type: 'editIdentity'; identityId: number }
+  | { type: 'chatPhase'; phase: 'launcherIn' | 'launcherOut' | 'panelIn' | 'panelOut' } // AI 对话编舞：发给 launcher 页与浮窗页
   | { type: 'toast'; text: string };
 
 // ============ preload 暴露给渲染层的桥 ============

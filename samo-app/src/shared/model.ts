@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
+ * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
  * [POS]: shared 的领域模型根，主进程是唯一写者，渲染进程与 agent 网关只读；三方共享同一份真相定义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -130,9 +130,11 @@ export interface Layout {
   module: ModuleId; // 当前展示的模块：非 browser 时网页视图隐藏，面板由模块自己渲染
   sidebarWidth: number;
   sidebarCollapsed: boolean;
+  overview: boolean; // Safari 式标签矩阵：打开时网页视图隐藏，面板陈列当前身份的所有标签
 }
 
-export const DEFAULT_LAYOUT: Layout = { module: 'browser', sidebarWidth: 264, sidebarCollapsed: false };
+export const DEFAULT_LAYOUT: Layout = { module: 'browser', sidebarWidth: 264, sidebarCollapsed: false, overview: false };
+export const HEADER_HEIGHT = 40; // 侧栏卡头部行与面板卡头部行同高（Laper PanelHeader 的 h-12 压到 h-10），主进程据此下推网页视图
 export const RAIL_WIDTH = 40; // 左缘 icon 导航栏（Laper ProjectNavRail 的 40px 占位列）
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 420;
