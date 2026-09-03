@@ -128,7 +128,8 @@ export const MODULES = [
   { id: 'workspace', label: 'Workspace', ready: true, dev: false }, // 本机目录 = 工作区：Codex 式对话，未来 agent 在里面工作
   { id: 'mail', label: 'Mail', ready: false, dev: false },
   { id: 'knowledge', label: 'Knowledge', ready: false, dev: false },
-  { id: 'drive', label: 'Drive', ready: false, dev: false },
+  { id: 'memory', label: 'Memory', ready: false, dev: false }, // Samo 记住的关于你的一切
+  { id: 'assets', label: 'Assets', ready: true, dev: false }, // 资产：下载的、AI 生成的，按 tab 区分
   { id: 'design', label: 'Design', ready: true, dev: true }, // 仅开发环境可见：设计系统组件陈列
 ] as const;
 export type ModuleId = (typeof MODULES)[number]['id'];

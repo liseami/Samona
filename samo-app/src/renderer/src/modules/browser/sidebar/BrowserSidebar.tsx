@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 react，@dnd-kit/core（DndContext/DragOverlay/sensors），../../store/browser，../../lib/dnd 的解析与碰撞检测，./{AgentBanner,FavoritesGrid,PinnedGrid,TabList,AgentGroups,SidebarFooter,DragGhost}
- * [OUTPUT]: 对外提供 BrowserSidebar 组件（浏览器模块的侧栏）：Arc 式纵向侧栏的骨架（agent 横幅 → 收藏 → 固定 → 文件夹与标签 → agent 分组 → 底栏；宽度、头部与拖拽调宽由壳负责）+ 唯一的 DndContext（所有拖拽落点在 onDragEnd 统一换算为 tab.move）+ 折叠态 peek 的收回
+ * [INPUT]: 依赖 react，@dnd-kit/core（DndContext/DragOverlay/sensors），../../store/browser，../../lib/dnd 的解析与碰撞检测，./{AgentBanner,FavoritesGrid,PinnedGrid,TabList,AgentGroups,DragGhost}
+ * [OUTPUT]: 对外提供 BrowserSidebar 组件（浏览器模块的侧栏）：Arc 式纵向侧栏的骨架（agent 横幅 → 收藏 → 固定 → 文件夹与标签 → agent 分组；宽度、头部与拖拽调宽由壳负责）+ 唯一的 DndContext（所有拖拽落点在 onDragEnd 统一换算为 tab.move）+ 折叠态 peek 的收回
  * [POS]: modules/browser/sidebar 的容器，只负责纵向编排与拖拽仲裁；每个分段自管数据。没有「身份」：所有标签同一登录态，agent 的任务空间是分组
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,7 +14,6 @@ import { AgentGroups } from './AgentGroups';
 import { FavoritesGrid } from './FavoritesGrid';
 import { PinnedGrid } from './PinnedGrid';
 import { TabList } from './TabList';
-import { SidebarFooter } from './SidebarFooter';
 import { DragGhost } from './DragGhost';
 
 /** 正在拖拽的元素 id（dnd id），分区用它决定是否显示空态落点 */
@@ -57,7 +56,6 @@ export function BrowserSidebar() {
           <PinnedGrid />
           <TabList />
           <AgentGroups />
-          <SidebarFooter />
           <DragOverlay dropAnimation={null}>{ghost}</DragOverlay>
         </DndContext>
       </DraggingContext.Provider>

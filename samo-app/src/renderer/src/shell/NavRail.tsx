@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip，../assets/logo.png
- * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；顶部 logo 行（HEADER_HEIGHT）与侧栏卡头部对齐
+ * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；底部是账户入口 UserButton（未登录显示 Log in）；顶部 logo 行（HEADER_HEIGHT）与侧栏卡头部对齐
  * [POS]: shell 的第一层：切换「维度」（浏览器 / 邮件 / 知识库 / 网盘）；模块的侧栏与面板由 modules/registry 决定
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import { send, useBrowser } from '../store/browser';
 import { Tip } from '../components/ui/tooltip';
 import { sidebarButtonClass } from '../components/ui/sidebar-button';
+import { UserButton } from './UserButton';
 import logo from '../assets/logo.png';
 
 export function NavRail() {
@@ -68,6 +69,10 @@ export function NavRail() {
             );
           })}
         </nav>
+        {/* ---- 底部：账户入口（Laper CollapsedUserButton / UserButton） ---- */}
+        <div className={cn('shrink-0 pb-2 pl-2 pt-1', expanded ? 'pr-2' : 'pr-0')}>
+          <UserButton expanded={expanded} />
+        </div>
       </div>
     </div>
   );

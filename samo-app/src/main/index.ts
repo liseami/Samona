@@ -89,6 +89,7 @@ async function bootstrap(): Promise<void> {
   if (persistedChat?.version === 1) chatStore.hydrate(persistedChat);
   // 回答者：有密钥 → Claude + samo-browser 运行时（真正驱动浏览器）；无密钥 → 引导语
   const chatConfig = new ChatConfigStore(join(userData, 'config.json'));
+  nativeTheme.themeSource = chatConfig.read().theme ?? 'system'; // 外观：用户在用户菜单里选的
   const runner = new ScriptRunner(locateCli());
   const makeProvider = (): ChatProvider => {
     const apiKey = chatConfig.resolveKey();
@@ -134,6 +135,10 @@ async function bootstrap(): Promise<void> {
     setApiKey: (key) => {
       chatConfig.write({ anthropicApiKey: key.trim() });
       chat.setProvider(makeProvider());
+    },
+    setTheme: (mode) => {
+      nativeTheme.themeSource = mode;
+      chatConfig.write({ theme: mode });
     },
   });
   installMenu(engine, window, chat);

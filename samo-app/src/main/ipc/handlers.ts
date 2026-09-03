@@ -25,9 +25,10 @@ export interface IpcDeps {
   apps: AppsService; // 应用维度
   workspaces: WorkspaceService; // 工作区维度
   setApiKey: (key: string) => void; // 保存密钥并热切换回答者
+  setTheme: (mode: 'system' | 'light' | 'dark') => void; // 外观
 }
 
-export function registerIpc({ engine, downloads, menus, window, chat, apps, workspaces, setApiKey }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat, apps, workspaces, setApiKey, setTheme }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
   ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
@@ -230,6 +231,9 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, work
         break;
       case 'layout.peek':
         store.setPeek(command.peek);
+        break;
+      case 'shell.setTheme':
+        setTheme(command.mode);
         break;
       case 'shell.openDevTools':
         engine.openDevTools(command.tabId);

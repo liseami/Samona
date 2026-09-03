@@ -16,6 +16,8 @@ src/assets/logo.png: rail 顶部的应用标（build/icon.png 的 128px 版）�
 src/vite-env.d.ts: vite/client 类型引用（静态资源 import）。
 src/store/browser.ts: zustand 镜像——snapshot 与壳内一次性请求（rename/identityEditor）；send()/query()；bindBridge()；选择器与 memo 化的 useIdentityTabs/useFavorites/useIdentityFolders。
 src/lib/utils.ts: cn()。
+src/lib/avatar.ts: avatarGradient（djb2 取色的三点径向渐变，中性偏冷色板）与 avatarText（中文首两字 / 英文首字母）。
+src/store/session.ts: useSession——当前用户（null = 未登录）、signIn（暂为本地 mock，localStorage 记住）、signOut。
 src/lib/dnd.ts: 拖拽语义——id 编解码、sectionOf、resolveDrop、sidebarCollision。
 src/icons/: Pika 图标库与语义命名层（见其 CLAUDE.md）。
 src/components/ui/: shadcn 形态原子（见其 CLAUDE.md）。

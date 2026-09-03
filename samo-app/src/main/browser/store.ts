@@ -8,6 +8,7 @@ import {
   CLOSED_STACK_MAX,
   DEFAULT_LAYOUT,
   LEGACY_PARTITION,
+  MODULES,
   PRIMARY_PARTITION,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
@@ -543,6 +544,7 @@ export class BrowserStore {
     }
     this._activeSpaceId = this.identities.has(state.activeIdentityId) ? state.activeIdentityId : (this.identityOrder[0] ?? 0);
     this.layout = { ...DEFAULT_LAYOUT, ...state.layout, overview: false }; // 标签矩阵是瞬时态，不跨启动
+    if (!MODULES.some((m) => m.id === this.layout.module)) this.layout.module = 'browser'; // 已下线的维度（如 drive）回退
     this.nextIdentityId = Math.max(state.nextIdentityId, ...[...this.identities.keys()].map((k) => k + 1), 1);
     this.emit();
   }

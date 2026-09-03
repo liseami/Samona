@@ -96,6 +96,7 @@ export type Command =
   | { type: 'layout.sidebar'; width?: number; collapsed?: boolean }
   | { type: 'layout.peek'; peek: boolean }
   | { type: 'layout.overview'; open: boolean } // Safari 式标签矩阵
+  | { type: 'shell.setTheme'; mode: 'system' | 'light' | 'dark' } // 外观：跟随系统 / 浅 / 深（主进程 nativeTheme.themeSource，落盘 config.json）
   | { type: 'shell.openDevTools'; tabId?: string }
   | { type: 'shell.copyUrl'; tabId?: string };
 

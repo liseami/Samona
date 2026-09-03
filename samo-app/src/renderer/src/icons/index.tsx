@@ -12,7 +12,6 @@ import {
   BriefcaseJob,
   Camera,
   ChatDefault,
-  CloudDefault,
   CoffeeCup01,
   Code,
   CopyCopied,
@@ -23,6 +22,15 @@ import {
   KeyLeft,
   PointerCursorDefault,
   GridDashboard01,
+  ArchiveDefault,
+  SparkleAI01,
+  Sun,
+  Moon,
+  Monitor01,
+  SupportHeart,
+  LogOutLeft,
+  GiftDefault,
+  BookmarkDefault,
   LayoutGridTwoHorizontal,
   DiamondComponent,
   StopSmall,
@@ -122,6 +130,14 @@ export const Eye = d(EyeOn); // 工具胶囊：Watch，切到 agent 身份
 export const Key = d(KeyLeft); // 接入卡：API 密钥
 export const AgentCursor = d(PointerCursorDefault); // agent 光标层
 export const Home = d(HomeDefault); // 应用维度：回桌面
+export const SparkleIcon = d(SparkleAI01); // 资产：AI 生成
+export const SunIcon = d(Sun); // 用户菜单：浅色
+export const MoonIcon = d(Moon); // 用户菜单：深色
+export const MonitorIcon = d(Monitor01); // 用户菜单：跟随系统
+export const Support = d(SupportHeart); // 用户菜单：联系我们
+export const LogOut = d(LogOutLeft); // 用户菜单：退出
+export const Gift = d(GiftDefault); // 用户菜单：邀请
+export const Docs = d(BookmarkDefault); // 用户菜单：文档
 export const AppLocal = d(TerminalConsoleSquare); // 应用卡：本地 dev server
 export const AppPrivate = d(LockClose); // 应用：私密（Samo 部署，仅自己）
 export const AppPublic = d(PiGlobe); // 应用：公开（Samo 部署）
@@ -148,7 +164,8 @@ export const MODULE_ICON: Record<ModuleId, ComponentType<IconProps>> = {
   workspace: d(FolderDefault),
   mail: d(EnvelopeDefault),
   knowledge: d(GraduationHat),
-  drive: d(CloudDefault),
+  memory: d(SparkleAI01),
+  assets: d(ArchiveDefault),
   design: d(DiamondComponent),
 };
 
