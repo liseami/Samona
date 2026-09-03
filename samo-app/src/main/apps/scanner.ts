@@ -44,7 +44,7 @@ async function probe(listener: Listener): Promise<AppEntry | null> {
     const body = (await res.text()).slice(0, MAX_BODY);
     const title = /<title[^>]*>([^<]*)<\/title>/i.exec(body)?.[1]?.trim().replace(/\s+/g, ' ') ?? '';
     const icon = await findIcon(url, body);
-    return { id: `local:${listener.port}`, kind: 'local', name: title || listener.process, url, port: listener.port, process: listener.process, icon };
+    return { id: `local:${listener.port}`, visibility: 'local', name: title || listener.process, url, port: listener.port, process: listener.process, icon };
   } catch {
     return null;
   }

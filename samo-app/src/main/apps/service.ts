@@ -23,7 +23,7 @@ export class AppsService {
   private scanning = false;
   private scanned: AppEntry[] = [];
   private pinned: AppEntry[] = [];
-  private cloud: AppEntry[] = []; // 预留：Samo 云端部署的应用
+  private cloud: AppEntry[] = []; // 预留：Samo 部署的应用（visibility private / public）
 
   constructor(
     private readonly engine: BrowserEngine,
@@ -87,7 +87,7 @@ export class AppsService {
     const app = this.engine.store.appList.find((a) => a.id === id);
     if (!app) return;
     this.pinned = this.pinned.filter((p) => p.id !== id);
-    if (pinned) this.pinned.push({ id: app.id, kind: app.kind, name: app.name, url: app.url, port: app.port, process: app.process, icon: app.icon ?? null });
+    if (pinned) this.pinned.push({ id: app.id, visibility: app.visibility, name: app.name, url: app.url, port: app.port, process: app.process, icon: app.icon ?? null });
     this.save();
     this.publish();
   }

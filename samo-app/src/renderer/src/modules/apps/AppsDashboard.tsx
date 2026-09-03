@@ -1,16 +1,16 @@
 /**
  * [INPUT]: 依赖 react，@shared/model 的 AppEntry，../../store/browser 的 useBrowser/send，../../components/ui/button，../../icons 的 Copy/Settings，../../lib/utils 的 cn，./AppLogo，./mock
- * [OUTPUT]: 对外提供 AppsDashboard 组件：应用维度的桌面——居中的一列：应用图标行（像 OS 桌面，点击即开）→ 用户主页（头像 + 名字 + 句柄 + Share/Edit）→ 四项指标 → 一年活跃度点阵热力图 → Tokens 面积图 → Agents 柱图；数据来自 mock
+ * [OUTPUT]: 对外提供 AppsDashboard 组件：应用维度的桌面——居中的一列：用户主页（头像 + 名字 + 句柄 + Share/Edit）→ Apps（用户的作品：Local / Private / Public 三组 OS 桌面式图标，角标标可见性，点击即开）→ 四项指标 → 一年活跃度点阵热力图 → Tokens 面积图 → Agents 柱图；数据来自 mock
  * [POS]: modules/apps 的默认面板（没有打开应用时）；图表用内联 SVG，配色只用中性灰（银灰范式）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useMemo } from 'react';
-import type { AppEntry } from '@shared/model';
+import { APP_VISIBILITIES, type AppEntry, type AppVisibility } from '@shared/model';
 import { send, useBrowser } from '../../store/browser';
 import { Button } from '../../components/ui/button';
 import { Copy, Settings } from '../../icons';
 import { cn } from '../../lib/utils';
-import { AppLogo } from './AppLogo';
+import { AppLogo, VISIBILITY_ICON } from './AppLogo';
 import { MOCK_AGENTS, MOCK_PROFILE, MOCK_STATS, MOCK_TOKENS, MONTHS, mockHeatmap } from './mock';
 
 export function AppsDashboard() {
@@ -18,8 +18,8 @@ export function AppsDashboard() {
   return (
     <div className="no-drag h-full w-full overflow-y-auto scrollbar-hide">
       <div className="mx-auto flex w-full max-w-[720px] flex-col gap-12 px-8 py-12">
-        <AppsDock apps={apps ?? []} />
         <ProfileHeader />
+        <AppsSection apps={apps ?? []} />
         <StatsRow />
         <Heatmap />
         <AreaChart />
@@ -29,32 +29,64 @@ export function AppsDashboard() {
   );
 }
 
-// ---- 应用图标行：像 OS 桌面 ----
-function AppsDock({ apps }: { apps: AppEntry[] }) {
-  if (apps.length === 0) {
-    return <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">No app is running on localhost. Start a dev server and it appears here.</div>;
-  }
+// ---- 应用 = 用户的作品：按可见性三组（像 git 仓库），每组是一行 OS 桌面式图标 ----
+const EMPTY_HINT: Record<AppVisibility, string> = {
+  local: 'Nothing running on localhost — start a dev server and it appears here.',
+  private: 'Deploy an app with Samo and it lives here, only for you.',
+  public: 'Publish an app with Samo and share the link.',
+};
+function AppsSection({ apps }: { apps: AppEntry[] }) {
   return (
-    <div className="flex flex-wrap justify-center gap-x-4 gap-y-5">
-      {apps.map((app) => (
-        <button
-          key={app.id}
-          type="button"
-          onClick={() => !app.offline && send({ type: 'apps.open', id: app.id })}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            send({ type: 'menu.app', id: app.id });
-          }}
-          title={app.url}
-          className={cn('group flex w-[84px] flex-col items-center gap-2 rounded-2xl px-1 py-2 transition-colors duration-300 ease-out hover:bg-sidebar-accent/66', app.offline && 'opacity-45')}
-        >
-          <span className="rounded-2xl border border-border bg-card p-1.5 shadow-sm transition-transform duration-200 ease-out group-hover:scale-[1.04] group-active:scale-[0.97]">
-            <AppLogo app={app} size={44} />
-          </span>
-          <span className="w-full truncate text-center text-xs text-foreground">{app.name}</span>
-        </button>
-      ))}
-    </div>
+    <section className="flex flex-col gap-6">
+      <div className="text-sm font-medium text-muted-foreground">Apps</div>
+      {APP_VISIBILITIES.map((v) => {
+        const list = apps.filter((a) => a.visibility === v.id);
+        const Icon = VISIBILITY_ICON[v.id];
+        return (
+          <div key={v.id} className="flex flex-col gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Icon size={12} />
+              <span className="font-medium tracking-wide uppercase">{v.label}</span>
+              <span className="text-muted-foreground/70">{list.length}</span>
+              <span className="ml-1 text-muted-foreground/70">· {v.hint}</span>
+            </div>
+            {list.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border px-4 py-4 text-center text-xs text-muted-foreground">{EMPTY_HINT[v.id]}</div>
+            ) : (
+              <div className="flex flex-wrap gap-x-3 gap-y-4">
+                {list.map((app) => (
+                  <AppTile key={app.id} app={app} Badge={Icon} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function AppTile({ app, Badge }: { app: AppEntry; Badge: (typeof VISIBILITY_ICON)[AppVisibility] }) {
+  return (
+    <button
+      type="button"
+      onClick={() => !app.offline && send({ type: 'apps.open', id: app.id })}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        send({ type: 'menu.app', id: app.id });
+      }}
+      title={app.url}
+      className={cn('group flex w-[84px] flex-col items-center gap-2 rounded-2xl px-1 py-2 transition-colors duration-300 ease-out hover:bg-sidebar-accent/66', app.offline && 'opacity-45')}
+    >
+      <span className="relative rounded-2xl border border-border bg-card p-1.5 shadow-sm transition-transform duration-200 ease-out group-hover:scale-[1.04] group-active:scale-[0.97]">
+        <AppLogo app={app} size={44} />
+        {/* 可见性角标：像 git 仓库的 lock / globe */}
+        <span className="absolute -right-1 -bottom-1 flex h-4.5 w-4.5 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs">
+          <Badge size={9} />
+        </span>
+      </span>
+      <span className="w-full truncate text-center text-xs text-foreground">{app.name}</span>
+    </button>
   );
 }
 

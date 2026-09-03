@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/AppEntry/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
+ * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/AppEntry/AppVisibility/APP_VISIBILITIES/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
  * [POS]: shared 的领域模型根，主进程是唯一写者，渲染进程与 agent 网关只读；三方共享同一份真相定义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -150,10 +150,18 @@ export const LEGACY_PARTITION = 'persist:samo'; // v1/v2 时代所有标签共�
 export const PRIMARY_PARTITION = LEGACY_PARTITION;
 
 // ============ 快照：主进程推给渲染层的完整真相 ============
-/** 「应用」维度里的一张卡：本地 = 正在 localhost 端口上跑的 dev server；云端 = Samo 部署的应用（预留） */
+/** 应用的可见性，像 git 仓库一样三档：local = 只在本机 localhost 跑着；private = 部署到 Samo 但只有自己可见；public = 部署并公开 */
+export type AppVisibility = 'local' | 'private' | 'public';
+export const APP_VISIBILITIES: { id: AppVisibility; label: string; hint: string }[] = [
+  { id: 'local', label: 'Local', hint: 'Running on this Mac' },
+  { id: 'private', label: 'Private', hint: 'Deployed by Samo, only you' },
+  { id: 'public', label: 'Public', hint: 'Deployed by Samo, anyone with the link' },
+];
+
+/** 「应用」维度里的一项：应用 = 用户的作品。本地 = 正在 localhost 端口上跑的 dev server；私密/公开 = Samo 部署（预留） */
 export interface AppEntry {
   id: string; // local:<port> / cloud:<id>
-  kind: 'local' | 'cloud';
+  visibility: AppVisibility;
   name: string; // 页面 <title>，没有则进程名
   url: string;
   port?: number;
