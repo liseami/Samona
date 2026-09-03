@@ -13,6 +13,7 @@ import type { DownloadManager } from '../browser/downloads';
 import type { ContextMenus } from '../menus/context-menu';
 import type { ChatService } from '../chat/service';
 import type { AppsService } from '../apps/service';
+import type { WorkspaceService } from '../workspace/service';
 import type { ShellWindow } from '../shell/window';
 
 export interface IpcDeps {
@@ -22,10 +23,11 @@ export interface IpcDeps {
   window: ShellWindow;
   chat: ChatService;
   apps: AppsService; // 应用维度
+  workspaces: WorkspaceService; // 工作区维度
   setApiKey: (key: string) => void; // 保存密钥并热切换回答者
 }
 
-export function registerIpc({ engine, downloads, menus, window, chat, apps, setApiKey }: IpcDeps): void {
+export function registerIpc({ engine, downloads, menus, window, chat, apps, workspaces, setApiKey }: IpcDeps): void {
   const { store } = engine;
   ipcMain.handle(CHANNELS.getState, () => store.snapshot());
   ipcMain.handle(CHANNELS.getChat, () => chat.store.snapshot());
@@ -210,6 +212,18 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, setA
         break;
       case 'menu.app':
         menus.app(command.id);
+        break;
+      case 'workspace.add':
+        void workspaces.add();
+        break;
+      case 'workspace.select':
+        workspaces.select(command.id);
+        break;
+      case 'workspace.remove':
+        workspaces.remove(command.id);
+        break;
+      case 'menu.workspace':
+        menus.workspace(command.id);
         break;
       case 'layout.overview':
         store.setLayout({ overview: command.open });

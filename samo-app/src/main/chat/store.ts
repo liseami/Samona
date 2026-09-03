@@ -107,13 +107,25 @@ export class ChatStore {
     if (existing) return existing;
     return this.newThread();
   }
-  newThread(): ChatThread {
-    const thread: ChatThread = { id: crypto.randomUUID(), title: 'New chat', createdAt: Date.now(), updatedAt: Date.now() };
+  newThread(workspaceId: string | null = null, title = 'New chat'): ChatThread {
+    const thread: ChatThread = { id: crypto.randomUUID(), title, createdAt: Date.now(), updatedAt: Date.now(), workspaceId };
     this.threads.set(thread.id, thread);
     this.activeThreadId = thread.id;
     this.trimThreads();
     this.emit();
     return thread;
+  }
+  /** 工作区的对话线程：有则切过去，无则新建 */
+  ensureWorkspaceThread(workspaceId: string, title: string): ChatThread {
+    const existing = [...this.threads.values()].filter((t) => t.workspaceId === workspaceId).sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (existing) {
+      this.switchThread(existing.id);
+      return existing;
+    }
+    return this.newThread(workspaceId, title);
+  }
+  currentThread(): ChatThread | undefined {
+    return this.threads.get(this.activeThreadId);
   }
   switchThread(threadId: string): void {
     if (!this.threads.has(threadId)) return;
@@ -141,6 +153,7 @@ export class ChatStore {
     if (thread) {
       thread.updatedAt = message.createdAt;
       if (role === 'user' && thread.title === 'New chat') thread.title = content.trim().slice(0, 40) || 'New chat';
+      if (role === 'user' && thread.workspaceId && thread.title === thread.workspaceId) thread.title = content.trim().slice(0, 40) || thread.title;
     }
     this.emit();
     return message;

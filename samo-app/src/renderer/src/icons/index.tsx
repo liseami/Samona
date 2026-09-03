@@ -145,6 +145,7 @@ export const Copied = d(CopyCopied);
 export const MODULE_ICON: Record<ModuleId, ComponentType<IconProps>> = {
   browser: d(PiGlobe),
   apps: d(GridDashboard01),
+  workspace: d(FolderDefault),
   mail: d(EnvelopeDefault),
   knowledge: d(GraduationHat),
   drive: d(CloudDefault),

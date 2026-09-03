@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/{gateway,runner,presence}，./apps/service，./chat/{store,provider,agent-provider,config,service,window,launcher-window,choreographer}
+ * [INPUT]: 依赖 electron 的 app/nativeImage/nativeTheme，node:fs/path，./browser/{store,engine,persistence,history,downloads}，./shell/window，./ipc/handlers，./menu，./menus/context-menu，./agent/{gateway,runner,presence}，./apps/service，./workspace/service，./chat/{store,provider,agent-provider,config,service,window,launcher-window,choreographer}
  * [OUTPUT]: 无导出；主进程引导——装配 store→window→engine→chat→ipc/menu→gateway，并处理生命周期（恢复/落盘/退出）、系统外观跟随与开发态 Dock 图标
  * [POS]: samo-app 主进程的根，唯一知道所有模块如何拼在一起的地方；各模块彼此通过构造注入相识，不互相 import 单例
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -29,6 +29,7 @@ import { LauncherWindow } from './chat/launcher-window';
 import { locateCli, ScriptRunner } from './agent/runner';
 import { AgentPresence } from './agent/presence';
 import { AppsService } from './apps/service';
+import { WorkspaceService } from './workspace/service';
 import { loadJson } from './browser/persistence';
 import { CHANNELS } from '@shared/ipc';
 
@@ -99,7 +100,7 @@ async function bootstrap(): Promise<void> {
       context: () => {
         const identity = store.activeIdentity;
         const tab = store.activeTab(identity.id);
-        return { identityName: identity.name, activeUrl: tab?.url ?? null, activeTitle: tab?.title ?? null, tabCount: store.tabsInIdentity(identity.id).length };
+        return { identityName: identity.name, activeUrl: tab?.url ?? null, activeTitle: tab?.title ?? null, tabCount: store.tabsInIdentity(identity.id).length, workspacePath: store.currentWorkspaceId ? (store.workspaceList.find((w) => w.id === store.currentWorkspaceId)?.path ?? null) : null };
       },
       identityForTask: (task) => store.allIdentities().find((i) => i.taskId === task)?.id ?? null,
     });
@@ -120,6 +121,8 @@ async function bootstrap(): Promise<void> {
   });
   window.shellView.webContents.once('did-finish-load', () => choreographer.init(chatStore.currentMode, chatStore.snapshot().dockWidth));
 
+  const workspaces = new WorkspaceService(store, chat, join(userData, 'workspaces.json')); // 工作区维度：本机目录 = 工作区
+  menus.attachWorkspaces(workspaces);
   registerIpc({
     engine,
     downloads,
@@ -127,6 +130,7 @@ async function bootstrap(): Promise<void> {
     window,
     chat,
     apps,
+    workspaces,
     setApiKey: (key) => {
       chatConfig.write({ anthropicApiKey: key.trim() });
       chat.setProvider(makeProvider());

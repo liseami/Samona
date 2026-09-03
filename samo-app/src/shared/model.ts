@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无运行时依赖，纯类型与常量
- * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/AppEntry/AppVisibility/APP_VISIBILITIES/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
+ * [OUTPUT]: 对外提供 Identity/Folder/Tab/Download/AppEntry/AppVisibility/APP_VISIBILITIES/Workspace/Layout/BrowserSnapshot 数据模型、MODULES/ModuleId/RAIL_WIDTH/HEADER_HEIGHT、Ownership/IdentityColor/IdentityIcon/FolderColor 枚举、IDENTITY_COLOR_HEX 调色板、IDENTITY_ICONS、NEW_TAB_URL、DEFAULT_LAYOUT 与侧栏宽度边界、Suggestion 类型、tabTitle()
  * [POS]: shared 的领域模型根，主进程是唯一写者，渲染进程与 agent 网关只读；三方共享同一份真相定义
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -125,6 +125,7 @@ export interface Download {
 export const MODULES = [
   { id: 'browser', label: 'Browser', ready: true, dev: false },
   { id: 'apps', label: 'Apps', ready: true, dev: false }, // 用户自己的应用：本地（localhost 端口扫描）与云端（Samo 部署）
+  { id: 'workspace', label: 'Workspace', ready: true, dev: false }, // 本机目录 = 工作区：Codex 式对话，未来 agent 在里面工作
   { id: 'mail', label: 'Mail', ready: false, dev: false },
   { id: 'knowledge', label: 'Knowledge', ready: false, dev: false },
   { id: 'drive', label: 'Drive', ready: false, dev: false },
@@ -171,6 +172,14 @@ export interface AppEntry {
   offline?: boolean; // 固定过但此刻没在跑
 }
 
+/** 工作区 = 本机的一个目录：侧栏一行，面板是它的对话；未来 agent 在这个目录里读写与执行 */
+export interface Workspace {
+  id: string;
+  name: string; // 目录名
+  path: string; // 绝对路径
+  addedAt: number;
+}
+
 export interface BrowserSnapshot {
   identities: Identity[]; // 数组顺序即侧栏顺序
   folders: Folder[];
@@ -181,6 +190,8 @@ export interface BrowserSnapshot {
   layout: Layout;
   apps: AppEntry[]; // 应用维度：本地扫描 + 云端
   activeAppId: string | null; // 应用维度里打开的那一个
+  workspaces: Workspace[]; // 工作区维度：本机目录列表
+  activeWorkspaceId: string | null;
   sidebarPeek: boolean; // 折叠态下鼠标贴边临时展开
   closedCount: number; // 可重开的已关闭标签数
   dark: boolean; // 跟随系统外观

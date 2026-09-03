@@ -40,9 +40,16 @@ export class PaletteWindow {
     const win = this.win!;
     if (!win.isVisible()) win.show();
     win.focus();
-    this.view!.webContents.send(CHANNELS.event, event);
-    this.view!.webContents.focus();
+    const wc = this.view!.webContents;
+    const deliver = () => {
+      wc.send(CHANNELS.event, event);
+      wc.focus();
+    };
+    // 首次打开时页面还没加载完，事件会被丢掉：等 did-finish-load 再投递
+    if (this.loaded) deliver();
+    else wc.once('did-finish-load', deliver);
   }
+  private loaded = false;
 
   close(): void {
     if (!this.isOpen()) return;
@@ -82,6 +89,10 @@ export class PaletteWindow {
     };
     win.on('resize', fit);
     fit();
+    this.loaded = false;
+    view.webContents.once('did-finish-load', () => {
+      this.loaded = true;
+    });
     void view.webContents.loadURL(this.options.overlayUrl);
     win.on('closed', () => {
       this.win = null;

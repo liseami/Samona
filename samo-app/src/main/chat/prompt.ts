@@ -12,6 +12,7 @@ export interface PromptContext {
   activeTitle: string | null;
   tabCount: number;
   locale: string;
+  workspacePath: string | null; // 当前工作区目录（工作区维度的对话）
 }
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -73,5 +74,5 @@ Control handoff: only one side — you or the user — controls the task space a
 
 - Date: ${new Date().toISOString().slice(0, 10)} · locale ${ctx.locale}
 - User identity: ${ctx.identityName} · ${ctx.tabCount} open tab(s)
-- Active tab: ${ctx.activeUrl ? `${ctx.activeTitle ?? ''} — ${ctx.activeUrl}` : 'none'}`;
+- Active tab: ${ctx.activeUrl ? `${ctx.activeTitle ?? ''} — ${ctx.activeUrl}` : 'none'}${ctx.workspacePath ? `\n- Workspace directory: ${ctx.workspacePath} (this conversation belongs to that local project; file and shell tools for it are coming, so for now reason about it and use the browser for anything on localhost)` : ''}`;
 }

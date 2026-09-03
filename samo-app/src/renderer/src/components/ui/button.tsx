@@ -116,7 +116,7 @@ export function Button({
   );
 
   const classes = cn(
-    'isolate inline-flex items-center justify-center whitespace-nowrap rounded-2xl transition-[background-color,box-shadow,transform,color,border-color] duration-200',
+    'isolate inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-2xl transition-[background-color,box-shadow,transform,color,border-color] duration-200',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
     isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
     variant !== 'icon' && SIZE[size],
@@ -141,7 +141,10 @@ export function Button({
       ) : leftIcon ? (
         <span className="flex shrink-0 items-center justify-center">{leftIcon}</span>
       ) : null}
-      {children !== null && children !== undefined && children !== false && children !== '' && <span className={loading ? 'opacity-50' : undefined}>{children}</span>}
+      {/* children 里常常直接放「图标 + 文字」：用 flex 行承接，否则块级 svg 会把文字挤到下一行 */}
+      {children !== null && children !== undefined && children !== false && children !== '' && (
+        <span className={cn('inline-flex items-center whitespace-nowrap', variant !== 'icon' && SIZE[size].split(' ')[1], loading && 'opacity-50')}>{children}</span>
+      )}
       {!loading && rightIcon && <span className="flex shrink-0 items-center justify-center">{rightIcon}</span>}
     </span>
   );

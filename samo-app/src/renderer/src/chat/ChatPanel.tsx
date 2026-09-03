@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 react，react-markdown + remark-gfm，@shared/chat 的 ChatMessage/ChatThread，./store 的 useChat/chatSend/bindChat，../icons，../lib/utils 的 cn
- * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked'）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；工具胶囊 ToolBubble 展示 agent 的每一步浏览器动作；思考指示；错误提示胶囊；接入卡 KeyCard；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
+ * [OUTPUT]: 对外提供 ChatPanel 组件（variant: 'floating' | 'docked' | 'workspace'，workspace 不带内部头部）——逐 class 复刻 Laper AgentChat：头部（burger 会话抽屉 / 标题 / 新对话 / 展开=停靠 或 还原=浮出 / 收起）→ 消息列表（gap-4 px-4 py-4；用户气泡 primary 6% 淡底右对齐；助手无气泡纯 prose；工具胶囊 ToolBubble 展示 agent 的每一步浏览器动作；思考指示；错误提示胶囊；接入卡 KeyCard；助手工具条复制）→ 输入卡（rounded-[20px] bg-card 呼吸辉光、field-sizing 自增高、Enter 发送 / Shift+Enter 换行 / Esc 停止、圆形 primary 发送钮与停止钮模糊互换）→ 会话抽屉（scrim + 85% 宽滑入）；生成中底部三分之一 aurora
  * [POS]: renderer/chat 的面板本体，浮窗页与壳内停靠卡共用同一份组件；形态只影响头部动作与拖拽区
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,7 +13,7 @@ import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { bindChat, chatSend, useChat } from './store';
 
-type Variant = 'floating' | 'docked';
+type Variant = 'floating' | 'docked' | 'workspace'; // workspace：住在工作区面板里，头部由模块的 PanelHeader 提供
 
 export function ChatPanel({ variant }: { variant: Variant }) {
   useEffect(() => bindChat(), []);
@@ -34,9 +34,9 @@ export function ChatPanel({ variant }: { variant: Variant }) {
     <div className="agent-chat-root relative isolate flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-foreground">
       <Aurora active={snap.generating} />
       <div className="relative z-1 flex min-h-0 flex-1 flex-col">
-        <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />
+        {variant !== 'workspace' && <PanelHeader variant={variant} title={snap.threads.find((t) => t.id === snap.activeThreadId)?.title ?? 'New chat'} onMenu={() => setDrawer(true)} />}
         <MessageList messages={snap.messages} generating={snap.generating} needsKey={snap.needsKey} />
-        <Composer generating={snap.generating} collapsed={false} />
+        <Composer generating={snap.generating} collapsed={false} placeholder={variant === 'workspace' ? 'Tell the agent what to do in this workspace…' : undefined} />
       </div>
       {drawer && <SessionDrawer threads={snap.threads} activeId={snap.activeThreadId} onClose={() => setDrawer(false)} />}
     </div>
@@ -336,7 +336,7 @@ function hash(s: string): number {
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return h >>> 0;
 }
-function Composer({ generating, collapsed }: { generating: boolean; collapsed: boolean }) {
+function Composer({ generating, collapsed, placeholder }: { generating: boolean; collapsed: boolean; placeholder?: string }) {
   const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
   const [glow, setGlow] = useState(0.5);
@@ -394,7 +394,7 @@ function Composer({ generating, collapsed }: { generating: boolean; collapsed: b
             value={text}
             rows={1}
             disabled={generating}
-            placeholder="At your command, ready whenever you are…"
+            placeholder={placeholder ?? 'At your command, ready whenever you are…'}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             onChange={(e) => setText(e.target.value)}

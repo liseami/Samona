@@ -19,6 +19,7 @@ import {
   type Layout,
   type Tab,
   type AppEntry,
+  type Workspace,
 } from '@shared/model';
 import type { TabTarget } from '@shared/ipc';
 
@@ -96,6 +97,8 @@ export class BrowserStore {
   private layout: Layout = { ...DEFAULT_LAYOUT };
   private apps: AppEntry[] = [];
   private activeAppId: string | null = null;
+  private workspaces: Workspace[] = [];
+  private activeWorkspaceId: string | null = null;
   private sidebarPeek = false;
   private dark = false;
   private focused = true;
@@ -132,6 +135,8 @@ export class BrowserStore {
       layout: { ...this.layout },
       apps: this.apps,
       activeAppId: this.activeAppId,
+      workspaces: this.workspaces,
+      activeWorkspaceId: this.activeWorkspaceId,
       sidebarPeek: this.sidebarPeek,
       closedCount: this.closed.length,
       dark: this.dark,
@@ -391,6 +396,23 @@ export class BrowserStore {
     const tab = this.tabs.get(tabId);
     if (!tab || tab.appId === appId) return;
     tab.appId = appId;
+    this.emit();
+  }
+  // ---------- 工作区维度 ----------
+  get workspaceList(): Workspace[] {
+    return this.workspaces;
+  }
+  get currentWorkspaceId(): string | null {
+    return this.activeWorkspaceId;
+  }
+  setWorkspaces(list: Workspace[]): void {
+    this.workspaces = list;
+    if (this.activeWorkspaceId && !list.some((w) => w.id === this.activeWorkspaceId)) this.activeWorkspaceId = null;
+    this.emit();
+  }
+  setActiveWorkspace(id: string | null): void {
+    if (this.activeWorkspaceId === id) return;
+    this.activeWorkspaceId = id;
     this.emit();
   }
   setActiveApp(id: string | null): void {

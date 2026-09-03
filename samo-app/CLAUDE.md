@@ -18,7 +18,7 @@ Samo = 模块 × agent。壳（shell）负责窗口、icon navi、侧栏几何�
 - 开发态 `SAMO_DEBUG_SHELL=1 bun dev` 后，agent 可 `await ego.useShell()` 把壳当作 target，用 ego-browser 的 click/insertText/evaluate 驱动侧栏做端到端测试。
 
 ## 目录
-src/main/ - 主进程（browser 引擎/状态/历史/下载、shell 窗口几何、ipc 命令与查询、menus 原生右键、agent 网关与光标层、chat 对话与浮层、apps 应用维度扫描、menu 快捷键）
+src/main/ - 主进程（browser 引擎/状态/历史/下载、shell 窗口几何、ipc 命令与查询、menus 原生右键、agent 网关与光标层、chat 对话与浮层、apps 应用维度扫描、workspace 目录工作区、menu 快捷键）
 src/preload/ - contextBridge 桥
 src/renderer/ - 壳页 index.html（shell/ + modules/ + chat/ 停靠卡）、命令面板 overlay.html、AI 浮层 chat.html（透明子窗口：药丸 + 面板）、agent 光标层 agent.html（点击穿透子窗口）、新标签页 newtab.html（共用 styles.css；icons/ 为 Laper 的 Pika 图标库；components/effects 为 WebGL 效果）
 src/shared/ - 三方共享的模型、IPC 契约、对话模型、动画令牌、URL 语义（零运行时依赖）
@@ -35,7 +35,7 @@ bun run dev        # 从仓库根：bun dev
 bun run typecheck
 bun run build      # 产物 out/
 ```
-用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（标签/工作区落盘 v3，旧的多身份在加载时合并为一个）、history.json、chat.json（对话线程与消息）、config.json（模型密钥，0600）、apps.json（固定的应用）、Partitions/samo（唯一登录态）、agent-gateway.json（网关指针，0600）。应用内 Samo AI 起 `packages/samo-agent/dist/cli.js` 跑脚本，改了 samo-agent 要 `bun run agent:build`。
+用户数据在 `~/Library/Application Support/Samo/`：browser-state.json（标签/工作区落盘 v3，旧的多身份在加载时合并为一个）、history.json、chat.json（对话线程与消息）、config.json（模型密钥，0600）、apps.json（固定的应用）、workspaces.json（工作区目录列表）、Partitions/samo（唯一登录态）、agent-gateway.json（网关指针，0600）。应用内 Samo AI 起 `packages/samo-agent/dist/cli.js` 跑脚本，改了 samo-agent 要 `bun run agent:build`。
 开发态 `SAMO_DEBUG_SHELL=1 bun dev` 后 agent 可用 `ego.useShell()` / `ego.useShell('overlay')` 驱动壳与命令面板做端到端测试。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置

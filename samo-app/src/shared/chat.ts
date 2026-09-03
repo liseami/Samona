@@ -37,6 +37,7 @@ export interface ChatThread {
   title: string; // 首条用户消息的摘要，或 "New chat"
   createdAt: number;
   updatedAt: number;
+  workspaceId?: string | null; // 绑定到某个工作区（目录）的对话；agent 的工作目录由此而来
 }
 
 /** 面板形态：closed 只留右下角 launcher；floating 是可拖出应用的独立子窗口；docked 是面板卡右侧的第四张卡 */

@@ -8,5 +8,6 @@ context-menu.ts: ContextMenus——tab（重命名/固定/收藏/复制/移到 I
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 app(id)：应用卡菜单——固定到顶部/取消、复制地址、重扫 localhost（经 AppsService）。
+workspace(id)：工作区行菜单——访达显示、复制路径、移除（经 attachWorkspaces 注入的 WorkspaceService）。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

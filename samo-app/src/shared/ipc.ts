@@ -82,6 +82,11 @@ export type Command =
   | { type: 'apps.rescan' } // 立即重扫 localhost
   | { type: 'apps.pin'; id: string; pinned: boolean } // 固定/取消固定到侧栏顶部
   | { type: 'menu.app'; id: string } // 应用卡的原生右键菜单
+  // ---- 工作区维度 ----
+  | { type: 'workspace.add' } // 原生目录选择器 → 加入一个工作区
+  | { type: 'workspace.select'; id: string | null } // 选中工作区：面板切到它的对话线程
+  | { type: 'workspace.remove'; id: string }
+  | { type: 'menu.workspace'; id: string } // 工作区行的原生右键菜单
   // ---- 壳：模块与窗口（自绘红绿灯） ----
   | { type: 'module.activate'; module: ModuleId }
   | { type: 'window.close' }

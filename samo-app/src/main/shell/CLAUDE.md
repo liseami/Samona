@@ -11,7 +11,7 @@
 
 ## 成员清单
 window.ts: ShellWindow——BaseWindow（hidden 标题栏、交通灯内嵌）+ shellView + cornerMasks + contentView 槽位 + background 集合 + palette 子窗口；panelCardBounds/contentBounds 按侧栏宽度/折叠态/面板头部算几何，resize 时统一重排（含角落遮罩）；raiseContent 维护命中顺序；openPalette/closePalette 转给 PaletteWindow；dockSlotScreenBounds/contentScreenBounds 给停靠与光标层；zoom 全屏/最大化。
-palette-window.ts: PaletteWindow——⌘T 命令面板的透明子窗口（子窗口不受主窗口可拖拽区影响）：打开时铺满主窗口内容区并聚焦，背景幕点击/Esc 即关，关闭即隐藏并把焦点还给主窗口。
+palette-window.ts: PaletteWindow——⌘T 命令面板的透明子窗口（子窗口不受主窗口可拖拽区影响）：打开时铺满主窗口内容区并聚焦，首次打开等页面 did-finish-load 再投递 openPalette（否则事件丢失、面板不出现），背景幕点击/Esc 即关，关闭即隐藏并把焦点还给主窗口。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

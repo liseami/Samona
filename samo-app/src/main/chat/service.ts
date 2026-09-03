@@ -98,9 +98,14 @@ export class ChatService {
     this.inflight = null;
   }
 
-  newThread(): void {
+  newThread(workspaceId: string | null = null, title?: string): void {
     this.stop();
-    this.store.newThread();
+    this.store.newThread(workspaceId, title);
+  }
+  /** 切到某工作区的对话（没有就建） */
+  openWorkspaceThread(workspaceId: string, title: string): void {
+    this.stop();
+    this.store.ensureWorkspaceThread(workspaceId, title);
   }
   switchThread(threadId: string): void {
     this.stop();
