@@ -27,6 +27,7 @@
 #include "ui/shell_dialogs/select_file_policy.h"
 #include "ui/shell_dialogs/selected_file_info.h"
 #include "ui/views/widget/widget.h"
+#include "samo/shell/samo_launcher_host.h"
 #include "samo/webui/samo_overlay_ui.h"
 #include "ui/views/widget/widget.h"
 #include "chrome/grit/generated_resources.h"
@@ -237,6 +238,10 @@ void SamoShellView::OnServiceState(const base::DictValue& state) {
 }
 void SamoShellView::OnServiceChat(const base::DictValue& chat) {
   chat_ = chat.Clone();
+  if (launcher_) {
+    const std::string* mode = chat_.FindString("mode");
+    launcher_->SetShown(!mode || *mode == "closed");  // 面板开着时药丸让位（Electron 的 choreographer 语义）
+  }
   if (!contents_wrapper_)
     return;
   if (auto* ui = contents_wrapper_->GetWebUIController(); ui && ui->handler())
@@ -468,6 +473,23 @@ void SamoShellView::OpenOverlay(const std::string& query, const gfx::Rect& ancho
   overlay_->ShowBubble(screen_anchor, arrow);
   if (views::Widget* widget = overlay_->GetBubbleWidget())
     widget->AddObserver(this);
+}
+
+// ---- 右下角药丸：窗口 widget 就绪后创建，随壳 bounds 重排，随对话形态显隐 ----
+void SamoShellView::AddedToWidget() {
+  views::WebView::AddedToWidget();
+  if (!launcher_ && GetWidget())
+    launcher_ = std::make_unique<SamoLauncherHost>(browser_view_->GetProfile(), GetWidget());
+  LayoutLauncher();
+}
+void SamoShellView::OnBoundsChanged(const gfx::Rect& previous_bounds) {
+  views::WebView::OnBoundsChanged(previous_bounds);
+  LayoutLauncher();
+}
+void SamoShellView::LayoutLauncher() {
+  if (!launcher_ || !GetWidget())
+    return;
+  launcher_->Layout(GetBoundsInScreen());
 }
 
 void SamoShellView::OnWidgetDestroying(views::Widget* widget) {

@@ -9,8 +9,10 @@ webui/samo_ui.h/.cc: SamoUI（TopChromeWebUIController，enable_chrome_send=true
 service/samo_service.h/.cc: SamoService——拉起 Node 服务进程（packages/samo-service，--samo-service/--samo-node 开关，数据目录 profile/samo），pipe 重映射为子进程 stdin/stdout，ThreadPool 阻塞读按行投回 UI 线程；Invoke/Query/GetState/GetChat 请求-应答，SendLayout/SendContext 通知，Observer 收 state/chat/event 推送与 host 请求（ReplyHost 回复）。
 shell/samo_shell_view.h/.cc: SamoShellView（views::WebView + WebUIContentsWrapper::Host + SamoUI::ShellDelegate + TabStripModelObserver）——把 chrome://samo 装进 BrowserView 的全窗子视图（索引 0，网页容器在其上）；壳量出的网页洞矩形 → BrowserView::SetSamoContentBounds；Chrome 的 TabStripModel → BrowserSnapshot.tabs（id 用 SessionID，favicon 走 chrome://favicon2）并在变化时 PushState；tab.create/activate/close/navigate/back/forward/reload/stop/pin 落到 TabStripModel。编进 //chrome/browser/ui（补丁 0006/0007）。
 webui/samo_overlay_ui.h/.cc: SamoOverlayUI / SamoOverlayUIConfig（ShouldAutoResizeHost=true）——chrome://samo-overlay，默认页 webui-overlay.html（命令面板 + 用户菜单），由 SamoShellView 的 WebUIBubbleManager 承载；意图经 ?open=palette|userMenu 带入。
+webui/samo_launcher_ui.h/.cc: SamoLauncherUI / SamoLauncherUIConfig——chrome://samo-launcher（右下角 Samo AI 药丸页）。
+shell/samo_launcher_host.h/.cc: SamoLauncherHost——TYPE_CONTROL + 半透明 + 不抢焦点的子 widget（Chrome 查找条同款）装药丸页，钉在浏览器视图右下角，对话打开时让位；对应 Electron 的 LauncherWindow。
 webui/samo_ui_dev.h/.cc: 开发态旁路——命令行 --samo-webui-dir=<dir> 时壳资源从磁盘读（vite build --watch 的产物），改壳不重编 Chromium；已接入 samo_ui.cc（SetupWebUIDataSource 之后）。
-webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState / getChat 四个请求 + samo.state / event / chat 三个推送；有宿主时快照与命令都走 ShellDelegate，无宿主（chrome://samo 开在标签里）用 EmptyState 占位（与 shared/model.ts 逐字段同形）。
+webui/samo_ui_handler.h/.cc（编进 //chrome/browser/ui，因为要认 BrowserView）: SamoUIHandler——samo.invoke / query / getState / getChat 四个请求 + samo.state / event / chat 三个推送；有宿主时快照与命令都走 ShellDelegate，无宿主（chrome://samo 开在标签里）用 EmptyState 占位（与 shared/model.ts 逐字段同形）。
 
 ## 上游触点（将成为 patches/ 的前三个补丁）
 1. `chrome/browser/ui/webui/chrome_web_ui_configs.cc`：`map.AddWebUIConfig(std::make_unique<samo::SamoUIConfig>());`
@@ -35,7 +37,8 @@ webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState /
 - 20:05：**Samo 服务进程接入**——对话（keyless/Claude）、应用扫描（9 个 localhost 应用）、工作区来自 Node 服务；壳的 chat.* / apps.* / workspace.* / shell.setTheme 转发给它，host 请求（开/关应用标签、目录选择器、访达显示）在 SamoShellView 落地；布局命令（module.activate / layout.*）与窗口命令本地处理；无洞时网页容器压到壳下（0012）。教训：WebUI 渲染器不许加载 http 资源（图标由服务抓成 data:），Layout 内不能 ReorderChildView（死循环），tabbed layout CHECK 网页容器可见。
 - 20:06：深浅色跟随系统（NativeThemeObserver → 快照 dark，弹层的 EmptyState 也读系统主题）；⌘L / 聚焦地址栏改道到壳的命令面板（补丁 0013）。
 - 20:15：**agent 网关切 CDP**——服务进程里的网关经 Chromium 的调试端口驱动真实标签，标签 id 改为 DevTools target id（壳 / 服务 / agent 同一套 id），任务空间以 Identity 形状合并进快照（侧栏 AgentGroups 可见，接管 / 交还回路）；verify-gateway.sh：samo-browser 在 fork 里建空间、开标签、读标题全通过。
-- 未完：对话浮窗/停靠卡（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
+- 20:29：右下角 **Samo AI 药丸**（SamoLauncherHost：TYPE_CONTROL 半透明子 widget，Chrome 查找条同款）落地，对话开着时让位；气泡 / 药丸里的 WebUI 命令与快照经宿主窗口的壳委托（BrowserView::samo_shell_delegate，沿 Widget::parent 爬到顶层）转发——⌘T 面板里的 tab.create/navigate 由此真正落地；verify-launcher.mjs 通过。
+- 未完：对话浮窗（Electron 的浮窗形态；停靠卡已可用）（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

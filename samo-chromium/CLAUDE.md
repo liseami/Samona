@@ -33,6 +33,7 @@ scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分�
 scripts/apply-branding.sh - 二进制品牌资源拷贝（icns），apply-patches.sh 末尾调用
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/verify-webui.mjs - 里程碑 2 验收：CDP 开 chrome://samo，查桥、快照、rail、页面错误
+scripts/verify-launcher.mjs - 药丸验收：子 widget 渲染、经壳委托拿快照、chat.setMode 回路、弹层里的 tab.create 落地
 scripts/verify-gateway.sh - agent 网关验收：samo-browser 经服务进程的 CDP 网关驱动 fork，壳快照出现 agent 任务空间
 scripts/verify-service.mjs - 服务进程验收：getChat 来自服务、apps 有扫描结果、module.activate 反映、chat.newThread 回路
 scripts/verify-overlay.mjs - 弹层验收：palette.open → 气泡 target 有输入框与尺寸 → palette.close 关闭；userMenu.open（带 session）→ 菜单渲染
@@ -51,7 +52,8 @@ patches/ - Samo 补丁（见其 README）
 - 2026-09-04 19:27：拖窗、圆角、红绿灯留位、品牌（Samo.app / app.samo.browser / 图标）、我们的新标签页、弹层气泡（⌘T / 用户菜单）、开发态磁盘数据源全部落地；补丁 0001–0011。
 - 2026-09-04 20:05：Samo 服务进程接入（packages/samo-service ↔ src/samo/service）：对话、应用、工作区在 fork 里有了真实数据与命令回路（verify-service.mjs 通过）；补丁 0001–0012。
 - 2026-09-04 20:15：agent 网关切 CDP 完成（packages/samo-service/src/gateway.ts）——外部 agent 与应用内 AI 都能在 fork 里驱动标签；补丁 0001–0013。
-- 下一步：对话浮窗与药丸（气泡）、⌘I → agent 光标层 → 下载/查找/历史投影到壳 → 打包（official build、签名公证）与更新器 → 抽共享核心消 apps/workspace 两份逻辑。
+- 2026-09-04 20:29：Samo AI 药丸（浮在网页之上的子 widget）与子 widget 命令路由落地；补丁 0001–0014。
+- 下一步：对话浮窗形态、⌘I → agent 光标层 → 下载/查找/历史投影到壳 → 打包（official build、签名公证）与更新器 → 抽共享核心消 apps/workspace 两份逻辑。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

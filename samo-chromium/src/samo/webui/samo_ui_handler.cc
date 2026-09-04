@@ -11,6 +11,7 @@
 #include "chrome/browser/ui/webui/top_chrome/top_chrome_web_ui_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "samo/webui/samo_overlay_ui.h"
+#include "chrome/browser/ui/views/frame/browser_view.h"
 #include "samo/webui/samo_ui.h"
 #include "ui/views/widget/widget.h"
 #include "ui/gfx/geometry/rect.h"
@@ -58,8 +59,7 @@ void SamoUIHandler::HandleInvoke(const base::ListValue& args) {
   if (args.size() >= 2 && args[1].is_dict()) {
     const base::DictValue& cmd = args[1].GetDict();
     const std::string* type = cmd.FindString("type");
-    auto* ui = web_ui()->GetController()->GetAs<SamoUI>();
-    SamoUI::ShellDelegate* delegate = ui ? ui->shell_delegate() : nullptr;
+    SamoUI::ShellDelegate* delegate = ResolveDelegate();
     // 弹层页里的 palette.close：让承载它的气泡关掉（embedder = WebUIContentsWrapper → Host::CloseUI）
     if (type && *type == "palette.close" &&
         web_ui()->GetController()->GetAs<SamoOverlayUI>()) {
@@ -114,8 +114,8 @@ void SamoUIHandler::HandleGetState(const base::ListValue& args) {
 void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
   AllowJavascript();
   const std::string& callback_id = args.front().GetString();
-  if (auto* ui = web_ui()->GetController()->GetAs<SamoUI>(); ui && ui->shell_delegate()) {
-    ResolveJavascriptCallback(base::Value(callback_id), ui->shell_delegate()->BuildChat());
+  if (SamoUI::ShellDelegate* d = ResolveDelegate()) {
+    ResolveJavascriptCallback(base::Value(callback_id), d->BuildChat());
     return;
   }
   ResolveJavascriptCallback(base::Value(callback_id), CurrentChat());
@@ -123,11 +123,25 @@ void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
 
 // 最小可挂起的快照：与 shared/model.ts BrowserSnapshot **逐字段同形**（缺一个字段壳就会在选择器里崩）；
 // 真实数据接入后由 Samo 服务与标签模型填充
-base::DictValue SamoUIHandler::CurrentState() {
-  if (auto* ui = web_ui()->GetController()->GetAs<SamoUI>();
-      ui && ui->shell_delegate()) {
-    return ui->shell_delegate()->BuildState();
+// 壳（SamoUI 且有委托）直接用委托；气泡 / 药丸等子 widget 里的 WebUI 顺着顶层窗口找到 BrowserView 的壳视图
+SamoUI::ShellDelegate* SamoUIHandler::ResolveDelegate() {
+  if (auto* ui = web_ui()->GetController()->GetAs<SamoUI>(); ui && ui->shell_delegate())
+    return ui->shell_delegate();
+  if (content::WebContents* wc = web_ui()->GetWebContents()) {
+    // 子 widget（药丸 TYPE_CONTROL）与气泡都有自己的 NSWindow：沿 Widget::parent() 爬到浏览器窗口
+    views::Widget* w = views::Widget::GetWidgetForNativeWindow(wc->GetTopLevelNativeWindow());
+    while (w && w->parent()) w = w->parent();
+    if (w) {
+      if (BrowserView* bv = BrowserView::GetBrowserViewForNativeWindow(w->GetNativeWindow()))
+        return bv->samo_shell_delegate();
+    }
   }
+  return nullptr;
+}
+
+base::DictValue SamoUIHandler::CurrentState() {
+  if (SamoUI::ShellDelegate* d = ResolveDelegate())
+    return d->BuildState();
   return EmptyState();
 }
 

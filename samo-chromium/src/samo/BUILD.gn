@@ -31,14 +31,14 @@ source_set("webui") {
   sources = [
     "service/samo_service.cc",
     "service/samo_service.h",
+    "webui/samo_launcher_ui.cc",
+    "webui/samo_launcher_ui.h",
     "webui/samo_overlay_ui.cc",
     "webui/samo_overlay_ui.h",
     "webui/samo_ui.cc",
     "webui/samo_ui.h",
     "webui/samo_ui_dev.cc",
     "webui/samo_ui_dev.h",
-    "webui/samo_ui_handler.cc",
-    "webui/samo_ui_handler.h",
   ]
   deps = [
     ":resources",

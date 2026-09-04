@@ -1,0 +1,19 @@
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -81,6 +81,7 @@
+ namespace samo {
+ class SamoShellView;
+ }
++#include "samo/webui/samo_ui.h"
+ class ContentsContainerView;
+ class ContentsLayoutManager;
+ struct DropData;
+@@ -199,6 +200,8 @@
+   void SetSamoContentBounds(const gfx::Rect& bounds);
+   // Samo：壳的可拖拽区（壳视图坐标；-webkit-app-region: drag），命中即 HTCAPTION
+   void SetSamoDraggableRegion(std::optional<SkRegion> region);
++  // Samo：气泡 / 药丸等子 widget 里的 WebUI 顺着顶层窗口找壳的委托（命令、快照）
++  samo::SamoUI::ShellDelegate* samo_shell_delegate();
+ 
+   const TopControlsSlideController* top_controls_slide_controller() const {
+     return top_controls_slide_controller_.get();

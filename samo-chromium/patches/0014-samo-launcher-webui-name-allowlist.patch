@@ -1,0 +1,10 @@
+--- a/tools/metrics/histograms/metadata/page/histograms.xml
++++ b/tools/metrics/histograms/metadata/page/histograms.xml
+@@ -654,6 +654,7 @@
+   <variant name=".UserEducation"/>
+     <variant name=".Samo" summary="Samo shell (samo-chromium)"/>
+     <variant name=".SamoOverlay" summary="Samo overlay bubble (samo-chromium)"/>
++    <variant name=".SamoLauncher" summary="Samo AI launcher pill (samo-chromium)"/>
+ </variants>
+ 
+ <!-- LINT.ThenChange(//tools/metrics/histograms/metadata/ui/histograms.xml:TopChromeWebUIName) -->

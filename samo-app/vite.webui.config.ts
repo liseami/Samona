@@ -35,6 +35,7 @@ export default defineConfig({
         newtab: resolve('src/renderer/webui-newtab.html'),
         overlay: resolve('src/renderer/webui-overlay.html'),
         chat: resolve('src/renderer/webui-chat.html'),
+        launcher: resolve('src/renderer/webui-launcher.html'),
       },
       external: (id) => id.startsWith('chrome://'),
       // 文件名不带哈希：资源名进 grd 后成为 IDR_ 常量，必须稳定

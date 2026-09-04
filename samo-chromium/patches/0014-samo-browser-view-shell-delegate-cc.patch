@@ -1,0 +1,13 @@
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -4807,6 +4807,10 @@
+   InvalidateLayout();
+ }
+ 
++samo::SamoUI::ShellDelegate* BrowserView::samo_shell_delegate() {
++  return samo_shell_view_;
++}
++
+ void BrowserView::SetSamoDraggableRegion(std::optional<SkRegion> region) {
+   samo_draggable_region_ = std::move(region);
+ }

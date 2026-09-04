@@ -7,6 +7,7 @@
 
 #include "base/values.h"
 #include "content/public/browser/web_ui_message_handler.h"
+#include "samo/webui/samo_ui.h"
 
 namespace samo {
 
@@ -35,6 +36,7 @@ class SamoUIHandler : public content::WebUIMessageHandler {
   void HandleGetState(const base::ListValue& args);
   void HandleGetChat(const base::ListValue& args);
 
+  SamoUI::ShellDelegate* ResolveDelegate();
   base::DictValue CurrentState();
   base::DictValue CurrentChat();
 

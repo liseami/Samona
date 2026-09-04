@@ -29,6 +29,10 @@ class Profile;
 class WebUIBubbleManager;
 
 namespace samo {
+class SamoLauncherHost;
+}
+
+namespace samo {
 
 class SamoShellView : public views::WebView,
                       public WebUIContentsWrapper::Host,
@@ -84,10 +88,16 @@ class SamoShellView : public views::WebView,
   // views::WidgetObserver：弹层气泡关闭时告诉壳（overlayClosed）
   void OnWidgetDestroying(views::Widget* widget) override;
 
+  // views::View：壳铺满整窗，它的 bounds 变化即窗口变化 → 药丸跟着走
+  void OnBoundsChanged(const gfx::Rect& previous_bounds) override;
+  void AddedToWidget() override;
+
  private:
   // 弹层（命令面板 / 用户菜单）：一次一个 WebUI 气泡，意图经 URL 查询串带给弹层页
   void OpenOverlay(const std::string& query, const gfx::Rect& anchor_in_view, views::BubbleBorder::Arrow arrow);
   std::unique_ptr<WebUIBubbleManager> overlay_;
+  std::unique_ptr<SamoLauncherHost> launcher_;  // 右下角 Samo AI 药丸（对话关闭态可见）
+  void LayoutLauncher();
   void PushEvent(base::DictValue event);
   void SendContext();
   std::unique_ptr<SamoService> service_;
