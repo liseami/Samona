@@ -11,9 +11,11 @@ Samo 的下一代基座：**完整 Chromium fork（含 //chrome/browser 层）+ 
 | 扩展 / 翻译 / 密码 / 同步 | chrome 层自带 |
 | renderer/（React 壳：rail / 侧栏 / 面板头 / apps / appstore / workspace / assets / 用户菜单 / 命令面板 / 对话） | 原样搬进 WebUI（chrome://samo，React + Tailwind 走 webui 的资源打包），`window.samo` 桥换成 WebUI 的 mojo 绑定 |
 | main/agent（网关 + ego-browser 运行时 + 光标层） | CDP 直连 Chromium；光标层改为扩展 content script 或 WebUI 覆盖层 |
-| main/chat（AI 对话、模型调用） | WebUI 侧栏 + 浏览器进程内的 Samo 服务（C++，或先用外部 Node 进程过渡） |
-| main/apps（localhost 扫描）、workspace、assets | 浏览器进程内的 Samo 服务（C++）经 mojo 供 WebUI 调用 |
+| main/chat（AI 对话、模型调用）、main/apps（localhost 扫描）、workspace、assets、main/agent 网关 | **Samo 服务进程**（Node，由浏览器进程拉起、本地 socket 通信）：这些模块的业务逻辑原样保留——它们本来就不依赖 Electron 的窗口/视图，只依赖 Node；SamoUIHandler 把 Command/Query 转发给它、把它的快照与浏览器进程自己的标签快照合并后推给壳。第二阶段再视需要把热路径下沉为 C++ |
 | packages/samo-agent（CLI） | 不变 |
+
+## 阶段一的关键决策：Samo 服务进程
+Electron 版 main/ 里只有 browser/engine（标签与视图）和 shell/window（窗口几何）真正依赖 Electron；chat / apps / workspace / assets / agent 网关只依赖 Node。所以迁移不是重写它们，而是把它们从 Electron 主进程搬进一个由 Chromium 拉起的 Node 子进程（samo-service），协议还是今天的 Command / Query / Snapshot。标签、历史、下载、权限、查找、打印、弹窗——这些在 fork 里由 chrome 层原生提供，Electron 版对应代码直接删除。agent 网关改用 Chromium 的 `--remote-debugging-port` 做 CDP 后端（Electron 版用的是 webContents.debugger），ego-browser 运行时与 samo-browser CLI 零改动。
 
 ## 目录
 env.sh - 路径约定（depot_tools、~/chromium/src、out/Samo），source 之
