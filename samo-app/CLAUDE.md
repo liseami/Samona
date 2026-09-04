@@ -28,6 +28,7 @@ electron.vite.config.ts - 三段构建；preload 强制 CJS + 显式外置 elect
 tsconfig.node.json / tsconfig.web.json - 主进程侧 与 渲染侧 两套 TS 项目，@shared 别名双方共享
 electron-builder.yml - 打包配置（mac dmg，输出 release/）
 package.json - dev 先跑品牌脚本再 `electron-vite dev --watch`：渲染层 HMR，主进程/preload 改动自动重建重启
+scripts/make-icon.py - 图标配方：build/icon-source.png → build/icon.png（1024 画布、824 圆角方 22.5% 半径 + 柔和投影）与 renderer assets/logo.png（256 圆角方）；换 logo 只换源图再跑它，禁止直接提交满幅方形
 scripts/brand-dev-electron.mjs - 开发态把 node_modules 里的 Electron.app 改名换图标为 Samo（Dock 悬停名 / About / 活动监视器 / 隐私提示；app.setName 管不到 macOS 认的 Info.plist），幂等，`--restore` 还原；打包态由 electron-builder 处理
 
 ## 运行
