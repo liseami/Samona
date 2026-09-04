@@ -14,4 +14,4 @@ grep -v '^#' "$ARGS" > "$SAMO_OUT/args.gn"
 gn gen "$SAMO_OUT"
 echo "[build] autoninja→ninja chrome ($(date))"  # autoninja 会强制走 siso（源码包树没有），直接用 depot_tools 的 ninja
 nice -n 10 "$DEPOT_TOOLS/ninja" -C "$SAMO_OUT" chrome
-echo "[build] done ($(date)) → $(ls -d "$CHROMIUM_SRC/$SAMO_OUT"/*.app | head -1)"
+echo "[build] done ($(date)) → $(ls -d "$CHROMIUM_SRC/$SAMO_OUT"/*.app | grep -v Helper | head -1)"

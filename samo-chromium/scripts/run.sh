@@ -5,7 +5,7 @@
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 set -euo pipefail
 source "$(dirname "$0")/../env.sh"
-APP=$(ls -d "$CHROMIUM_SRC/$SAMO_OUT"/*.app | head -1); BIN="$APP/Contents/MacOS/$(basename "$APP" .app)"
+APP=$(ls -d "$CHROMIUM_SRC/$SAMO_OUT"/*.app | grep -v Helper | head -1); BIN="$APP/Contents/MacOS/$(basename "$APP" .app)"
 exec "$BIN" \
   --user-data-dir="$HOME/Library/Application Support/SamoChromium" \
   --remote-debugging-port=9222 "$@"
