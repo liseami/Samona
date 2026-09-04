@@ -5,6 +5,14 @@
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 set -euo pipefail
 source "$(dirname "$0")/../env.sh"
+# 全局 git 走 socks 代理（Clash）时，Chromium 的浅克隆会在服务端打包的几分钟静默期被代理掐断、反复重试；
+# 这里对本次拉取禁用 git 代理直连 googlesource（直连可达，实测 0.5MB/s；代理更快但会断）。想改回代理：SAMO_FETCH_PROXY=1
+if [ "${SAMO_FETCH_PROXY:-0}" != "1" ]; then
+  export GIT_CONFIG_COUNT=3
+  export GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=
+  export GIT_CONFIG_KEY_1=https.proxy GIT_CONFIG_VALUE_1=
+  export GIT_CONFIG_KEY_2=http.lowSpeedLimit GIT_CONFIG_VALUE_2=0
+fi
 if [ ! -x "$DEPOT_TOOLS/fetch" ]; then
   git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS"
 fi
