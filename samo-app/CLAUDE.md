@@ -25,6 +25,7 @@ src/shared/ - 三方共享的模型、IPC 契约、对话模型、动画令牌�
 
 ## 配置
 electron.vite.config.ts - 三段构建；preload 强制 CJS + 显式外置 electron（沙盒渲染器只认 CJS）
+vite.webui.config.ts - 第二宿主：把同一份 renderer 壳打成 chrome://samo 的静态资源（`bun run build:webui` → ../samo-chromium/webui/dist + manifest.txt），chrome://resources 外置
 tsconfig.node.json / tsconfig.web.json - 主进程侧 与 渲染侧 两套 TS 项目，@shared 别名双方共享
 electron-builder.yml - 打包配置（mac dmg，输出 release/）
 package.json - dev 先跑品牌脚本再 `electron-vite dev --watch`：渲染层 HMR，主进程/preload 改动自动重建重启

@@ -22,10 +22,13 @@ scripts/fetch.sh - 拉 depot_tools + 浅检出 Chromium + runhooks（首次数�
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
 scripts/apply-patches.sh - 把 patches/ 打到检出上（git am --3way，幂等）
 scripts/run.sh - 启动构建产物，开 CDP 9222
+scripts/link-samo.sh - 把仓库内 src/samo 符号链接进 ~/chromium/src/samo（源码受版本控制，树只是挂载点）
+src/samo/ - Samo 在 Chromium 树里的独立目录：chrome://samo WebUI（控制器 + 消息处理器 + BUILD.gn），见其 CLAUDE.md
+webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）：壳与新标签页的静态资源 + manifest.txt（GN 读它生成 grd）
 patches/ - Samo 补丁（见其 README）
 
 ## 状态
-2026-09-04 起步：脚手架就位，源码拉取中；下一步依次是 首次构建 → 品牌补丁 → `chrome://samo` WebUI 挂上现有 React 壳 → 顶栏替换 → agent 网关切 CDP。
+2026-09-04 起步：脚手架就位，源码拉取中；React 壳已能以 WebUI 形态构建（samo-app `build:webui`，桥换成 cr.js 消息通道）；src/samo 的 WebUI 控制器与处理器已草拟。下一步依次是 首次构建 → link-samo + 三处上游补丁 → chrome://samo 跑起壳 → 各 Command 接到浏览器进程的 Samo 服务 → 顶栏替换 → agent 网关切 CDP。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
