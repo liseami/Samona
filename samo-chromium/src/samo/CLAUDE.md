@@ -38,7 +38,8 @@ webui/samo_ui_handler.h/.cc（编进 //chrome/browser/ui，因为要认 BrowserV
 - 20:06：深浅色跟随系统（NativeThemeObserver → 快照 dark，弹层的 EmptyState 也读系统主题）；⌘L / 聚焦地址栏改道到壳的命令面板（补丁 0013）。
 - 20:15：**agent 网关切 CDP**——服务进程里的网关经 Chromium 的调试端口驱动真实标签，标签 id 改为 DevTools target id（壳 / 服务 / agent 同一套 id），任务空间以 Identity 形状合并进快照（侧栏 AgentGroups 可见，接管 / 交还回路）；verify-gateway.sh：samo-browser 在 fork 里建空间、开标签、读标题全通过。
 - 20:29：右下角 **Samo AI 药丸**（SamoLauncherHost：TYPE_CONTROL 半透明子 widget，Chrome 查找条同款）落地，对话开着时让位；气泡 / 药丸里的 WebUI 命令与快照经宿主窗口的壳委托（BrowserView::samo_shell_delegate，沿 Widget::parent 爬到顶层）转发——⌘T 面板里的 tab.create/navigate 由此真正落地；verify-launcher.mjs 通过。
-- 未完：对话浮窗（Electron 的浮窗形态；停靠卡已可用）（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
+- 20:33：**下载投影**——SamoShellView 观察 Chrome 的 DownloadManager/DownloadItem，BrowserSnapshot.downloads 同形（Assets 维度的数据源），download.open/reveal/cancel/clear 落到 Chrome 的下载项；verify-downloads.mjs 通过。
+- 未完：对话浮窗（Electron 的浮窗形态；停靠卡已可用）、⌘I、⌘F 用壳的查找条（Chrome 原生查找条可用）、agent 光标层、打包与更新器。（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

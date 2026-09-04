@@ -92,6 +92,14 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
   SetVisible(true);
   browser_view_->browser()->tab_strip_model()->AddObserver(this);
   ui::NativeTheme::GetInstanceForNativeUi()->AddObserver(this);
+  // 下载：接管 Chrome 的下载管理器（历史 + 新建）
+  download_manager_ = profile->GetDownloadManager();
+  if (download_manager_) {
+    download_manager_->AddObserver(this);
+    std::vector<raw_ptr<download::DownloadItem, VectorExperimental>> items;
+    download_manager_->GetAllDownloads(&items);
+    for (download::DownloadItem* item : items) TrackDownload(item);
+  }
 
   layout_.Set("module", "browser");
   layout_.Set("sidebarWidth", 264);
@@ -116,6 +124,10 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
 }
 
 SamoShellView::~SamoShellView() {
+  for (auto& [id, item] : downloads_) item->RemoveObserver(this);
+  downloads_.clear();
+  if (download_manager_)
+    download_manager_->RemoveObserver(this);
   ui::NativeTheme::GetInstanceForNativeUi()->RemoveObserver(this);
   if (service_)
     service_->RemoveObserver(this);
@@ -158,6 +170,42 @@ void SamoShellView::OnContentBounds(const gfx::Rect& bounds) {
     browser_view_->SetSamoContentBounds(bounds);
 }
 
+// ---- 下载：Chrome 的 DownloadManager → BrowserSnapshot.downloads ----
+namespace {
+const char* DownloadStateName(download::DownloadItem::DownloadState s) {
+  switch (s) {
+    case download::DownloadItem::IN_PROGRESS: return "progressing";
+    case download::DownloadItem::COMPLETE: return "completed";
+    case download::DownloadItem::CANCELLED: return "cancelled";
+    default: return "interrupted";
+  }
+}
+}  // namespace
+
+void SamoShellView::TrackDownload(download::DownloadItem* item) {
+  if (!item || downloads_.count(item->GetId()))
+    return;
+  downloads_[item->GetId()] = item;
+  item->AddObserver(this);
+}
+void SamoShellView::OnDownloadCreated(content::DownloadManager*, download::DownloadItem* item) {
+  TrackDownload(item);
+  PushState();
+}
+void SamoShellView::OnDownloadUpdated(download::DownloadItem*) {
+  PushState();
+}
+void SamoShellView::OnDownloadDestroyed(download::DownloadItem* item) {
+  item->RemoveObserver(this);
+  downloads_.erase(item->GetId());
+  PushState();
+}
+void SamoShellView::ManagerGoingDown(content::DownloadManager*) {
+  for (auto& [id, item] : downloads_) item->RemoveObserver(this);
+  downloads_.clear();
+  download_manager_ = nullptr;
+}
+
 // ---- 快照：Chrome 的标签模型 → BrowserSnapshot.tabs ----
 base::DictValue SamoShellView::BuildState() {
   base::DictValue state = SamoUIHandler::EmptyState();
@@ -186,6 +234,22 @@ base::DictValue SamoShellView::BuildState() {
     tabs.Append(base::Value(std::move(t)));
   }
   state.Set("tabs", base::Value(std::move(tabs)));
+  base::ListValue downloads;
+  for (const auto& [id, item] : downloads_) {
+    if (cleared_downloads_.count(id))
+      continue;
+    base::DictValue d;
+    d.Set("id", base::NumberToString(id));
+    d.Set("filename", item->GetFileNameToReportUser().AsUTF8Unsafe());
+    d.Set("url", item->GetURL().spec());
+    d.Set("path", item->GetTargetFilePath().AsUTF8Unsafe());
+    d.Set("state", DownloadStateName(item->GetState()));
+    d.Set("received", static_cast<double>(item->GetReceivedBytes()));
+    d.Set("total", static_cast<double>(item->GetTotalBytes()));
+    d.Set("startedAt", item->GetStartTime().InMillisecondsFSinceUnixEpoch());
+    downloads.Append(base::Value(std::move(d)));
+  }
+  state.Set("downloads", base::Value(std::move(downloads)));
   base::DictValue active;
   content::WebContents* active_wc = tsm->GetActiveWebContents();
   const std::string active_id = active_wc ? TabIdOf(active_wc) : "";
@@ -373,6 +437,24 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
   }
   if (*type == "layout.overview") {
     layout_.Set("overview", command.FindBool("open").value_or(false));
+    PushState();
+    return true;
+  }
+  if (type->rfind("download.", 0) == 0) {
+    const std::string* id_str = command.FindString("id");
+    uint32_t id = 0;
+    download::DownloadItem* item = nullptr;
+    if (id_str && base::StringToUint(*id_str, &id)) {
+      auto it = downloads_.find(id);
+      if (it != downloads_.end()) item = it->second;
+    }
+    if (*type == "download.open" && item && item->GetState() == download::DownloadItem::COMPLETE) item->OpenDownload();
+    else if (*type == "download.reveal" && item) platform_util::ShowItemInFolder(browser_view_->GetProfile(), item->GetTargetFilePath());
+    else if (*type == "download.cancel" && item) item->Cancel(/*user_cancel=*/true);
+    else if (*type == "download.clear") {
+      for (const auto& [did, di] : downloads_)
+        if (di->GetState() != download::DownloadItem::IN_PROGRESS) cleared_downloads_.insert(did);
+    }
     PushState();
     return true;
   }

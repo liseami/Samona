@@ -33,6 +33,7 @@ scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分�
 scripts/apply-branding.sh - 二进制品牌资源拷贝（icns），apply-patches.sh 末尾调用
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/verify-webui.mjs - 里程碑 2 验收：CDP 开 chrome://samo，查桥、快照、rail、页面错误
+scripts/verify-downloads.mjs - 下载投影验收：页面里触发 data: 下载 → 快照 downloads 出现 → download.clear 收起
 scripts/verify-launcher.mjs - 药丸验收：子 widget 渲染、经壳委托拿快照、chat.setMode 回路、弹层里的 tab.create 落地
 scripts/verify-gateway.sh - agent 网关验收：samo-browser 经服务进程的 CDP 网关驱动 fork，壳快照出现 agent 任务空间
 scripts/verify-service.mjs - 服务进程验收：getChat 来自服务、apps 有扫描结果、module.activate 反映、chat.newThread 回路
@@ -44,6 +45,21 @@ src/samo/ - Samo 在 Chromium 树里的独立目录：chrome://samo WebUI（控�
 src/samo/webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）：壳与新标签页的静态资源 + manifest.txt（GN 读它生成 grd）
 branding/ - app.icns（由 samo-app/build/icon.png 经 sips+iconutil 生成；apply-branding.sh 拷进树）
 patches/ - Samo 补丁（见其 README）
+
+## 与 Electron 版的功能对照（2026-09-04 20:33）
+| 能力 | Electron 版 | fork | 备注 |
+|---|---|---|---|
+| 整窗壳 / 拖窗 / 圆角 / 红绿灯 | ✓ | ✓ | 补丁 0007/0008；红绿灯原生 |
+| 标签全套操作、侧栏、标签矩阵 | ✓ | ✓ | TabStripModel；标签 id = DevTools target id |
+| ⌘T 面板 / ⌘L / 用户菜单 | ✓ | ✓ | WebUI 气泡；⌘L 补丁 0013 |
+| 新标签页 / 品牌 / 深浅色 | ✓ | ✓ | 补丁 0009/0010；NativeTheme |
+| Apps（localhost 扫描）/ App Store / Workspace / Assets | ✓ | ✓ | Samo 服务进程；目录选择器走 Chrome |
+| 对话：停靠卡 / 药丸 | ✓ | ✓ | 浮窗形态未做（Electron 子窗口的等价物待做） |
+| agent 网关（samo-browser / 应用内 AI） | ✓ | ✓ | CDP 后端；任务空间进侧栏 |
+| 下载 → Assets | ✓ | ✓ | DownloadManager 投影 |
+| 扩展 / 翻译 / 密码 / PDF / 打印 / 原生查找 | ✗ | ✓ | Chrome 层白送——fork 的理由 |
+| 页内查找条（壳的 FindBar）/ ⌘I / agent 光标层 | ✓ | 未做 | Chrome 原生查找条可用；⌘I 需加速键补丁 |
+| 打包 / 签名 / 更新器 | electron-builder | 未做 | official build + 公证 + 更新器 |
 
 ## 状态
 - 2026-09-04 18:37 首次全量构建通过（component build，含 4 处上游补丁与 //samo；机器 10 核，实际约 3.5 小时含排障）；增量重编约 1 分钟。

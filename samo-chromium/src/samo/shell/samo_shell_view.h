@@ -7,12 +7,15 @@
 
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
+#include "components/download/public/common/download_item.h"
+#include "content/public/browser/download_manager.h"
 #include "samo/service/samo_service.h"
 #include "ui/native_theme/native_theme.h"
 #include "ui/native_theme/native_theme_observer.h"
@@ -41,7 +44,9 @@ class SamoShellView : public views::WebView,
                       public views::WidgetObserver,
                       public SamoService::Observer,
                       public ui::SelectFileDialog::Listener,
-                      public ui::NativeThemeObserver {
+                      public ui::NativeThemeObserver,
+                      public content::DownloadManager::Observer,
+                      public download::DownloadItem::Observer {
   METADATA_HEADER(SamoShellView, views::WebView)
 
  public:
@@ -71,6 +76,12 @@ class SamoShellView : public views::WebView,
   void OnServiceChat(const base::DictValue& chat) override;
   void OnServiceEvent(const base::DictValue& event) override;
   void OnHostRequest(int id, const base::DictValue& request) override;
+
+  // 下载：Chrome 的 DownloadManager → BrowserSnapshot.downloads（Assets 维度的数据源）
+  void OnDownloadCreated(content::DownloadManager* manager, download::DownloadItem* item) override;
+  void OnDownloadUpdated(download::DownloadItem* item) override;
+  void OnDownloadDestroyed(download::DownloadItem* item) override;
+  void ManagerGoingDown(content::DownloadManager* manager) override;
 
   // ui::NativeThemeObserver：系统深浅色变化 → 快照 dark 变化
   void OnNativeThemeUpdated(ui::NativeTheme* observed_theme) override;
@@ -105,7 +116,11 @@ class SamoShellView : public views::WebView,
   base::DictValue chat_;           // 最近一次 chat 快照
   base::DictValue layout_;         // module / sidebarWidth / sidebarCollapsed / overview（壳的布局命令落在这里）
   std::map<std::string, std::string> app_tabs_;
-  std::string last_user_active_tab_;  // 用户身份最近的活动标签（agent 空间的标签活跃时不覆盖）  // appId → tab id（应用维度打开的标签，不进浏览器侧栏）
+  std::string last_user_active_tab_;
+  raw_ptr<content::DownloadManager> download_manager_ = nullptr;
+  std::map<uint32_t, raw_ptr<download::DownloadItem>> downloads_;  // 观察中的下载项
+  std::set<uint32_t> cleared_downloads_;  // download.clear 后不再陈列的（已完成/取消）
+  void TrackDownload(download::DownloadItem* item);  // 用户身份最近的活动标签（agent 空间的标签活跃时不覆盖）  // appId → tab id（应用维度打开的标签，不进浏览器侧栏）
   scoped_refptr<ui::SelectFileDialog> select_folder_dialog_;
   int pending_pick_id_ = -1;
 
