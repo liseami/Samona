@@ -1,0 +1,33 @@
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -77,6 +77,9 @@
+ class BookmarkBarView;
+ class Browser;
+ class BrowserViewLayout;
++namespace samo {
++class SamoShellView;
++}
+ class ContentsContainerView;
+ class ContentsLayoutManager;
+ struct DropData;
+@@ -190,6 +193,9 @@
+   const Browser* browser() const { return browser_; }
+ 
+   Profile* GetProfile() const;
++
++  // Samo：壳汇报的网页洞矩形（BrowserView 坐标），下一次布局据此摆放 contents_container_
++  void SetSamoContentBounds(const gfx::Rect& bounds);
+ 
+   const TopControlsSlideController* top_controls_slide_controller() const {
+     return top_controls_slide_controller_.get();
+@@ -1219,6 +1225,10 @@
+   // Handled by ContentsLayoutManager.
+   raw_ptr<views::View> contents_container_ = nullptr;
+ 
++  // Samo：铺满整窗的壳视图与壳量出的网页洞矩形（见 //samo/shell）
++  raw_ptr<samo::SamoShellView> samo_shell_view_ = nullptr;
++  gfx::Rect samo_content_bounds_;
++
+   // The view responsible for housing the contents of the vertical tab strip.
+   raw_ptr<VerticalTabStripRegionView> vertical_tab_strip_region_view_ = nullptr;
+   raw_ptr<VerticalTabStripBackgroundBlurBackdrop>

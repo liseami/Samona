@@ -1,0 +1,10 @@
+--- a/tools/metrics/histograms/metadata/page/histograms.xml
++++ b/tools/metrics/histograms/metadata/page/histograms.xml
+@@ -652,6 +652,7 @@
+   <variant name=".TabSearch"/>
+   <variant name=".TabsFromOtherDevicesSidePanel"/>
+   <variant name=".UserEducation"/>
++    <variant name=".Samo" summary="Samo shell (samo-chromium)"/>
+ </variants>
+ 
+ <!-- LINT.ThenChange(//tools/metrics/histograms/metadata/ui/histograms.xml:TopChromeWebUIName) -->

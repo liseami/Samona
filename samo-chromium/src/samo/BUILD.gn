@@ -39,6 +39,8 @@ source_set("webui") {
     "//base",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/webui:webui_util",
+    "//chrome/browser/ui/webui/top_chrome:top_chrome",
+    "//ui/gfx/geometry",
     "//content/public/browser",
     "//ui/webui:webui",  # webui_util
   ]

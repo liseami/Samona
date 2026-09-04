@@ -1,5 +1,5 @@
 // [INPUT]: 依赖 ./samo_ui_handler.h，base::Value，content::WebUI
-// [OUTPUT]: SamoUIHandler 的实现：注册四个回调；getState/getChat 先返回最小快照（壳能挂起来），invoke/query 先应答空值——各 Command 逐个接到浏览器进程的 Samo 服务是迁移地图的后续步骤
+// [OUTPUT]: SamoUIHandler 的实现：注册四个回调；getState/getChat 返回同形占位快照；invoke 里 layout.contentBounds 已接到 SamoUI::ShellDelegate（壳→BrowserView 的几何管线），其余 Command 待接 Samo 服务
 // [POS]: samo/webui 的消息层实现；快照字段名以 samo-app/src/shared/model.ts 的 BrowserSnapshot 为准（两侧唯一契约）
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 #include "samo/webui/samo_ui_handler.h"
@@ -8,6 +8,8 @@
 
 #include "base/functional/bind.h"
 #include "content/public/browser/web_ui.h"
+#include "samo/webui/samo_ui.h"
+#include "ui/gfx/geometry/rect.h"
 
 namespace samo {
 
@@ -48,7 +50,23 @@ void SamoUIHandler::PushEvent(base::DictValue event) {
 void SamoUIHandler::HandleInvoke(const base::ListValue& args) {
   AllowJavascript();
   const std::string& callback_id = args.front().GetString();
-  // TODO(samo): 按 payload["type"]（Command 联合）分发到浏览器进程的 Samo 服务
+  if (args.size() >= 2 && args[1].is_dict()) {
+    const base::DictValue& cmd = args[1].GetDict();
+    const std::string* type = cmd.FindString("type");
+    auto* ui = web_ui()->GetController()->GetAs<SamoUI>();
+    SamoUI::ShellDelegate* delegate = ui ? ui->shell_delegate() : nullptr;
+    // 壳量出的网页洞矩形 → 宿主视图（BrowserView 据此摆放网页容器）
+    if (type && *type == "layout.contentBounds") {
+      if (delegate) {
+        delegate->OnContentBounds(gfx::Rect(
+            cmd.FindInt("x").value_or(0), cmd.FindInt("y").value_or(0),
+            cmd.FindInt("width").value_or(0), cmd.FindInt("height").value_or(0)));
+      }
+    } else if (delegate) {
+      delegate->HandleCommand(cmd);  // tab.* 等交给宿主视图（Chrome 的标签模型）
+    }
+    // TODO(samo): 其余 Command 分发到浏览器进程的 Samo 服务
+  }
   ResolveJavascriptCallback(base::Value(callback_id), base::Value());
 }
 
@@ -74,6 +92,14 @@ void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
 // 最小可挂起的快照：与 shared/model.ts BrowserSnapshot **逐字段同形**（缺一个字段壳就会在选择器里崩）；
 // 真实数据接入后由 Samo 服务与标签模型填充
 base::DictValue SamoUIHandler::CurrentState() {
+  if (auto* ui = web_ui()->GetController()->GetAs<SamoUI>();
+      ui && ui->shell_delegate()) {
+    return ui->shell_delegate()->BuildState();
+  }
+  return EmptyState();
+}
+
+base::DictValue SamoUIHandler::EmptyState() {
   base::DictValue layout;
   layout.Set("module", "browser");
   layout.Set("sidebarWidth", 264);

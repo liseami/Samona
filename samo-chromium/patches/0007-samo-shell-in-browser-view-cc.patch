@@ -1,0 +1,50 @@
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -169,6 +169,7 @@
+ #include "chrome/browser/ui/views/frame/tab_modal_dialog_host.h"
+ #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+ #include "chrome/browser/ui/views/frame/top_container_view.h"
++#include "samo/shell/samo_shell_view.h"
+ #include "chrome/browser/ui/views/frame/top_controls_slide_controller.h"
+ #include "chrome/browser/ui/views/frame/vertical_tab_strip_background_blur_backdrop.h"
+ #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"
+@@ -947,6 +948,11 @@
+   contents_container_ = AddChildView(std::move(contents_container));
+   set_contents_view(contents_container_);
+ 
++  // Samo：壳铺满整窗、画在最底（索引 0），网页容器在其上；Chrome 顶栏不再显示
++  samo_shell_view_ = AddChildViewAt(
++      std::make_unique<samo::SamoShellView>(GetProfile(), this), 0);
++  top_container_->SetVisible(false);
++
+   // InfoBarContainer needs to be added as a child here for drop-shadow, but
+   // needs to come after toolbar in focus order (see EnsureFocusOrder()).
+   infobar_container_ =
+@@ -4760,6 +4766,13 @@
+ ///////////////////////////////////////////////////////////////////////////////
+ // BrowserView, views::View overrides:
+ 
++void BrowserView::SetSamoContentBounds(const gfx::Rect& bounds) {
++  if (samo_content_bounds_ == bounds)
++    return;
++  samo_content_bounds_ = bounds;
++  InvalidateLayout();
++}
++
+ void BrowserView::Layout(PassKey) {
+   TRACE_EVENT0("ui", "BrowserView::Layout");
+   if (!initialized_ || in_process_fullscreen_ ||
+@@ -4799,6 +4812,13 @@
+   }
+ 
+   LayoutSuperclass<views::View>(this);
++
++  // Samo：壳占满，网页容器按壳汇报的矩形摆放
++  if (samo_shell_view_) {
++    samo_shell_view_->SetBoundsRect(GetLocalBounds());
++    if (!samo_content_bounds_.IsEmpty())
++      contents_container_->SetBoundsRect(samo_content_bounds_);
++  }
+ 
+   // TODO(jamescook): Why was this in the middle of layout code?
+   toolbar_->location_bar()->UpdateFocusBehavior(IsToolbarVisible());

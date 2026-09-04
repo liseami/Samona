@@ -1,0 +1,11 @@
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -398,6 +398,8 @@
+ # circular includes from each other.
+ static_library("ui") {
+   sources = [
++    "//samo/shell/samo_shell_view.cc",
++    "//samo/shell/samo_shell_view.h",
+     "crypto_module_password_dialog.h",
+     "idle_bubble.h",
+     "managed_ui.cc",

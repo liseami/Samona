@@ -1,5 +1,5 @@
 // [INPUT]: 依赖 content::WebUIDataSource、webui::SetupWebUIDataSource（ui/webui/webui_util.h）、samo/grit/samo_resources*（:resources 生成）、./samo_ui_handler
-// [OUTPUT]: SamoUI 的实现：数据源 chrome://samo → 默认资源 webui.html，放宽 CSP 允许 Tailwind 的内联样式，挂 SamoUIHandler
+// [OUTPUT]: SamoUI 的实现：top-chrome 控制器（保留 chrome.send），数据源 chrome://samo → 默认资源 webui.html，放宽 CSP 允许 Tailwind 的内联样式，挂 SamoUIHandler
 // [POS]: samo/webui 的门面实现；草拟于源码落地前，编译时按当时的 Chromium API 校正（这里的每个符号都在 2025–2026 主线稳定存在）
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 #include "samo/webui/samo_ui.h"
@@ -17,7 +17,8 @@
 
 namespace samo {
 
-SamoUI::SamoUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
+SamoUI::SamoUI(content::WebUI* web_ui)
+    : TopChromeWebUIController(web_ui, /*enable_chrome_send=*/true) {
   Profile* profile = Profile::FromWebUI(web_ui);
   content::WebUIDataSource* source =
       content::WebUIDataSource::CreateAndAdd(profile, kSamoHost);
@@ -30,9 +31,13 @@ SamoUI::SamoUI(content::WebUI* web_ui) : content::WebUIController(web_ui) {
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ImgSrc,
       "img-src 'self' data: https: http: chrome://favicon2;");
-  web_ui->AddMessageHandler(std::make_unique<SamoUIHandler>());
+  auto handler = std::make_unique<SamoUIHandler>();
+  handler_ = handler.get();
+  web_ui->AddMessageHandler(std::move(handler));
 }
 
 SamoUI::~SamoUI() = default;
+
+WEB_UI_CONTROLLER_TYPE_IMPL(SamoUI)
 
 }  // namespace samo
