@@ -15,7 +15,8 @@ let id = 0; const pending = new Map(); const errors = [];
 ws.onmessage = (ev) => {
   const m = JSON.parse(ev.data);
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
-  if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.text);
+  if (m.method === 'Runtime.exceptionThrown') { const d = m.params.exceptionDetails; errors.push(`${d.text} ${d.exception?.description ?? ''} @${d.url ?? ''}:${d.lineNumber}`.slice(0, 600)); }
+  if (m.method === 'Runtime.consoleAPICalled' && (m.params.type === 'error' || m.params.type === 'warning')) errors.push(`console.${m.params.type}: ${m.params.args.map((a) => a.value ?? a.description ?? '').join(' ').slice(0, 400)}`);
   if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error') errors.push(m.params.entry.text);
 };
 const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -27,7 +28,9 @@ const title = await evaluate('document.title');
 const hasBridge = await evaluate("typeof window.samo === 'object' && typeof window.samo.getState === 'function'");
 const state = hasBridge ? await evaluate('window.samo.getState().then(s => JSON.stringify(Object.keys(s)))') : null;
 const rail = await evaluate("[...document.querySelectorAll('nav button')].map(b => b.textContent.trim()).filter(Boolean)");
-console.log(JSON.stringify({ url: target.url, title, hasBridge, stateKeys: state, rail, errors }, null, 1));
+const rootHtml = await evaluate("document.getElementById('root')?.innerHTML.slice(0, 300) ?? '(no #root)'");
+const scripts = await evaluate("[...document.scripts].map(s => s.src.slice(0, 80))");
+console.log(JSON.stringify({ url: target.url, title, hasBridge, stateKeys: state, rail, rootHtml, scripts, errors }, null, 1));
 ws.close();
 if (!hasBridge) fail('window.samo bridge missing');
 if (!state) fail('getState() did not resolve');

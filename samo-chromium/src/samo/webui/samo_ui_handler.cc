@@ -71,31 +71,62 @@ void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
   ResolveJavascriptCallback(base::Value(callback_id), CurrentChat());
 }
 
-// 最小可挂起的快照：与 shared/model.ts BrowserSnapshot 同形；真实数据接入后由 Samo 服务填充
+// 最小可挂起的快照：与 shared/model.ts BrowserSnapshot **逐字段同形**（缺一个字段壳就会在选择器里崩）；
+// 真实数据接入后由 Samo 服务与标签模型填充
 base::DictValue SamoUIHandler::CurrentState() {
   base::DictValue layout;
   layout.Set("module", "browser");
   layout.Set("sidebarWidth", 264);
   layout.Set("sidebarCollapsed", false);
   layout.Set("overview", false);
+  base::DictValue identity;  // 唯一的用户身份（Samo 没有 Space：一套登录态）
+  identity.Set("id", 1);
+  identity.Set("name", "Samo");
+  identity.Set("icon", "user");
+  identity.Set("color", "gray");
+  identity.Set("partition", "persist:samo");
+  identity.Set("ownership", "user");
+  identity.Set("agentState", base::Value());
+  identity.Set("createdAt", 0);
+  base::ListValue identities;
+  identities.Append(base::Value(std::move(identity)));
+  base::DictValue active_tab_by_identity;
+  active_tab_by_identity.Set("1", base::Value());
   base::DictValue snapshot;
-  snapshot.Set("identities", base::Value(base::ListValue()));
-  snapshot.Set("tabs", base::Value(base::ListValue()));
+  snapshot.Set("identities", base::Value(std::move(identities)));
   snapshot.Set("folders", base::Value(base::ListValue()));
+  snapshot.Set("tabs", base::Value(base::ListValue()));
   snapshot.Set("downloads", base::Value(base::ListValue()));
-  snapshot.Set("apps", base::Value(base::ListValue()));
-  snapshot.Set("workspaces", base::Value(base::ListValue()));
+  snapshot.Set("activeIdentityId", 1);
+  snapshot.Set("activeTabIdByIdentity", base::Value(std::move(active_tab_by_identity)));
   snapshot.Set("layout", base::Value(std::move(layout)));
-  snapshot.Set("dark", false);
+  snapshot.Set("apps", base::Value(base::ListValue()));
+  snapshot.Set("activeAppId", base::Value());
+  snapshot.Set("workspaces", base::Value(base::ListValue()));
+  snapshot.Set("activeWorkspaceId", base::Value());
   snapshot.Set("hoverUrl", base::Value());
   snapshot.Set("find", base::Value());
+  snapshot.Set("sidebarPeek", false);
+  snapshot.Set("closedCount", 0);
+  snapshot.Set("dark", false);
+  snapshot.Set("windowFocused", true);
+  snapshot.Set("fullscreen", false);
   return snapshot;
 }
 
+// 与 shared/chat.ts ChatSnapshot 同形；回答者接上前是 stub
 base::DictValue SamoUIHandler::CurrentChat() {
   base::DictValue snapshot;
-  snapshot.Set("threads", base::Value(base::ListValue()));
   snapshot.Set("mode", "closed");
+  snapshot.Set("activeThreadId", "");
+  snapshot.Set("threads", base::Value(base::ListValue()));
+  snapshot.Set("messages", base::Value(base::ListValue()));
+  snapshot.Set("generating", false);
+  snapshot.Set("unread", 0);
+  snapshot.Set("dockWidth", 360);
+  snapshot.Set("provider", "stub");
+  snapshot.Set("needsKey", true);
+  snapshot.Set("model", "");
   return snapshot;
 }
 

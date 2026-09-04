@@ -39,7 +39,9 @@ src/samo/webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）�
 patches/ - Samo 补丁（见其 README）
 
 ## 状态
-2026-09-04 起步：脚手架就位，源码拉取中；React 壳已能以 WebUI 形态构建（samo-app `build:webui`，桥换成 cr.js 消息通道）；src/samo 的 WebUI 控制器与处理器已草拟。下一步依次是 首次构建 → link-samo + 三处上游补丁 → chrome://samo 跑起壳 → 各 Command 接到浏览器进程的 Samo 服务 → 顶栏替换 → agent 网关切 CDP。
+- 2026-09-04 18:37 首次全量构建通过（component build，含 4 处上游补丁与 //samo；机器 10 核，实际约 3.5 小时含排障）；增量重编约 1 分钟。
+- 2026-09-04 18:41 **里程碑 2 达成**：`chrome://samo` 在 fork 里渲染出完整的 React 壳（rail：Browser / Workspace / Apps / App Store / Mail / Assets），`window.samo` 桥经 cr.js 消息通道工作，快照来自 SamoUIHandler 的同形占位；`scripts/verify-webui.mjs` 零错误通过。
+- 下一步：里程碑 3（壳铺满整窗：SamoUI → top-chrome 形态、SamoShellView 进 //chrome/browser/ui、BrowserView 隐藏顶栏并按 layout.contentBounds 摆放 contents）→ 命令接线 → agent 切 CDP → 品牌。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
