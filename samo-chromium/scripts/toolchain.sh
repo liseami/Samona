@@ -26,5 +26,10 @@ CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")
 # devtools-frontend 自带的 DEPS：esbuild（源码包里是 Linux 二进制）
 DEPS_FILE="$CHROMIUM_SRC/third_party/devtools-frontend/src/DEPS" DEPS_ROOT="$CHROMIUM_SRC/third_party/devtools-frontend/src" CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" third_party/esbuild
 [ -f build/util/LASTCHANGE ] || { echo "[toolchain] LASTCHANGE"; python3 build/util/lastchange.py -o build/util/LASTCHANGE; }
+# 源码包的 node_modules 在 Linux 上装的：补 darwin-arm64 的原生绑定；gperf 也是 Linux 二进制
+CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" src/third_party/gperf/cipd
+export PATH="$CHROMIUM_SRC/third_party/node/mac_arm64/node-darwin-arm64/bin:$PATH"
+rv=$(node -p "require('$CHROMIUM_SRC/third_party/devtools-frontend/src/node_modules/rollup/package.json').version")
+bash "$(dirname "$0")/npm-platform-pkg.sh" "$CHROMIUM_SRC/third_party/devtools-frontend/src/node_modules" "@rollup/rollup-darwin-arm64@$rv"
 "$DEPOT_TOOLS/ensure_bootstrap" >/dev/null 2>&1 || true  # depot_tools 的 python/ninja 包装需要一次 bootstrap
 echo "[toolchain] done"

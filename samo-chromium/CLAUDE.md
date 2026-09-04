@@ -27,6 +27,7 @@ args.gn - 开发构建 GN 参数（component build、无符号、专有编解码
 scripts/bootstrap.sh - 一键：fetch → link-samo → apply-patches → build（SAMO_SKIP_FETCH=1 跳过拉取）；日志 ~/chromium/{fetch,build}.log
 scripts/fetch.sh - 拿源码：模式 git（GitHub 镜像浅克隆到 CHROMIUM_VERSION → 远端切回 googlesource → gclient sync 拉 DEPS → runhooks）或 tarball（官方 5.9GB 源码包，可续传，再跑 toolchain.sh）；googlesource 直接浅克隆经用户的 Clash 隧道必断，故不用
 scripts/deps-fetch.py - 迷你 gclient：按 DEPS 把源码包缺的 cipd/GCS 二进制装到位（node、ANGLE 着色器缓存……），不跑 gclient sync
+scripts/npm-platform-pkg.sh - 往源码包的 node_modules 里补 darwin-arm64 原生绑定（npm pack 展开，不动 lockfile）
 scripts/toolchain.sh - 源码包路线补工具链：clang / rust / gn（cipd）/ node / LASTCHANGE
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
