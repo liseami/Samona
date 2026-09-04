@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # [INPUT]: 依赖 ~/chromium/src（源码包展开的树，无 .git、无 DEPS 二进制）、depot_tools 的 cipd、网络可达 GCS
-# [OUTPUT]: 补齐源码包缺的工具链：clang（tools/clang/scripts/update.py）、rust（tools/rust/update_rust.py）、gn（cipd gn/gn/mac-arm64 → buildtools/mac/gn）、node（third_party/node/update_node_binaries）、LASTCHANGE
+# [OUTPUT]: 补齐源码包缺的工具链：clang（tools/clang/scripts/update.py）、rust（tools/rust/update_rust.py）、gn（cipd → buildtools/mac/gn）、ninja（cipd，按 DEPS 版本；源码包里的是 Linux 二进制）、node（third_party/node/update_node_binaries）、LASTCHANGE；之后 depot_tools/ensure_bootstrap
 # [POS]: samo-chromium 的源码包路线专用（git 路线由 gclient runhooks 完成同样的事）；幂等
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 set -euo pipefail
@@ -13,6 +13,15 @@ if [ ! -x buildtools/mac/gn ]; then
   tmp=$(mktemp -d); "$DEPOT_TOOLS/cipd" ensure -root "$tmp" -ensure-file <(echo 'gn/gn/mac-arm64 latest')
   mkdir -p buildtools/mac && cp "$tmp/gn" buildtools/mac/gn && rm -rf "$tmp"
 fi
+# 源码包里的 third_party/ninja/ninja 是 Linux x86-64 二进制；按 DEPS 钉住的版本从 cipd 换成 mac-arm64
+if ! third_party/ninja/ninja --version >/dev/null 2>&1; then
+  echo "[toolchain] ninja via cipd"
+  pkg="$(grep -o "'ninja_package': *'[^']*'" DEPS | sed "s/.*: *'\(.*\)'/\1/")mac-arm64"
+  ver="$(grep -o "'ninja_version': *'[^']*'" DEPS | sed "s/.*: *'\(.*\)'/\1/")"
+  tmp=$(mktemp -d); "$DEPOT_TOOLS/cipd" ensure -root "$tmp" -ensure-file <(echo "$pkg $ver")
+  cp "$tmp/ninja" third_party/ninja/ninja && chmod +x third_party/ninja/ninja && rm -rf "$tmp"
+fi
 if [ -x third_party/node/update_node_binaries ]; then echo "[toolchain] node"; third_party/node/update_node_binaries; fi
 [ -f build/util/LASTCHANGE ] || { echo "[toolchain] LASTCHANGE"; python3 build/util/lastchange.py -o build/util/LASTCHANGE; }
+"$DEPOT_TOOLS/ensure_bootstrap" >/dev/null 2>&1 || true  # depot_tools 的 python/ninja 包装需要一次 bootstrap
 echo "[toolchain] done"
