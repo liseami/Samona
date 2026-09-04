@@ -17,6 +17,10 @@ Samo 的下一代基座：**完整 Chromium fork（含 //chrome/browser 层）+ 
 ## 阶段一的关键决策：Samo 服务进程
 Electron 版 main/ 里只有 browser/engine（标签与视图）和 shell/window（窗口几何）真正依赖 Electron；chat / apps / workspace / assets / agent 网关只依赖 Node。所以迁移不是重写它们，而是把它们从 Electron 主进程搬进一个由 Chromium 拉起的 Node 子进程（samo-service），协议还是今天的 Command / Query / Snapshot。标签、历史、下载、权限、查找、打印、弹窗——这些在 fork 里由 chrome 层原生提供，Electron 版对应代码直接删除。agent 网关改用 Chromium 的 `--remote-debugging-port` 做 CDP 后端（Electron 版用的是 webContents.debugger），ego-browser 运行时与 samo-browser CLI 零改动。
 
+## Electron 耦合审计（2026-09-04，samo-app/src/main 的服务候选模块，共约 2155 行）
+- 已是宿主无关、可原样进 samo-service：chat/{agent-provider,choreographer,config,prompt,provider,service,store}.ts、apps/{scanner,service}.ts、agent/{runner,task-spaces}.ts。
+- 需替换的耦合点：chat/{launcher-window,window}.ts（Electron 子窗口宿主 → WebUI 侧栏/浮层，删除）；workspace/service.ts（dialog 选目录、shell 揭示 → 经 SamoUIHandler 调 chrome 的文件对话框与 platform_util）；agent/{cdp-bridge,session,snapshot}.ts（WebContents.debugger → 连 Chromium `--remote-debugging-port` 的 CDP WebSocket 后端）；agent/gateway.ts（app.getPath 的用户数据目录 → 服务进程启动参数）；agent/presence.ts（光标层子窗口 → 扩展 content script 或 WebUI 覆盖层）；ipc/handlers.ts（ipcMain → SamoUIHandler 的 samo.invoke 分发）。
+
 ## 目录
 env.sh - 路径约定（depot_tools、~/chromium/src、out/Samo），source 之
 args.gn - 开发构建 GN 参数（component build、无符号、专有编解码、Widevine）
