@@ -32,6 +32,8 @@ const send = (method, params = {}) => new Promise((res) => { const i = ++id; pen
 const evaluate = async (expression) => { const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }); if (r.result?.exceptionDetails) throw new Error(r.result.exceptionDetails.text); return r.result?.result?.value; };
 await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
 await send('Runtime.enable');
+// 先回到浏览器模块（其它验收脚本可能把模块留在 apps）
+await evaluate("window.samo.invoke({ type: 'module.activate', module: 'browser' })"); await sleep(600);
 const state = async () => JSON.parse(await evaluate('window.samo.getState().then(s => JSON.stringify({ tabs: s.tabs.map(t => ({ id: t.id, url: t.url.slice(0, 40), title: t.title.slice(0, 20) })), active: s.activeTabIdByIdentity["1"] }))'));
 const dom = async () => evaluate("JSON.stringify({ rail: [...document.querySelectorAll('nav button')].map(b => b.textContent.trim()).filter(Boolean), sidebarRows: [...document.querySelectorAll('[data-panel=sidebar] button')].map(b => b.textContent.trim()).filter(Boolean).slice(0, 8), hasHole: !!document.querySelector('div[aria-hidden=\"true\"].h-full.w-full') })").then(JSON.parse);
 const s1 = await state(); const d1 = await dom();
