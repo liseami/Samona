@@ -31,6 +31,7 @@ scripts/npm-platform-pkg.sh - 往源码包的 node_modules 里补 darwin-arm64 �
 scripts/toolchain.sh - 源码包路线补工具链：clang / rust / gn（cipd）/ node / LASTCHANGE
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
+scripts/verify-webui.mjs - 非视觉验收：CDP 开 chrome://samo，查 window.samo 桥、getState 快照、rail 文案、页面错误
 scripts/run.sh - 启动构建产物，开 CDP 9222
 scripts/link-samo.sh - 把仓库内 src/samo 符号链接进 ~/chromium/src/samo（源码受版本控制，树只是挂载点）
 src/samo/ - Samo 在 Chromium 树里的独立目录：chrome://samo WebUI（控制器 + 消息处理器 + BUILD.gn），见其 CLAUDE.md
