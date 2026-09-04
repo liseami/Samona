@@ -97,6 +97,7 @@ export type Command =
   | { type: 'layout.sidebar'; width?: number; collapsed?: boolean }
   | { type: 'layout.peek'; peek: boolean }
   | { type: 'layout.overview'; open: boolean } // Safari 式标签矩阵
+  | { type: 'layout.contentBounds'; x: number; y: number; width: number; height: number } // 壳量出的「网页洞」矩形（CSS px）：Chromium 宿主据此摆放 contents 容器；Electron 宿主自己算、忽略
   | { type: 'find.start'; text: string } // 页内查找（空串即停止）
   | { type: 'find.next'; forward: boolean }
   | { type: 'find.stop' }

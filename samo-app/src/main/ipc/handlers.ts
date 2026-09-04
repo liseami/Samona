@@ -231,6 +231,8 @@ export function registerIpc({ engine, downloads, menus, window, chat, apps, work
       case 'menu.workspace':
         menus.workspace(command.id);
         break;
+      case 'layout.contentBounds':
+        break; // Electron 宿主由 ShellWindow 自己算网页几何；此命令留给 Chromium fork 宿主
       case 'layout.overview':
         store.setLayout({ overview: command.open });
         break;

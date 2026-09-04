@@ -7,6 +7,7 @@ Samo 在 Chromium 源码树里的独立目录（检出后位于 `src/samo/`，�
 BUILD.gn: :build_grd（读 webui/dist/manifest.txt 生成 grd）→ :resources（grit → samo_resources.pak + IDR_SAMO_*）→ :webui（源码集）。
 webui/samo_ui.h/.cc: SamoUI（WebUIController：数据源、默认页 webui.html、CSP 放宽内联样式、挂处理器）与 SamoUIConfig（注册入口）。
 shell/samo_shell_view.h/.cc: SamoShellView（views::WebView + WebUIContentsWrapper::Host）——把 chrome://samo 装进 Views 的全窗子视图；里程碑 3 才接进 //chrome/browser/ui（见 patches/drafts/0004），首次构建期间只是草稿。
+webui/samo_ui_dev.h/.cc: 开发态旁路——命令行 --samo-webui-dir=<dir> 时壳资源从磁盘读（vite build --watch 的产物），改壳不重编 Chromium；草稿，首次构建后接入。
 webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState / getChat 四个请求 + samo.state / event / chat 三个推送；快照与 shared/model.ts 同形，先是最小可挂起版本。
 
 ## 上游触点（将成为 patches/ 的前三个补丁）
