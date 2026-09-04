@@ -30,6 +30,13 @@ export function UserMenuOverlay() {
   });
 
   if (!anchor) return null;
+  if (window.samo.host === 'chromium') {
+    return (
+      <div className="p-1">
+        <UserMenu onClose={close} />
+      </div>
+    ); // 气泡承载：菜单即文档
+  }
   return (
     <div className="fixed inset-0 z-4">
       <div className="absolute inset-0" onMouseDown={close} aria-hidden="true" />

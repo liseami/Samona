@@ -61,6 +61,7 @@ class SamoUIConfig : public DefaultTopChromeWebUIConfig<SamoUI> {
  public:
   SamoUIConfig()
       : DefaultTopChromeWebUIConfig(content::kChromeUIScheme, kSamoHost) {}
+  bool IsPreloadable() override { return false; }  // 不让 top-chrome 预加载器凭空造壳实例
 };
 
 }  // namespace samo

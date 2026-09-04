@@ -8,7 +8,11 @@
 
 #include "base/functional/bind.h"
 #include "content/public/browser/web_ui.h"
+#include "chrome/browser/ui/webui/top_chrome/top_chrome_web_ui_controller.h"
+#include "content/public/browser/web_contents.h"
+#include "samo/webui/samo_overlay_ui.h"
 #include "samo/webui/samo_ui.h"
+#include "ui/views/widget/widget.h"
 #include "ui/gfx/geometry/rect.h"
 
 namespace samo {
@@ -55,6 +59,29 @@ void SamoUIHandler::HandleInvoke(const base::ListValue& args) {
     const std::string* type = cmd.FindString("type");
     auto* ui = web_ui()->GetController()->GetAs<SamoUI>();
     SamoUI::ShellDelegate* delegate = ui ? ui->shell_delegate() : nullptr;
+    // 弹层页里的 palette.close：让承载它的气泡关掉（embedder = WebUIContentsWrapper → Host::CloseUI）
+    if (type && *type == "palette.close" &&
+        web_ui()->GetController()->GetAs<SamoOverlayUI>()) {
+      auto* top = static_cast<TopChromeWebUIController*>(web_ui()->GetController());
+      std::string path = "none";
+      if (top->embedder()) {
+        top->embedder()->CloseUI();
+        path = "embedder";
+      }
+      if (content::WebContents* wc = web_ui()->GetWebContents()) {
+        // 保险：RenderDocument 下控制器可能是重建的、embedder 未接——直接关承载它的气泡窗口
+        if (auto* widget = views::Widget::GetWidgetForNativeWindow(wc->GetTopLevelNativeWindow())) {
+          widget->Close();
+          path += "+widget";
+        } else {
+          path += "+nowidget";
+        }
+      }
+      base::DictValue result;
+      result.Set("closed", path);
+      ResolveJavascriptCallback(base::Value(callback_id), result);
+      return;
+    }
     // 壳量出的网页洞矩形 → 宿主视图（BrowserView 据此摆放网页容器）
     if (type && *type == "layout.contentBounds") {
       if (delegate) {

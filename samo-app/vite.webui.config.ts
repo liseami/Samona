@@ -23,7 +23,7 @@ function manifest(): Plugin {
 
 export default defineConfig({
   root: resolve('src/renderer'),
-  base: 'chrome://samo/',
+  base: './', // 相对地址：同一份产物同时服务 chrome://samo（壳/新标签页）与 chrome://samo-overlay（弹层气泡），各自的数据源都能命中 assets/
   resolve: { alias: { '@': resolve('src/renderer/src'), '@shared': resolve('src/shared') } },
   plugins: [react(), tailwindcss(), manifest()],
   build: {

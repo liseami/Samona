@@ -33,6 +33,7 @@ scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分�
 scripts/apply-branding.sh - 二进制品牌资源拷贝（icns），apply-patches.sh 末尾调用
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/verify-webui.mjs - 里程碑 2 验收：CDP 开 chrome://samo，查桥、快照、rail、页面错误
+scripts/verify-overlay.mjs - 弹层验收：palette.open → 气泡 target 有输入框与尺寸 → palette.close 关闭；userMenu.open（带 session）→ 菜单渲染
 scripts/verify-shell.mjs - 里程碑 3 验收：找 Views 承载的壳 target，查真实标签快照、网页洞、经 CDP 新开标签看推送、tab.activate 回路
 scripts/run.sh - 启动构建产物，开 CDP 9222
 scripts/link-samo.sh - 把仓库内 src/samo 符号链接进 ~/chromium/src/samo（源码受版本控制，树只是挂载点）
@@ -45,7 +46,8 @@ patches/ - Samo 补丁（见其 README）
 - 2026-09-04 18:37 首次全量构建通过（component build，含 4 处上游补丁与 //samo；机器 10 核，实际约 3.5 小时含排障）；增量重编约 1 分钟。
 - 2026-09-04 18:41 **里程碑 2 达成**：`chrome://samo` 在 fork 里渲染出完整的 React 壳（rail：Browser / Workspace / Apps / App Store / Mail / Assets），`window.samo` 桥经 cr.js 消息通道工作，快照来自 SamoUIHandler 的同形占位；`scripts/verify-webui.mjs` 零错误通过。
 - 2026-09-04 18:57 **里程碑 3 核心达成**：壳铺满整窗（SamoShellView 进 BrowserView，顶栏隐藏，contents 按壳矩形摆放），Chrome 标签进侧栏、tab.* 命令回路打通（verify-shell.mjs 通过）。补丁增至 0001–0007。
-- 下一步：红绿灯/拖窗 → 弹层改 WebUI 气泡 → Samo 服务进程（chat/apps/workspace/assets）→ 品牌 → 开发态磁盘数据源。
+- 2026-09-04 19:27：拖窗、圆角、红绿灯留位、品牌（Samo.app / app.samo.browser / 图标）、我们的新标签页、弹层气泡（⌘T / 用户菜单）、开发态磁盘数据源全部落地；补丁 0001–0011。
+- 下一步：Samo 服务进程（chat / apps / workspace / assets / agent 网关）→ 对话浮窗与停靠卡 → 下载/查找/历史投影到壳 → 打包与更新器。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

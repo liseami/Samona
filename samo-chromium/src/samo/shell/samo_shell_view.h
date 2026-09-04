@@ -1,5 +1,5 @@
 // [INPUT]: 依赖 ui/views/controls/webview 的 views::WebView，chrome/browser/ui/webui/top_chrome 的 WebUIContentsWrapper(T)/Host，samo/webui/samo_ui.h 的 SamoUI/ShellDelegate，chrome/browser/ui/views/frame/browser_view.h
-// [OUTPUT]: SamoShellView——把 chrome://samo 壳装进 Views 的全窗子视图（壳在下、网页容器在上）；把壳量出的「网页洞」矩形交给 BrowserView；观察 Chrome 的 TabStripModel 生成 BrowserSnapshot 的 tabs 并推给壳；把壳的 tab.* 命令落到 TabStripModel
+// [OUTPUT]: SamoShellView——把 chrome://samo 壳装进 Views 的全窗子视图（壳在下、网页容器在上）；把壳量出的「网页洞」矩形交给 BrowserView；观察 Chrome 的 TabStripModel 生成 BrowserSnapshot 的 tabs 并推给壳；把壳的 tab.* 命令落到 TabStripModel；palette.open / userMenu.open 开 WebUI 气泡承载弹层页（chrome://samo-overlay）
 // [POS]: samo/shell 的核心；Chrome 的 SidePanelWebUIView 是同一机制（WebView + WebUIContentsWrapper::Host），区别只是我们铺满整窗。编进 //chrome/browser/ui（补丁 0006）
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 #ifndef SAMO_SHELL_SAMO_SHELL_VIEW_H_
@@ -11,20 +11,24 @@
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
+#include "ui/views/bubble/bubble_border.h"
 #include "chrome/browser/ui/webui/top_chrome/webui_contents_wrapper.h"
 #include "samo/webui/samo_ui.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/controls/webview/webview.h"
+#include "ui/views/widget/widget_observer.h"
 
 class BrowserView;
 class Profile;
+class WebUIBubbleManager;
 
 namespace samo {
 
 class SamoShellView : public views::WebView,
                       public WebUIContentsWrapper::Host,
                       public SamoUI::ShellDelegate,
-                      public TabStripModelObserver {
+                      public TabStripModelObserver,
+                      public views::WidgetObserver {
   METADATA_HEADER(SamoShellView, views::WebView)
 
  public:
@@ -51,7 +55,14 @@ class SamoShellView : public views::WebView,
                               const TabStripSelectionChange& selection) override;
   void OnTabChangedAt(tabs::TabInterface* tab, int index, TabChangeType change_type) override;
 
+  // views::WidgetObserver：弹层气泡关闭时告诉壳（overlayClosed）
+  void OnWidgetDestroying(views::Widget* widget) override;
+
  private:
+  // 弹层（命令面板 / 用户菜单）：一次一个 WebUI 气泡，意图经 URL 查询串带给弹层页
+  void OpenOverlay(const std::string& query, const gfx::Rect& anchor_in_view, views::BubbleBorder::Arrow arrow);
+  std::unique_ptr<WebUIBubbleManager> overlay_;
+
   void PushState();
   int IndexOfTabId(const std::string& tab_id) const;
 

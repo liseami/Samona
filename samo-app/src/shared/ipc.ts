@@ -4,7 +4,7 @@
  * [POS]: shared 的进程间契约；preload 按 SamoBridge 暴露 window.samo，主进程 ipc/handlers 按 Command/Query 分发。新增能力 = 新增一个联合成员 + 一个 case，不改旧路径
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import type { BrowserSnapshot, FolderColor, ModuleId, Suggestion } from './model';
+import type { BrowserSnapshot, FolderColor, ModuleId, Suggestion, SessionUser } from './model';
 import type { ChatMode, ChatSnapshot } from './chat';
 
 export const CHANNELS = {
@@ -67,7 +67,7 @@ export type Command =
   // ---- 命令面板（叠在网页之上的 overlay 视图） ----
   | { type: 'palette.open'; mode: PaletteMode }
   | { type: 'palette.close' } // 关闭 overlay（命令面板与用户菜单共用）
-  | { type: 'userMenu.open'; left: number; bottom: number } // 用户菜单开进 overlay 子窗口（锚点为壳视图 CSS px）
+  | { type: 'userMenu.open'; left: number; bottom: number; session?: SessionUser } // 用户菜单开进 overlay（锚点为壳视图 CSS px）；session 随命令带给弹层文档（Chromium 宿主下弹层与壳不同源，localStorage 不共享）
   // ---- AI 对话（launcher / 浮窗 / 停靠卡三处共用） ----
   | { type: 'chat.setMode'; mode: ChatMode }
   | { type: 'chat.send'; text: string }

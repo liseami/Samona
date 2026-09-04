@@ -212,3 +212,13 @@ export type Suggestion =
 export function tabTitle(tab: Pick<Tab, 'customTitle' | 'title' | 'url'>): string {
   return tab.customTitle || tab.title || tab.url;
 }
+
+// ============ 账号（Samo 账号体系接上前是本地 mock；壳与弹层页各自是独立文档，靠宿主/命令传递） ============
+export interface SessionUser {
+  id: string;
+  nickname: string;
+  email: string;
+  avatarUrl?: string | null;
+  tier: 'free' | 'pro' | 'max';
+  credits: number;
+}

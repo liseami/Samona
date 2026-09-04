@@ -1,5 +1,5 @@
 // [INPUT]: 依赖 ./samo_shell_view.h，chrome/browser/ui/views/frame/browser_view.h，chrome/browser/ui/browser.h，chrome/browser/ui/browser_tabstrip.h（AddTabAt），chrome/browser/ui/tabs/tab_strip_model.h，components/sessions/content/session_tab_helper.h（标签 id），components/url_formatter/url_fixer.h（地址栏输入→URL），samo/webui/samo_ui_handler.h（EmptyState/PushState），chrome/grit/generated_resources.h
-// [OUTPUT]: SamoShellView 的实现：装载 chrome://samo；标签快照 = TabStripModel 逐个 WebContents 映射到 shared/model.ts 的 Tab（id 用 SessionID，favicon 用 chrome://favicon2）；tab.create/activate/close/navigate/back/forward/reload/stop/pin 落到 TabStripModel/NavigationController
+// [OUTPUT]: SamoShellView 的实现：装载 chrome://samo；标签快照 = TabStripModel 逐个 WebContents 映射到 shared/model.ts 的 Tab（id 用 SessionID，favicon 用 chrome://favicon2）；tab.create/activate/close/navigate/back/forward/reload/stop/pin 落到 TabStripModel/NavigationController；palette.open / userMenu.open 开 WebUI 气泡（意图经 ?open=… 带给弹层页），气泡销毁时向壳推 overlayClosed
 // [POS]: samo/shell 的核心实现——Electron 版 main/browser/engine.ts 的标签部分在 fork 里的对应物，但标签本身由 Chrome 拥有，我们只做投影与命令
 // [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 #include "samo/shell/samo_shell_view.h"
@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include "base/json/json_writer.h"
 #include "base/strings/escape.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
@@ -16,7 +17,10 @@
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_strip_user_gesture_details.h"
+#include "chrome/browser/ui/views/bubble/webui_bubble_manager.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "samo/webui/samo_overlay_ui.h"
+#include "ui/views/widget/widget.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/sessions/content/session_tab_helper.h"
 #include "components/url_formatter/url_fixer.h"
@@ -166,6 +170,36 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
   const int index = tab_id ? IndexOfTabId(*tab_id) : tsm->active_index();
   content::WebContents* wc = index >= 0 ? tsm->GetWebContentsAt(index) : nullptr;
 
+  if (*type == "palette.open") {
+    const std::string* mode = command.FindString("mode");
+    content::WebContents* active = tsm->GetActiveWebContents();
+    const std::string url = active ? active->GetVisibleURL().spec() : "";
+    // 面板：浮在网页容器上方中央（FLOAT = 无箭头、居中于锚点矩形）
+    gfx::Rect anchor(bounds().width() / 2, 120, 1, 1);
+    OpenOverlay("open=palette&mode=" + base::EscapeQueryParamValue(mode ? *mode : "newTab", false) +
+                    "&url=" + base::EscapeQueryParamValue(url, false),
+                anchor, views::BubbleBorder::FLOAT);
+    return true;
+  }
+  if (*type == "userMenu.open") {
+    // 壳给的是 rail 按钮的 left/bottom（bottom 从窗口底边量）；气泡从该点向右上弹
+    const int left = command.FindInt("left").value_or(8);
+    const int bottom = command.FindInt("bottom").value_or(60);
+    gfx::Rect anchor(left, bounds().height() - bottom, 1, 1);
+    std::string query = "open=userMenu";
+    // 账号 mock 随命令带给弹层文档（弹层与壳不同源，localStorage 不共享）
+    if (const base::DictValue* session = command.FindDict("session")) {
+      if (std::optional<std::string> json = base::WriteJson(*session))
+        query += "&session=" + base::EscapeQueryParamValue(*json, false);
+    }
+    OpenOverlay(query, anchor, views::BubbleBorder::LEFT_BOTTOM);
+    return true;
+  }
+  if (*type == "palette.close") {
+    if (overlay_)
+      overlay_->CloseBubble();
+    return true;
+  }
   if (*type == "tab.create") {
     const std::string* url = command.FindString("url");
     chrome::AddTabAt(browser, url ? url_formatter::FixupURL(*url) : GURL("chrome://newtab/"), -1,
@@ -198,6 +232,31 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
     return false;
   }
   return true;
+}
+
+// ---- 弹层：WebUI 气泡承载 chrome://samo-overlay（对应 Electron 时代的 PaletteWindow 子窗口）----
+void SamoShellView::OpenOverlay(const std::string& query, const gfx::Rect& anchor_in_view, views::BubbleBorder::Arrow arrow) {
+  if (overlay_)
+    overlay_->CloseBubble();
+  overlay_ = WebUIBubbleManager::Create<SamoOverlayUI>(
+      browser_view_->browser(), GURL("chrome://samo-overlay/?" + query), IDS_TASK_MANAGER_OMNIBOX,
+      /*force_load_on_create=*/true);
+  gfx::Rect screen_anchor(anchor_in_view);
+  views::View::ConvertRectToScreen(this, &screen_anchor);
+  overlay_->ShowBubble(screen_anchor, arrow);
+  if (views::Widget* widget = overlay_->GetBubbleWidget())
+    widget->AddObserver(this);
+}
+
+void SamoShellView::OnWidgetDestroying(views::Widget* widget) {
+  widget->RemoveObserver(this);
+  if (contents_wrapper_) {
+    if (auto* ui = contents_wrapper_->GetWebUIController(); ui && ui->handler()) {
+      base::DictValue ev;
+      ev.Set("type", "overlayClosed");
+      ui->handler()->PushEvent(std::move(ev));
+    }
+  }
 }
 
 BEGIN_METADATA(SamoShellView)

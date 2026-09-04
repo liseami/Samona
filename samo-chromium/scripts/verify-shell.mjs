@@ -11,8 +11,15 @@ const fail = (m) => { console.error('FAIL', m); process.exit(1); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const targets = await fetch(`${base}/json`).then((r) => r.json()).catch((e) => fail(`CDP unreachable: ${e.message}`));
-const shell = targets.find((t) => t.type !== 'page' && t.url.startsWith('chrome://samo'));
-if (!shell) fail(`no Views-hosted chrome://samo target; targets: ${targets.map((t) => `${t.type} ${t.url.slice(0, 40)}`).join(' | ')}`);
+// pick the hosted shell: the chrome://samo target whose state actually carries tabs (others are spare/tab instances)
+const candidates = targets.filter((t) => t.type !== 'page' && t.url.startsWith('chrome://samo/'));
+if (!candidates.length) fail(`no Views-hosted chrome://samo target; targets: ${targets.map((t) => `${t.type} ${t.url.slice(0, 40)}`).join(' | ')}`);
+let shell = candidates[0]; let best = -1;
+for (const c of candidates) {
+  const w = new WebSocket(c.webSocketDebuggerUrl); await new Promise((res, rej) => { w.onopen = res; w.onerror = rej; });
+  const n = await new Promise((res) => { w.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id === 1) res(m.result?.result?.value ?? -1); }; w.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: 'window.samo.getState().then(s => s.tabs.length)', awaitPromise: true, returnByValue: true } })); });
+  w.close(); if (n > best) { best = n; shell = c; }
+}
 const ws = new WebSocket(shell.webSocketDebuggerUrl);
 let id = 0; const pending = new Map(); const errors = [];
 ws.onmessage = (ev) => {

@@ -95,11 +95,12 @@ export function Palette() {
   const flat: Suggestion[] = groups.flatMap((g) => g.list);
 
   if (!open) return null;
+  const bubble = window.samo.host === 'chromium'; // Chromium 宿主：气泡承载，卡片即文档，无幕布
 
   return (
-    <div className="fixed inset-0 z-4" role="dialog" aria-modal="true">
-      <div className="laper-backdrop-fade absolute inset-0 bg-foreground/40" onMouseDown={close} />
-      <div className="laper-dialog-pop absolute top-1/2 left-1/2 w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
+    <div className={bubble ? 'relative w-[640px]' : 'fixed inset-0 z-4'} role="dialog" aria-modal="true">
+      {!bubble && <div className="laper-backdrop-fade absolute inset-0 bg-foreground/40" onMouseDown={close} />}
+      <div className={bubble ? 'overflow-hidden rounded-2xl border border-border bg-background' : 'laper-dialog-pop absolute top-1/2 left-1/2 w-[calc(100%-2rem)] max-w-2xl overflow-hidden rounded-2xl border border-border bg-background shadow-xl'}>
         {/* ---- 输入行 ---- */}
         <div className="flex items-center gap-3 px-4 py-3">
           {mode === 'searchTabs' ? <Window size={16} className="shrink-0 text-muted-foreground" /> : <Search size={16} className="shrink-0 text-muted-foreground" />}

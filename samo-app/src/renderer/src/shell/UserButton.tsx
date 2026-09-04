@@ -30,7 +30,7 @@ export function UserButton({ expanded, onOpenChange }: { expanded: boolean; onOp
     const rect = trigger.current?.getBoundingClientRect();
     if (!rect) return;
     setOpen(true);
-    send({ type: 'userMenu.open', left: rect.left, bottom: window.innerHeight - rect.top + MENU_GAP });
+    send({ type: 'userMenu.open', left: rect.left, bottom: window.innerHeight - rect.top + MENU_GAP, session: user ?? undefined });
   };
   useEffect(() => window.samo.onEvent((e) => e.type === 'overlayClosed' && setOpen(false)), []);
   useEffect(() => {

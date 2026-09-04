@@ -5,15 +5,9 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { create } from 'zustand';
+import type { SessionUser } from '@shared/model';
 
-export interface SessionUser {
-  id: string;
-  nickname: string;
-  email: string;
-  avatarUrl?: string | null;
-  tier: 'free' | 'pro' | 'max';
-  credits: number;
-}
+export type { SessionUser };
 
 interface SessionState {
   user: SessionUser | null;
