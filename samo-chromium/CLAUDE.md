@@ -24,6 +24,7 @@ Electron 版 main/ 里只有 browser/engine（标签与视图）和 shell/window
 ## 目录
 env.sh - 路径约定（depot_tools、~/chromium/src、out/Samo），source 之
 args.gn - 开发构建 GN 参数（component build、无符号、专有编解码、Widevine）
+scripts/bootstrap.sh - 一键：fetch → link-samo → apply-patches → build（SAMO_SKIP_FETCH=1 跳过拉取）；日志 ~/chromium/{fetch,build}.log
 scripts/fetch.sh - 拉 depot_tools + 浅检出 Chromium + runhooks（首次数十分钟到数小时，取决于网络）
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
 scripts/apply-patches.sh - 把 patches/ 打到检出上（git am --3way，幂等）
