@@ -125,10 +125,9 @@ export interface Download {
 export const MODULES = [
   { id: 'browser', label: 'Browser', ready: true, dev: false },
   { id: 'apps', label: 'Apps', ready: true, dev: false }, // 用户自己的应用：本地（localhost 端口扫描）与云端（Samo 部署）
+  { id: 'appstore', label: 'App Store', ready: true, dev: false }, // 应用商店：别人用 Samo 发布的应用，Add 收进自己的应用（当前 mock）
   { id: 'workspace', label: 'Workspace', ready: true, dev: false }, // 本机目录 = 工作区：Codex 式对话，未来 agent 在里面工作
   { id: 'mail', label: 'Mail', ready: false, dev: false },
-  { id: 'knowledge', label: 'Knowledge', ready: false, dev: false },
-  { id: 'memory', label: 'Memory', ready: false, dev: false }, // Samo 记住的关于你的一切
   { id: 'assets', label: 'Assets', ready: true, dev: false }, // 资产：下载的、AI 生成的，按 tab 区分
   { id: 'design', label: 'Design', ready: true, dev: true }, // 仅开发环境可见：设计系统组件陈列
 ] as const;

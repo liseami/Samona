@@ -6,7 +6,7 @@ Samo 浏览器本体：类 Arc 的桌面浏览器，侧边栏是用户自己的 
 Electron 44 (BaseWindow + WebContentsView) + electron-vite 5 + Vite 8 + React 19 + TypeScript + Tailwind CSS v4 + zustand + @dnd-kit + Radix + Pika icons · 主进程 ws 网关 · 复用 ego-browser-v2 作为 agent 运行时
 
 ## 产品架构
-Samo = 模块 × agent。壳（shell）负责窗口、icon navi、侧栏几何——页面底是 sidebar 色，rail 与底同色，侧栏与面板是两张同质卡片（Laper 剧本项目的 ProjectEditorShell）；每个模块交出侧栏 + 面板 + 头部动作（modules/registry）。浏览器是第一个模块，它的面板是主进程叠上来的网页视图；「应用」维度紧随其后——扫描 localhost 上跑着的应用、一排两张卡陈列在侧栏、点开即在当前身份里成为一个标签（云端部署预留）；邮件 / 知识库 / 网盘是后续模块。登录态只有一套；agent 的任务空间是侧栏里的分组。
+Samo = 模块 × agent。壳（shell）负责窗口、icon navi、侧栏几何——页面底是 sidebar 色，rail 与底同色，侧栏与面板是两张同质卡片（Laper 剧本项目的 ProjectEditorShell）；每个模块交出侧栏 + 面板 + 头部动作（modules/registry）。浏览器是第一个模块，它的面板是主进程叠上来的网页视图；「应用」维度紧随其后——扫描 localhost 上跑着的应用、一排两张卡陈列在侧栏、点开即在当前身份里成为一个标签（云端部署预留）；应用商店（appstore，mock：别人发布的应用 + Add 收进自己的应用）已有形；邮件是后续模块。登录态只有一套；agent 的任务空间是侧栏里的分组。
 
 ## AI 对话
 真相在主进程 chat/（线程、消息与工具胶囊、流式、形态）。三形态：closed（右下角 Laper 药丸，透明小子窗口）、floating（不透明子窗口：可拖出应用、原生缩放与阴影，锚在右下角）、docked（面板卡右侧的第四张卡）；无开合动画。⌘T 命令面板也是透明子窗口。银灰范式：药丸与极光只用中性灰。回答者是 ChatProvider 插槽：配了 Anthropic 密钥（对话面板的接入卡或 ANTHROPIC_API_KEY）就是 AgentProvider——Claude 用唯一的 `browser` 工具写 ego-browser 脚本，经 samo-browser 子进程与网关真正驱动浏览器，agent 在自己的身份里工作、侧栏可围观；没配就是引导语。⌘I 开关。

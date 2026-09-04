@@ -22,6 +22,7 @@ import {
   KeyLeft,
   PointerCursorDefault,
   GridDashboard01,
+  PurseBag,
   ArchiveDefault,
   SparkleAI01,
   Sun,
@@ -161,10 +162,9 @@ export const Copied = d(CopyCopied);
 export const MODULE_ICON: Record<ModuleId, ComponentType<IconProps>> = {
   browser: d(PiGlobe),
   apps: d(GridDashboard01),
+  appstore: d(PurseBag),
   workspace: d(FolderDefault),
   mail: d(EnvelopeDefault),
-  knowledge: d(GraduationHat),
-  memory: d(SparkleAI01),
   assets: d(ArchiveDefault),
   design: d(DiamondComponent),
 };
