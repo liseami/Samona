@@ -1,0 +1,15 @@
+{
+  "name": "samo-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Samo 服务进程：chat / apps / workspace 的业务逻辑，由浏览器进程拉起，stdio 上跑 JSON 行协议",
+  "scripts": {
+    "build": "bun build src/index.ts --target=node --outfile=dist/index.js --tsconfig-override tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "samo-agent": "workspace:*"
+  }
+}

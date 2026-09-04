@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "bun run --cwd samo-app dev",
+    "build:service": "bun run --cwd packages/samo-service build",
     "dev:web": "bun run --cwd samo-web dev",
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",

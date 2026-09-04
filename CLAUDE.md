@@ -5,13 +5,14 @@ Bun 1.3 workspaces 单仓 · samo-app: Electron 44 + electron-vite 5 + React 19 
 <directory>
 samo-app/ - Samo 浏览器本体，Electron 桌面应用 (src/main 主进程, src/preload 桥, src/renderer React 壳与新标签页, src/shared 三方契约)
 samo-web/ - 落地页，20 国语言轮换的极简标语，Cloudflare Pages 托管 (src/components, src/i18n)
+packages/samo-service/ - Samo 服务进程（Chromium fork 用）：装配 samo-app 里宿主无关的 chat / apps / workspace 业务，stdio JSON 行协议，由浏览器进程拉起
 packages/samo-agent/ - `samo-browser` CLI：任何 AI agent 经它驱动 Samo；ego-browser-v2 提供全部 helper，本包只做网关客户端与 `globalThis.ego` 宿主
 samo-chromium/ - 下一代基座（分支 chromium-fork）：完整 Chromium fork + React 壳搬进 WebUI 的脚手架、GN 参数、补丁与迁移地图；源码与产物在仓库外 ~/chromium
 reference/ - 只读参考仓（git 忽略）：ego-lite（agent 浏览器 harness）、phibrowser-mac（macOS 原生壳与 UI 设计）、kumo（Cloudflare Kumo：按钮受光配方与文档站陈列形态的源头）
 </directory>
 
 <config>
-package.json - workspaces 与根脚本（dev → samo-app，dev:web → samo-web，build/typecheck 全仓）；trustedDependencies 放行 electron 的二进制下载（bun 隔离安装默认拦截生命周期脚本）
+package.json - workspaces 与根脚本（dev → samo-app，dev:web → samo-web，build:service → 服务进程，build/typecheck 全仓）；trustedDependencies 放行 electron 的二进制下载（bun 隔离安装默认拦截生命周期脚本）
 .gitignore - node_modules/out/dist/release、reference/、packages/samo-agent/workspace/（构建生成）
 bun.lock - 单一锁文件
 </config>

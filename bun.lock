@@ -21,6 +21,14 @@
         "@types/node": "^22.19.0",
       },
     },
+    "packages/samo-service": {
+      "name": "samo-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@anthropic-ai/sdk": "^0.123.0",
+        "samo-agent": "workspace:*",
+      },
+    },
     "samo-app": {
       "name": "samo-app",
       "version": "0.1.0",
@@ -1066,6 +1074,8 @@
     "samo-agent": ["samo-agent@workspace:packages/samo-agent"],
 
     "samo-app": ["samo-app@workspace:samo-app"],
+
+    "samo-service": ["samo-service@workspace:packages/samo-service"],
 
     "samo-web": ["samo-web@workspace:samo-web"],
 
