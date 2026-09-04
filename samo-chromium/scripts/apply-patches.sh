@@ -13,3 +13,4 @@ for p in "$PATCHES"/*.patch; do
   if patch -p1 -R --dry-run -s -f < "$p" >/dev/null 2>&1; then echo "[patch] already applied $n"; continue; fi
   if [ -d .git ]; then git apply --3way "$p" && echo "[patch] applied $n (git)"; else patch -p1 -N -s < "$p" && echo "[patch] applied $n"; fi
 done
+bash "$(dirname "$0")/apply-branding.sh"

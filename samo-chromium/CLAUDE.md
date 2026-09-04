@@ -30,6 +30,7 @@ scripts/deps-fetch.py - 迷你 gclient：按 DEPS 把源码包缺的 cipd/GCS �
 scripts/npm-platform-pkg.sh - 往源码包的 node_modules 里补 darwin-arm64 原生绑定（npm pack 展开，不动 lockfile）
 scripts/toolchain.sh - 源码包路线补工具链：clang / rust / gn（cipd）/ node / LASTCHANGE
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
+scripts/apply-branding.sh - 二进制品牌资源拷贝（icns），apply-patches.sh 末尾调用
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/verify-webui.mjs - 里程碑 2 验收：CDP 开 chrome://samo，查桥、快照、rail、页面错误
 scripts/verify-shell.mjs - 里程碑 3 验收：找 Views 承载的壳 target，查真实标签快照、网页洞、经 CDP 新开标签看推送、tab.activate 回路
@@ -37,6 +38,7 @@ scripts/run.sh - 启动构建产物，开 CDP 9222
 scripts/link-samo.sh - 把仓库内 src/samo 符号链接进 ~/chromium/src/samo（源码受版本控制，树只是挂载点）
 src/samo/ - Samo 在 Chromium 树里的独立目录：chrome://samo WebUI（控制器 + 消息处理器 + BUILD.gn），见其 CLAUDE.md
 src/samo/webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）：壳与新标签页的静态资源 + manifest.txt（GN 读它生成 grd）
+branding/ - app.icns（由 samo-app/build/icon.png 经 sips+iconutil 生成；apply-branding.sh 拷进树）
 patches/ - Samo 补丁（见其 README）
 
 ## 状态

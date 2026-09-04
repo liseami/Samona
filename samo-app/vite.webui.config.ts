@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 vite 的 defineConfig，@vitejs/plugin-react 与 @tailwindcss/vite 插件
- * [OUTPUT]: WebUI 宿主构建：把 renderer 的壳（webui.html）与新标签页（webui-newtab.html）打成 chrome://samo/ 下的静态资源，输出到 ../samo-chromium/src/samo/webui/dist（就在挂进 Chromium 树的目录里，BUILD.gn 以 //samo/webui/dist 引用）（Chromium 侧用 generate_grd 收进资源包）；chrome://resources 的模块保持 external 由 Chromium 运行时提供
+ * [OUTPUT]: WebUI 宿主构建：把 renderer 的壳（webui.html）、新标签页（webui-newtab.html）、弹层（webui-overlay.html：命令面板 + 用户菜单）与对话（webui-chat.html）打成 chrome://samo/ 下的静态资源，输出到 ../samo-chromium/src/samo/webui/dist（就在挂进 Chromium 树的目录里，BUILD.gn 以 //samo/webui/dist 引用）（Chromium 侧用 generate_grd 收进资源包）；chrome://resources 的模块保持 external 由 Chromium 运行时提供
  * [POS]: samo-app 的第二份构建宪法，与 electron.vite.config.ts 并列：同一份 renderer 源码、两种宿主
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -33,6 +33,8 @@ export default defineConfig({
       input: {
         index: resolve('src/renderer/webui.html'),
         newtab: resolve('src/renderer/webui-newtab.html'),
+        overlay: resolve('src/renderer/webui-overlay.html'),
+        chat: resolve('src/renderer/webui-chat.html'),
       },
       external: (id) => id.startsWith('chrome://'),
       // 文件名不带哈希：资源名进 grd 后成为 IDR_ 常量，必须稳定
