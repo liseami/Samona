@@ -40,6 +40,6 @@ source_set("webui") {
     "//chrome/browser/profiles:profile",
     "//chrome/browser/ui/webui:webui_util",
     "//content/public/browser",
-    "//ui/webui",  # webui_util
+    "//ui/webui://ui/webui/webui_features.gni",  # webui_util
   ]
 }
