@@ -27,6 +27,10 @@ CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")
 # devtools-frontend 自带的 DEPS：esbuild（源码包里是 Linux 二进制）
 DEPS_FILE="$CHROMIUM_SRC/third_party/devtools-frontend/src/DEPS" DEPS_ROOT="$CHROMIUM_SRC/third_party/devtools-frontend/src" CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" third_party/esbuild
 [ -f build/util/LASTCHANGE ] || { echo "[toolchain] LASTCHANGE"; python3 build/util/lastchange.py -o build/util/LASTCHANGE; }
+# gclient 的 lastchange 系列 hook：无 git 的树里生成占位版本头
+[ -f gpu/config/gpu_lists_version.h ] || python3 build/util/lastchange.py -m GPU_LISTS_VERSION --revision-id-only --header gpu/config/gpu_lists_version.h
+[ -f skia/ext/skia_commit_hash.h ] || python3 build/util/lastchange.py -m SKIA_COMMIT_HASH -s third_party/skia --header skia/ext/skia_commit_hash.h
+[ -f gpu/webgpu/DAWN_VERSION ] || python3 build/util/lastchange.py -m DAWN_COMMIT_HASH -s third_party/dawn --revision gpu/webgpu/DAWN_VERSION
 # 源码包的 node_modules 在 Linux 上装的：补 darwin-arm64 的原生绑定；gperf 也是 Linux 二进制
 CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" src/third_party/gperf/cipd
 export PATH="$CHROMIUM_SRC/third_party/node/mac_arm64/node-darwin-arm64/bin:$PATH"
