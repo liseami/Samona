@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # [INPUT]: 依赖 fetch.sh 完成后的 ~/chromium/src、../args.gn、depot_tools 的 gn/autoninja；磁盘 ≥ 120GB 空闲
-# [OUTPUT]: ~/chromium/src/out/Samo/Chromium.app（component 构建；首次 4–8 小时，之后增量分钟级）
+# [OUTPUT]: ~/chromium/src/out/Samo/Chromium.app（component 构建，ninja 直驱、siso 关；首次 4–8 小时，之后增量分钟级）
 # [POS]: samo-chromium 的第二步：构建。先 apply-patches.sh 再来；参数变了重跑 gn gen
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 set -euo pipefail
@@ -12,6 +12,6 @@ cd "$CHROMIUM_SRC"
 mkdir -p "$SAMO_OUT"
 grep -v '^#' "$ARGS" > "$SAMO_OUT/args.gn"
 gn gen "$SAMO_OUT"
-echo "[build] autoninja chrome ($(date))"
-nice -n 10 autoninja -C "$SAMO_OUT" chrome
+echo "[build] autoninja→ninja chrome ($(date))"  # autoninja 会强制走 siso（源码包树没有），直接用 depot_tools 的 ninja
+nice -n 10 "$DEPOT_TOOLS/ninja" -C "$SAMO_OUT" chrome
 echo "[build] done ($(date)) → $CHROMIUM_SRC/$SAMO_OUT/Chromium.app"
