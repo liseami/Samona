@@ -33,6 +33,7 @@ webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState /
 - 19:04：壳头部可拖窗（DraggableRegions → BrowserView 命中测试 HTCAPTION）、网页容器裁圆角（13）、壳在 Chromium 宿主下为原生红绿灯留位（bridge.host）、开发态磁盘数据源已接。
 - 19:27：弹层（⌘T 命令面板、用户菜单）由 WebUI 气泡承载（chrome://samo-overlay，意图与账号 mock 随 URL），palette.close 经 embedder 关气泡，气泡销毁向壳推 overlayClosed；品牌（Samo.app / app.samo.browser / 图标）、新标签页（我们的 NewTab）已落地。
 - 20:05：**Samo 服务进程接入**——对话（keyless/Claude）、应用扫描（9 个 localhost 应用）、工作区来自 Node 服务；壳的 chat.* / apps.* / workspace.* / shell.setTheme 转发给它，host 请求（开/关应用标签、目录选择器、访达显示）在 SamoShellView 落地；布局命令（module.activate / layout.*）与窗口命令本地处理；无洞时网页容器压到壳下（0012）。教训：WebUI 渲染器不许加载 http 资源（图标由服务抓成 data:），Layout 内不能 ReorderChildView（死循环），tabbed layout CHECK 网页容器可见。
+- 20:06：深浅色跟随系统（NativeThemeObserver → 快照 dark，弹层的 EmptyState 也读系统主题）；⌘L / 聚焦地址栏改道到壳的命令面板（补丁 0013）。
 - 未完：对话浮窗/停靠卡（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置

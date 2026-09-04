@@ -1,0 +1,14 @@
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -2319,6 +2319,11 @@
+ }
+ 
+ void BrowserView::SetFocusToLocationBar(bool is_user_initiated) {
++  // Samo：没有地址栏，⌘L / 聚焦地址栏 = 打开壳的命令面板（editUrl）
++  if (samo_shell_view_) {
++    samo_shell_view_->OpenPalette("editUrl");
++    return;
++  }
+   // On Windows, changing focus to the location bar causes the browser window to
+   // become active. This can steal focus if the user has another window open
+   // already. On Chrome OS, changing focus makes a view believe it has a focus

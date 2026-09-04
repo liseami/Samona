@@ -47,6 +47,7 @@ source_set("webui") {
     "//chrome/browser/ui/webui:webui_util",
     "//chrome/browser/ui/webui/top_chrome:top_chrome",
     "//ui/gfx/geometry",
+    "//ui/native_theme",
     "//ui/views",
     "//content/public/browser",
     "//ui/webui:webui",  # webui_util

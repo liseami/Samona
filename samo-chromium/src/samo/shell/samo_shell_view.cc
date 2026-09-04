@@ -88,6 +88,7 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
   SetWebContents(contents_wrapper_->web_contents());
   SetVisible(true);
   browser_view_->browser()->tab_strip_model()->AddObserver(this);
+  ui::NativeTheme::GetInstanceForNativeUi()->AddObserver(this);
 
   layout_.Set("module", "browser");
   layout_.Set("sidebarWidth", 264);
@@ -107,6 +108,7 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
 }
 
 SamoShellView::~SamoShellView() {
+  ui::NativeTheme::GetInstanceForNativeUi()->RemoveObserver(this);
   if (service_)
     service_->RemoveObserver(this);
   if (select_folder_dialog_)
@@ -342,13 +344,7 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
   }
   if (*type == "palette.open") {
     const std::string* mode = command.FindString("mode");
-    content::WebContents* active = tsm->GetActiveWebContents();
-    const std::string url = active ? active->GetVisibleURL().spec() : "";
-    // 面板：浮在网页容器上方中央（FLOAT = 无箭头、居中于锚点矩形）
-    gfx::Rect anchor(bounds().width() / 2, 120, 1, 1);
-    OpenOverlay("open=palette&mode=" + base::EscapeQueryParamValue(mode ? *mode : "newTab", false) +
-                    "&url=" + base::EscapeQueryParamValue(url, false),
-                anchor, views::BubbleBorder::FLOAT);
+    OpenPalette(mode ? *mode : "newTab");
     return true;
   }
   if (*type == "userMenu.open") {
@@ -409,6 +405,19 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
     return false;
   }
   return true;
+}
+
+void SamoShellView::OpenPalette(const std::string& mode) {
+  content::WebContents* active = browser_view_->browser()->tab_strip_model()->GetActiveWebContents();
+  const std::string url = active ? active->GetVisibleURL().spec() : "";
+  // 面板：浮在网页容器上方中央（FLOAT = 无箭头、居中于锚点矩形）
+  gfx::Rect anchor(bounds().width() / 2, 120, 1, 1);
+  OpenOverlay("open=palette&mode=" + base::EscapeQueryParamValue(mode, false) + "&url=" + base::EscapeQueryParamValue(url, false),
+              anchor, views::BubbleBorder::FLOAT);
+}
+
+void SamoShellView::OnNativeThemeUpdated(ui::NativeTheme* observed_theme) {
+  PushState();  // dark 随系统
 }
 
 // ---- 弹层：WebUI 气泡承载 chrome://samo-overlay（对应 Electron 时代的 PaletteWindow 子窗口）----

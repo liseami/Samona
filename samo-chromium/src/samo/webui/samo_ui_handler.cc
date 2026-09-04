@@ -14,6 +14,7 @@
 #include "samo/webui/samo_ui.h"
 #include "ui/views/widget/widget.h"
 #include "ui/gfx/geometry/rect.h"
+#include "ui/native_theme/native_theme.h"
 
 namespace samo {
 
@@ -165,7 +166,7 @@ base::DictValue SamoUIHandler::EmptyState() {
   snapshot.Set("find", base::Value());
   snapshot.Set("sidebarPeek", false);
   snapshot.Set("closedCount", 0);
-  snapshot.Set("dark", false);
+  snapshot.Set("dark", ui::NativeTheme::GetInstanceForNativeUi()->preferred_color_scheme() == ui::NativeTheme::PreferredColorScheme::kDark);  // 跟随系统外观
   snapshot.Set("windowFocused", true);
   snapshot.Set("fullscreen", false);
   return snapshot;

@@ -14,6 +14,8 @@
 #include "base/values.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "samo/service/samo_service.h"
+#include "ui/native_theme/native_theme.h"
+#include "ui/native_theme/native_theme_observer.h"
 #include "ui/shell_dialogs/select_file_dialog.h"
 #include "ui/views/bubble/bubble_border.h"
 #include "chrome/browser/ui/webui/top_chrome/webui_contents_wrapper.h"
@@ -34,7 +36,8 @@ class SamoShellView : public views::WebView,
                       public TabStripModelObserver,
                       public views::WidgetObserver,
                       public SamoService::Observer,
-                      public ui::SelectFileDialog::Listener {
+                      public ui::SelectFileDialog::Listener,
+                      public ui::NativeThemeObserver {
   METADATA_HEADER(SamoShellView, views::WebView)
 
  public:
@@ -50,6 +53,9 @@ class SamoShellView : public views::WebView,
       const std::vector<blink::mojom::DraggableRegionPtr>& regions,
       content::WebContents* contents) override;
 
+  // ⌘L / 地址栏聚焦：Chrome 的 SetFocusToLocationBar 改道到这里（补丁 0013）
+  void OpenPalette(const std::string& mode);
+
   // SamoUI::ShellDelegate
   void OnContentBounds(const gfx::Rect& bounds) override;
   base::DictValue BuildState() override;
@@ -61,6 +67,9 @@ class SamoShellView : public views::WebView,
   void OnServiceChat(const base::DictValue& chat) override;
   void OnServiceEvent(const base::DictValue& event) override;
   void OnHostRequest(int id, const base::DictValue& request) override;
+
+  // ui::NativeThemeObserver：系统深浅色变化 → 快照 dark 变化
+  void OnNativeThemeUpdated(ui::NativeTheme* observed_theme) override;
 
   // ui::SelectFileDialog::Listener：workspace.add 的目录选择
   void FileSelected(const ui::SelectedFileInfo& file, int index) override;
