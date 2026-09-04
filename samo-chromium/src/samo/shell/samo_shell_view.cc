@@ -7,9 +7,13 @@
 #include <string>
 #include <utility>
 
+#include "base/command_line.h"
+#include "base/files/file_path.h"
+#include "base/files/file_util.h"
 #include "base/json/json_writer.h"
 #include "base/strings/escape.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/functional/callback_helpers.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "chrome/browser/profiles/profile.h"
@@ -19,6 +23,10 @@
 #include "chrome/browser/ui/tabs/tab_strip_user_gesture_details.h"
 #include "chrome/browser/ui/views/bubble/webui_bubble_manager.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/platform_util.h"
+#include "ui/shell_dialogs/select_file_policy.h"
+#include "ui/shell_dialogs/selected_file_info.h"
+#include "ui/views/widget/widget.h"
 #include "samo/webui/samo_overlay_ui.h"
 #include "ui/views/widget/widget.h"
 #include "chrome/grit/generated_resources.h"
@@ -80,9 +88,29 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
   SetWebContents(contents_wrapper_->web_contents());
   SetVisible(true);
   browser_view_->browser()->tab_strip_model()->AddObserver(this);
+
+  layout_.Set("module", "browser");
+  layout_.Set("sidebarWidth", 264);
+  layout_.Set("sidebarCollapsed", false);
+  layout_.Set("overview", false);
+
+  // Samo 服务进程：--samo-service=<dist/index.js> [--samo-node=<node>]；数据目录 = profile/samo
+  const base::CommandLine* cl = base::CommandLine::ForCurrentProcess();
+  if (cl->HasSwitch("samo-service")) {
+    base::FilePath node = cl->HasSwitch("samo-node") ? cl->GetSwitchValuePath("samo-node") : base::FilePath("/opt/homebrew/bin/node");
+    if (!base::PathExists(node)) node = base::FilePath("/usr/local/bin/node");
+    service_ = std::make_unique<SamoService>(node, cl->GetSwitchValuePath("samo-service"), profile->GetPath().Append("samo"));
+    service_->AddObserver(this);
+    if (!service_->Start())
+      service_.reset();
+  }
 }
 
 SamoShellView::~SamoShellView() {
+  if (service_)
+    service_->RemoveObserver(this);
+  if (select_folder_dialog_)
+    select_folder_dialog_->ListenerDestroyed();
   if (browser_view_ && browser_view_->browser())
     browser_view_->browser()->tab_strip_model()->RemoveObserver(this);
   if (contents_wrapper_) {
@@ -123,10 +151,21 @@ void SamoShellView::OnContentBounds(const gfx::Rect& bounds) {
 // ---- 快照：Chrome 的标签模型 → BrowserSnapshot.tabs ----
 base::DictValue SamoShellView::BuildState() {
   base::DictValue state = SamoUIHandler::EmptyState();
+  state.Set("layout", layout_.Clone());
+  for (const char* key : {"apps", "activeAppId", "workspaces", "activeWorkspaceId"}) {
+    if (const base::Value* v = service_state_.Find(key))
+      state.Set(key, v->Clone());
+  }
   TabStripModel* tsm = browser_view_->browser()->tab_strip_model();
   base::ListValue tabs;
-  for (int i = 0; i < tsm->count(); ++i)
-    tabs.Append(base::Value(TabToDict(tsm, i)));
+  for (int i = 0; i < tsm->count(); ++i) {
+    base::DictValue t = TabToDict(tsm, i);
+    const std::string id = TabIdOf(tsm->GetWebContentsAt(i));
+    for (const auto& [app_id, tab_id] : app_tabs_) {
+      if (tab_id == id) t.Set("appId", app_id);  // 应用维度的标签：不进浏览器侧栏
+    }
+    tabs.Append(base::Value(std::move(t)));
+  }
   state.Set("tabs", base::Value(std::move(tabs)));
   base::DictValue active;
   content::WebContents* active_wc = tsm->GetActiveWebContents();
@@ -140,6 +179,110 @@ void SamoShellView::PushState() {
     return;
   if (auto* ui = contents_wrapper_->GetWebUIController(); ui && ui->handler())
     ui->handler()->PushState(BuildState());
+  SendContext();
+}
+
+void SamoShellView::PushEvent(base::DictValue event) {
+  if (!contents_wrapper_)
+    return;
+  if (auto* ui = contents_wrapper_->GetWebUIController(); ui && ui->handler())
+    ui->handler()->PushEvent(std::move(event));
+}
+
+base::DictValue SamoShellView::BuildChat() {
+  if (!chat_.empty())
+    return chat_.Clone();
+  return SamoUIHandler::CurrentChatPlaceholder();
+}
+
+// 给服务进程的浏览器上下文（对话提示词用）
+void SamoShellView::SendContext() {
+  if (!service_)
+    return;
+  TabStripModel* tsm = browser_view_->browser()->tab_strip_model();
+  content::WebContents* active = tsm->GetActiveWebContents();
+  service_->SendContext(active ? active->GetVisibleURL().spec() : "", active ? base::UTF16ToUTF8(active->GetTitle()) : "", tsm->count());
+}
+
+// ---- 服务进程 → 壳 ----
+void SamoShellView::OnServiceState(const base::DictValue& state) {
+  service_state_ = state.Clone();
+  PushState();
+}
+void SamoShellView::OnServiceChat(const base::DictValue& chat) {
+  chat_ = chat.Clone();
+  if (!contents_wrapper_)
+    return;
+  if (auto* ui = contents_wrapper_->GetWebUIController(); ui && ui->handler())
+    ui->handler()->PushChat(chat_.Clone());
+}
+void SamoShellView::OnServiceEvent(const base::DictValue& event) {
+  PushEvent(event.Clone());
+}
+void SamoShellView::OnHostRequest(int id, const base::DictValue& request) {
+  const std::string* type = request.FindString("type");
+  Browser* browser = browser_view_->browser();
+  TabStripModel* tsm = browser->tab_strip_model();
+  if (!type) {
+    service_->ReplyHost(id, base::Value());
+    return;
+  }
+  if (*type == "openApp") {
+    const std::string* url = request.FindString("url");
+    const std::string* app_id = request.FindString("appId");
+    if (url && app_id) {
+      auto it = app_tabs_.find(*app_id);
+      int index = it != app_tabs_.end() ? IndexOfTabId(it->second) : -1;
+      if (index >= 0) {
+        tsm->ActivateTabAt(index, TabStripUserGestureDetails(TabStripUserGestureDetails::GestureType::kNone));
+      } else {
+        chrome::AddTabAt(browser, GURL(*url), -1, true);
+        if (content::WebContents* wc = tsm->GetActiveWebContents())
+          app_tabs_[*app_id] = TabIdOf(wc);
+      }
+      PushState();
+    }
+    service_->ReplyHost(id, base::Value(true));
+  } else if (*type == "closeApp") {
+    if (const std::string* app_id = request.FindString("appId")) {
+      auto it = app_tabs_.find(*app_id);
+      if (it != app_tabs_.end()) {
+        const int index = IndexOfTabId(it->second);
+        app_tabs_.erase(it);
+        if (index >= 0)
+          tsm->CloseWebContentsAt(index, TabCloseTypes::CLOSE_NONE);
+      }
+    }
+    service_->ReplyHost(id, base::Value(true));
+  } else if (*type == "pickFolder") {
+    if (pending_pick_id_ >= 0) {
+      service_->ReplyHost(id, base::Value());
+      return;
+    }
+    pending_pick_id_ = id;
+    select_folder_dialog_ = ui::SelectFileDialog::Create(this, nullptr);
+    select_folder_dialog_->SelectFile(ui::SelectFileDialog::SELECT_FOLDER, u"Add workspace", base::FilePath(), nullptr, 0,
+                                      base::FilePath::StringType(), browser_view_->GetNativeWindow());
+  } else if (*type == "reveal") {
+    if (const std::string* path = request.FindString("path"))
+      platform_util::ShowItemInFolder(browser_view_->GetProfile(), base::FilePath(*path));
+    service_->ReplyHost(id, base::Value(true));
+  } else {
+    service_->ReplyHost(id, base::Value());  // setTheme 等：暂不处理
+  }
+}
+
+void SamoShellView::FileSelected(const ui::SelectedFileInfo& file, int index) {
+  if (service_ && pending_pick_id_ >= 0)
+    service_->ReplyHost(pending_pick_id_, base::Value(file.path().AsUTF8Unsafe()));
+  pending_pick_id_ = -1;
+  select_folder_dialog_.reset();
+}
+void SamoShellView::FileSelectionCanceled() {
+  if (service_ && pending_pick_id_ >= 0)
+    service_->ReplyHost(pending_pick_id_, base::Value());
+  pending_pick_id_ = -1;
+  select_folder_dialog_.reset();
 }
 
 void SamoShellView::OnTabStripModelChanged(TabStripModel*, const TabStripModelChange&, const TabStripSelectionChange&) {
@@ -170,6 +313,33 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
   const int index = tab_id ? IndexOfTabId(*tab_id) : tsm->active_index();
   content::WebContents* wc = index >= 0 ? tsm->GetWebContentsAt(index) : nullptr;
 
+  // ---- 布局与窗口：壳的这些命令在宿主视图本地落地 ----
+  if (*type == "module.activate") {
+    if (const std::string* module = command.FindString("module")) {
+      layout_.Set("module", *module);
+      if (service_) service_->SendLayout(*module);
+      PushState();
+    }
+    return true;
+  }
+  if (*type == "layout.sidebar") {
+    if (std::optional<int> w = command.FindInt("width")) layout_.Set("sidebarWidth", *w);
+    if (std::optional<bool> c = command.FindBool("collapsed")) layout_.Set("sidebarCollapsed", *c);
+    PushState();
+    return true;
+  }
+  if (*type == "layout.overview") {
+    layout_.Set("overview", command.FindBool("open").value_or(false));
+    PushState();
+    return true;
+  }
+  if (*type == "window.close") { browser_view_->GetWidget()->Close(); return true; }
+  if (*type == "window.minimize") { browser_view_->GetWidget()->Minimize(); return true; }
+  if (*type == "window.zoom") {
+    views::Widget* w = browser_view_->GetWidget();
+    if (command.FindBool("fullscreen").value_or(true)) w->SetFullscreen(!w->IsFullscreen()); else w->Maximize();
+    return true;
+  }
   if (*type == "palette.open") {
     const std::string* mode = command.FindString("mode");
     content::WebContents* active = tsm->GetActiveWebContents();
@@ -207,8 +377,13 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
                      command.FindBool("pinned").value_or(false));
     return true;
   }
-  if (!wc)
+  if (!wc) {
+    if (service_ && type->rfind("tab.", 0) != 0) {
+      service_->Invoke(command, base::DoNothing());
+      return true;
+    }
     return false;
+  }
   if (*type == "tab.activate") {
     tsm->ActivateTabAt(index, TabStripUserGestureDetails(TabStripUserGestureDetails::GestureType::kNone));
   } else if (*type == "tab.close") {
@@ -228,6 +403,8 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
     wc->Stop();
   } else if (*type == "tab.pin") {
     tsm->SetTabPinned(index, command.FindBool("pinned").value_or(false));
+  } else if (service_) {
+    service_->Invoke(command, base::DoNothing());  // chat.* / apps.* / workspace.* / shell.setTheme…
   } else {
     return false;
   }

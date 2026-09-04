@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 node:fs 同步读写（apps.json，格式与 samo-app 的 AppsService 相同），samo-app main/apps/scanner 的 scanLocalApps，@shared/model 的 AppEntry，./protocol 的 Wire（host 请求 openApp/closeApp）
- * [OUTPUT]: 对外提供 Apps：扫描 + 应用维度活跃时 12s（否则 60s）重扫，固定项落盘并合并（没在跑的标 offline），open/home/pin/rescan；应用标签由浏览器开（host openApp），消失的应用请浏览器关它的标签
+ * [OUTPUT]: 对外提供 Apps：扫描 + 应用维度活跃时 12s（否则 60s）重扫，固定项落盘并合并（没在跑的标 offline），http 图标抓成 data: URL（WebUI 渲染器不许加载 http 资源），open/home/pin/rescan；应用标签由浏览器开（host openApp），消失的应用请浏览器关它的标签
  * [POS]: samo-service 的应用维度——samo-app main/apps/service.ts 的宿主无关版本：标签与呈现交给浏览器进程，这里只管「用户的应用」是什么（DRY 债：两份合并逻辑待抽成共享核心）
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -60,6 +60,34 @@ export class Apps {
       this.scanning = false;
     }
   }
+  // WebUI 渲染器不许直接加载 http(s) 资源（浏览器会以 "Incorrect scheme" 杀掉它），应用图标先由服务抓成 data: URL
+  private iconCache = new Map<string, string | null>();
+  private async inlineIcons(apps: AppEntry[]): Promise<boolean> {
+    let changed = false;
+    await Promise.all(
+      apps.map(async (a) => {
+        if (!a.icon || !/^https?:/.test(a.icon)) return;
+        if (!this.iconCache.has(a.icon)) {
+          this.iconCache.set(a.icon, null);
+          try {
+            const r = await fetch(a.icon, { signal: AbortSignal.timeout(2500) });
+            const type = r.headers.get('content-type')?.split(';')[0] ?? 'image/png';
+            const buf = Buffer.from(await r.arrayBuffer());
+            if (r.ok && buf.length > 0 && buf.length < 300_000) this.iconCache.set(a.icon, `data:${type};base64,${buf.toString('base64')}`);
+          } catch {
+            /* 拿不到就没有图标 */
+          }
+        }
+        const data = this.iconCache.get(a.icon);
+        if (data !== undefined && a.icon !== data) {
+          a.icon = data; // data: URL 或 null
+          changed = true;
+        }
+      }),
+    );
+    return changed;
+  }
+
   private publish(): void {
     const byId = new Map(this.scanned.map((a) => [a.id, a]));
     const pinned = this.pinned.map((p) => ({ ...p, ...(byId.get(p.id) ?? {}), pinned: true, offline: !byId.has(p.id) }));
@@ -67,6 +95,7 @@ export class Apps {
     const rest = this.scanned.filter((a) => !pinnedIds.has(a.id)).map((a) => ({ ...a, pinned: false, offline: false }));
     const before = new Set(this.apps.filter((a) => !a.offline).map((a) => a.id));
     this.apps = [...pinned, ...rest];
+    void this.inlineIcons(this.apps).then((changed) => changed && this.onChange());
     const alive = new Set(this.apps.filter((a) => !a.offline).map((a) => a.id));
     for (const id of before) {
       if (!alive.has(id)) {

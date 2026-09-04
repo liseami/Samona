@@ -1,0 +1,15 @@
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -4793,7 +4793,12 @@
+ void BrowserView::SetSamoContentBounds(const gfx::Rect& bounds) {
+   if (samo_content_bounds_ == bounds)
+     return;
++  const bool was_empty = samo_content_bounds_.IsEmpty();
+   samo_content_bounds_ = bounds;
++  // 有洞：网页容器在最上、按洞摆放；没洞（应用桌面 / 商店 / 工作区）：压到不透明的壳之下即不可见——
++  // 不改它的尺寸（零尺寸会和 BrowserViewLayout 互相重排到死循环），也不能 SetVisible(false)（tabbed layout 会 CHECK 可见）
++  if (was_empty != bounds.IsEmpty() && contents_container_ && samo_shell_view_)
++    ReorderChildView(contents_container_, bounds.IsEmpty() ? 0 : children().size());
+   InvalidateLayout();
+ }
+ 

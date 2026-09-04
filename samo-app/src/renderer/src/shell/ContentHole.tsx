@@ -28,6 +28,7 @@ export function ContentHole() {
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', report);
+      send({ type: 'layout.contentBounds', x: 0, y: 0, width: 0, height: 0 }); // 洞没了（切到非浏览器模块）：宿主藏起网页
     };
   }, []);
   return <div ref={ref} aria-hidden="true" className="h-full w-full" />;

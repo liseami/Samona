@@ -33,6 +33,7 @@ class SamoUI : public TopChromeWebUIController {
     virtual void OnContentBounds(const gfx::Rect& bounds) = 0;
     // 宿主视图给出真实快照（标签来自 Chrome 的 TabStripModel）；无宿主（chrome://samo 开在标签里）时用占位
     virtual base::DictValue BuildState() = 0;
+    virtual base::DictValue BuildChat() = 0;  // 对话快照（来自 Samo 服务进程）
     // 处理壳发来的 Command（tab.* 等）；返回 false 表示未处理
     virtual bool HandleCommand(const base::DictValue& command) = 0;
   };

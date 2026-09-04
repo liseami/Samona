@@ -41,6 +41,7 @@ class SamoUIHandler : public content::WebUIMessageHandler {
  public:
   // 无标签的同形占位快照（宿主视图在其上填 tabs / activeTabIdByIdentity）
   static base::DictValue EmptyState();
+  static base::DictValue CurrentChatPlaceholder();
 };
 
 }  // namespace samo

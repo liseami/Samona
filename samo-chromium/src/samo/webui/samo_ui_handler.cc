@@ -113,6 +113,10 @@ void SamoUIHandler::HandleGetState(const base::ListValue& args) {
 void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
   AllowJavascript();
   const std::string& callback_id = args.front().GetString();
+  if (auto* ui = web_ui()->GetController()->GetAs<SamoUI>(); ui && ui->shell_delegate()) {
+    ResolveJavascriptCallback(base::Value(callback_id), ui->shell_delegate()->BuildChat());
+    return;
+  }
   ResolveJavascriptCallback(base::Value(callback_id), CurrentChat());
 }
 
@@ -169,6 +173,10 @@ base::DictValue SamoUIHandler::EmptyState() {
 
 // 与 shared/chat.ts ChatSnapshot 同形；回答者接上前是 stub
 base::DictValue SamoUIHandler::CurrentChat() {
+  return CurrentChatPlaceholder();
+}
+
+base::DictValue SamoUIHandler::CurrentChatPlaceholder() {
   base::DictValue snapshot;
   snapshot.Set("mode", "closed");
   snapshot.Set("activeThreadId", "");
