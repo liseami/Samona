@@ -32,6 +32,7 @@
 #include "chrome/grit/generated_resources.h"
 #include "components/sessions/content/session_tab_helper.h"
 #include "components/url_formatter/url_fixer.h"
+#include "content/public/browser/devtools_agent_host.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "samo/webui/samo_ui_handler.h"
@@ -44,8 +45,9 @@ namespace samo {
 
 namespace {
 
+// 标签 id = DevTools 的 target id：壳、服务进程（agent 网关）与 agent 三方同一套 id（shared/model.ts：Tab.id 同时作为 CDP targetId）
 std::string TabIdOf(content::WebContents* wc) {
-  return base::NumberToString(sessions::SessionTabHelper::IdForTab(wc).id());
+  return content::DevToolsAgentHost::GetOrCreateFor(wc)->GetId();
 }
 
 base::DictValue TabToDict(TabStripModel* tsm, int index) {
@@ -100,7 +102,12 @@ SamoShellView::SamoShellView(Profile* profile, BrowserView* browser_view)
   if (cl->HasSwitch("samo-service")) {
     base::FilePath node = cl->HasSwitch("samo-node") ? cl->GetSwitchValuePath("samo-node") : base::FilePath("/opt/homebrew/bin/node");
     if (!base::PathExists(node)) node = base::FilePath("/usr/local/bin/node");
-    service_ = std::make_unique<SamoService>(node, cl->GetSwitchValuePath("samo-service"), profile->GetPath().Append("samo"));
+    std::vector<std::string> extra;
+    if (cl->HasSwitch("remote-debugging-port")) {  // agent 网关经 CDP 驱动本浏览器
+      extra.push_back("--cdp-port");
+      extra.push_back(cl->GetSwitchValueASCII("remote-debugging-port"));
+    }
+    service_ = std::make_unique<SamoService>(node, cl->GetSwitchValuePath("samo-service"), profile->GetPath().Append("samo"), extra);
     service_->AddObserver(this);
     if (!service_->Start())
       service_.reset();
@@ -158,6 +165,12 @@ base::DictValue SamoShellView::BuildState() {
     if (const base::Value* v = service_state_.Find(key))
       state.Set(key, v->Clone());
   }
+  // agent 任务空间：服务进程给的 Identity 形状追加在用户身份之后；标签按 tabSpaces 归属
+  const base::DictValue* tab_spaces = service_state_.FindDict("tabSpaces");
+  if (const base::ListValue* spaces = service_state_.FindList("identities")) {
+    base::ListValue* identities = state.FindList("identities");
+    for (const base::Value& s : *spaces) identities->Append(s.Clone());
+  }
   TabStripModel* tsm = browser_view_->browser()->tab_strip_model();
   base::ListValue tabs;
   for (int i = 0; i < tsm->count(); ++i) {
@@ -166,12 +179,23 @@ base::DictValue SamoShellView::BuildState() {
     for (const auto& [app_id, tab_id] : app_tabs_) {
       if (tab_id == id) t.Set("appId", app_id);  // 应用维度的标签：不进浏览器侧栏
     }
+    if (tab_spaces) {
+      if (std::optional<int> space = tab_spaces->FindInt(id)) t.Set("identityId", *space);
+    }
     tabs.Append(base::Value(std::move(t)));
   }
   state.Set("tabs", base::Value(std::move(tabs)));
   base::DictValue active;
   content::WebContents* active_wc = tsm->GetActiveWebContents();
-  active.Set("1", active_wc ? base::Value(TabIdOf(active_wc)) : base::Value());
+  const std::string active_id = active_wc ? TabIdOf(active_wc) : "";
+  // 用户身份的活动标签：当前标签若属于某个任务空间，则用户身份沿用上一次的
+  if (!active_wc || !tab_spaces || !tab_spaces->FindInt(active_id)) {
+    last_user_active_tab_ = active_id;
+  }
+  active.Set("1", last_user_active_tab_.empty() ? base::Value() : base::Value(last_user_active_tab_));
+  if (const base::DictValue* by_space = service_state_.FindDict("activeTabBySpace")) {
+    for (const auto [space_id, tab] : *by_space) active.Set(space_id, tab.Clone());
+  }
   state.Set("activeTabIdByIdentity", base::Value(std::move(active)));
   return state;
 }
@@ -322,6 +346,18 @@ bool SamoShellView::HandleCommand(const base::DictValue& command) {
       if (service_) service_->SendLayout(*module);
       PushState();
     }
+    return true;
+  }
+  if (*type == "identity.activate") {
+    const int identity_id = command.FindInt("identityId").value_or(1);
+    std::string target;
+    if (identity_id == 1) {
+      target = last_user_active_tab_;
+    } else if (const base::DictValue* by_space = service_state_.FindDict("activeTabBySpace")) {
+      if (const std::string* t = by_space->FindString(base::NumberToString(identity_id))) target = *t;
+    }
+    const int index = target.empty() ? -1 : IndexOfTabId(target);
+    if (index >= 0) tsm->ActivateTabAt(index, TabStripUserGestureDetails(TabStripUserGestureDetails::GestureType::kNone));
     return true;
   }
   if (*type == "layout.sidebar") {

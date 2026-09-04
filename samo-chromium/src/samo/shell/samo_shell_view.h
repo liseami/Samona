@@ -94,7 +94,8 @@ class SamoShellView : public views::WebView,
   base::DictValue service_state_;  // apps / activeAppId / workspaces / activeWorkspaceId
   base::DictValue chat_;           // 最近一次 chat 快照
   base::DictValue layout_;         // module / sidebarWidth / sidebarCollapsed / overview（壳的布局命令落在这里）
-  std::map<std::string, std::string> app_tabs_;  // appId → tab id（应用维度打开的标签，不进浏览器侧栏）
+  std::map<std::string, std::string> app_tabs_;
+  std::string last_user_active_tab_;  // 用户身份最近的活动标签（agent 空间的标签活跃时不覆盖）  // appId → tab id（应用维度打开的标签，不进浏览器侧栏）
   scoped_refptr<ui::SelectFileDialog> select_folder_dialog_;
   int pending_pick_id_ = -1;
 

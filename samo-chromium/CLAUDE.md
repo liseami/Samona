@@ -33,6 +33,7 @@ scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分�
 scripts/apply-branding.sh - 二进制品牌资源拷贝（icns），apply-patches.sh 末尾调用
 scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/verify-webui.mjs - 里程碑 2 验收：CDP 开 chrome://samo，查桥、快照、rail、页面错误
+scripts/verify-gateway.sh - agent 网关验收：samo-browser 经服务进程的 CDP 网关驱动 fork，壳快照出现 agent 任务空间
 scripts/verify-service.mjs - 服务进程验收：getChat 来自服务、apps 有扫描结果、module.activate 反映、chat.newThread 回路
 scripts/verify-overlay.mjs - 弹层验收：palette.open → 气泡 target 有输入框与尺寸 → palette.close 关闭；userMenu.open（带 session）→ 菜单渲染
 scripts/verify-shell.mjs - 里程碑 3 验收：找 Views 承载的壳 target，查真实标签快照、网页洞、经 CDP 新开标签看推送、tab.activate 回路
@@ -49,7 +50,8 @@ patches/ - Samo 补丁（见其 README）
 - 2026-09-04 18:57 **里程碑 3 核心达成**：壳铺满整窗（SamoShellView 进 BrowserView，顶栏隐藏，contents 按壳矩形摆放），Chrome 标签进侧栏、tab.* 命令回路打通（verify-shell.mjs 通过）。补丁增至 0001–0007。
 - 2026-09-04 19:27：拖窗、圆角、红绿灯留位、品牌（Samo.app / app.samo.browser / 图标）、我们的新标签页、弹层气泡（⌘T / 用户菜单）、开发态磁盘数据源全部落地；补丁 0001–0011。
 - 2026-09-04 20:05：Samo 服务进程接入（packages/samo-service ↔ src/samo/service）：对话、应用、工作区在 fork 里有了真实数据与命令回路（verify-service.mjs 通过）；补丁 0001–0012。
-- 下一步：对话浮窗与停靠卡（docked 卡在壳 DOM 里即可用；浮窗与药丸改气泡）→ agent 网关切 CDP → 下载/查找/历史投影到壳 → 打包与更新器 → 抽共享核心消 apps/workspace 两份逻辑。
+- 2026-09-04 20:15：agent 网关切 CDP 完成（packages/samo-service/src/gateway.ts）——外部 agent 与应用内 AI 都能在 fork 里驱动标签；补丁 0001–0013。
+- 下一步：对话浮窗与药丸（气泡）、⌘I → agent 光标层 → 下载/查找/历史投影到壳 → 打包（official build、签名公证）与更新器 → 抽共享核心消 apps/workspace 两份逻辑。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

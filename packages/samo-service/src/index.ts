@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 node:fs/path/os，samo-app main/chat 的 ChatStore/ChatService/ChatConfigStore/KeylessProvider/AgentProvider，main/agent/runner 的 ScriptRunner/locateCli，./protocol 的 Wire，./apps 的 Apps，./workspaces 的 Workspaces
- * [OUTPUT]: 可执行入口：`node dist/index.js --data-dir <dir> [--exclude-ports 5174,…]`——装配对话/应用/工作区三块业务，把 Command/Query 分发给它们，把快照与事件推给浏览器
+ * [OUTPUT]: 可执行入口：`node dist/index.js --data-dir <dir> [--exclude-ports 5174,…] [--cdp-port 9222]`——装配对话/应用/工作区/agent 网关四块业务，把 Command/Query 分发给它们，把快照与事件推给浏览器
  * [POS]: samo-service 的装配根（对应 Electron 时代的 main/index.ts 里宿主无关的那一半）；浏览器进程（samo/service/samo_service.cc）拉起并持有它
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -18,6 +18,7 @@ import type { ChatProvider } from '../../../samo-app/src/main/chat/provider';
 import { Wire, type BrowserContext } from './protocol';
 import { Apps } from './apps';
 import { Workspaces } from './workspaces';
+import { AgentGateway } from './gateway';
 
 const arg = (name: string): string | undefined => {
   const i = process.argv.indexOf(name);
@@ -26,6 +27,9 @@ const arg = (name: string): string | undefined => {
 const dataDir = arg('--data-dir') ?? join(homedir(), 'Library', 'Application Support', 'Samo');
 mkdirSync(dataDir, { recursive: true });
 const excludePorts = new Set((arg('--exclude-ports') ?? '').split(',').filter(Boolean).map(Number));
+const cdpPort = Number(arg('--cdp-port') ?? 0);
+// 应用内 AI 的 browser 工具（samo-browser 子进程）必须连本服务自己的网关，而不是同机可能在跑的 Electron 版
+process.env.SAMO_GATEWAY_FILE = join(dataDir, 'agent-gateway.json');
 
 // ---- 对话 ----
 const chatStore = new ChatStore();
@@ -63,9 +67,19 @@ chatStore.subscribe((snap) => {
 });
 
 // ---- 应用 / 工作区 ----
-const pushState = () => wire.pushState({ apps: apps.apps, activeAppId: apps.activeAppId, workspaces: workspaces.workspaces, activeWorkspaceId: workspaces.activeWorkspaceId });
+const serviceState = () => ({
+  apps: apps.apps,
+  activeAppId: apps.activeAppId,
+  workspaces: workspaces.workspaces,
+  activeWorkspaceId: workspaces.activeWorkspaceId,
+  // agent 任务空间：Identity 形状 + 标签归属 + 各空间活动标签（浏览器合并进 BrowserSnapshot）
+  identities: gateway?.identities() ?? [],
+  tabSpaces: gateway?.tabSpaces() ?? {},
+  activeTabBySpace: gateway?.activeTabBySpace() ?? {},
+});
+const pushState = () => wire.pushState(serviceState());
 const wire = new Wire({
-  getState: () => ({ apps: apps.apps, activeAppId: apps.activeAppId, workspaces: workspaces.workspaces, activeWorkspaceId: workspaces.activeWorkspaceId }),
+  getState: () => serviceState(),
   getChat: () => chatStore.snapshot(),
   layout: (module) => apps.setModuleActive(module === 'apps'),
   context: (c) => {
@@ -124,6 +138,12 @@ const wire = new Wire({
       case 'workspace.remove':
         workspaces.remove(command.id);
         break;
+      case 'identity.takeControl':
+        gateway?.setOwnership(command.identityId, 'agentDelegatedToUser');
+        break;
+      case 'identity.handBack':
+        gateway?.setOwnership(command.identityId, 'agent');
+        break;
       default:
         return { unhandled: command.type };
     }
@@ -132,6 +152,14 @@ const wire = new Wire({
 });
 const apps = new Apps(wire, join(dataDir, 'apps.json'), pushState, excludePorts);
 const workspaces = new Workspaces(wire, chat, join(dataDir, 'workspaces.json'), pushState);
+let gateway: AgentGateway | null = null;
+if (cdpPort > 0) {
+  gateway = new AgentGateway(cdpPort, dataDir, pushState);
+  gateway.start().catch((e: unknown) => {
+    process.stderr.write(`[samo-service] gateway failed: ${e instanceof Error ? e.message : String(e)}\n`);
+    gateway = null;
+  });
+}
 apps.start();
 pushState();
 process.stderr.write(`[samo-service] ready data=${dataDir}\n`);

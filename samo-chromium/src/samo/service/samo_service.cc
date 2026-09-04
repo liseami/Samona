@@ -23,8 +23,8 @@
 
 namespace samo {
 
-SamoService::SamoService(const base::FilePath& node_path, const base::FilePath& service_path, const base::FilePath& data_dir)
-    : node_path_(node_path), service_path_(service_path), data_dir_(data_dir) {}
+SamoService::SamoService(const base::FilePath& node_path, const base::FilePath& service_path, const base::FilePath& data_dir, std::vector<std::string> extra_args)
+    : node_path_(node_path), service_path_(service_path), data_dir_(data_dir), extra_args_(std::move(extra_args)) {}
 
 SamoService::~SamoService() {
   if (stdin_fd_ >= 0)
@@ -45,6 +45,7 @@ bool SamoService::Start() {
   cmd.AppendArgPath(service_path_);
   cmd.AppendArg("--data-dir");
   cmd.AppendArgPath(data_dir_);
+  for (const std::string& a : extra_args_) cmd.AppendArg(a);
   base::LaunchOptions options;
   options.fds_to_remap.emplace_back(in_pipe[0], STDIN_FILENO);
   options.fds_to_remap.emplace_back(out_pipe[1], STDOUT_FILENO);

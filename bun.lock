@@ -28,6 +28,9 @@
         "@anthropic-ai/sdk": "^0.123.0",
         "samo-agent": "workspace:*",
       },
+      "devDependencies": {
+        "ws": "^8.18.3",
+      },
     },
     "samo-app": {
       "name": "samo-app",

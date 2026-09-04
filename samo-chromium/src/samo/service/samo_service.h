@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "base/files/file_path.h"
 #include "base/functional/callback.h"
@@ -34,7 +35,7 @@ class SamoService {
   using ResultCallback = base::OnceCallback<void(base::Value result)>;
 
   // node_path：Node 可执行文件；service_path：dist/index.js；data_dir：apps.json / workspaces.json / chat.json / config.json 所在
-  SamoService(const base::FilePath& node_path, const base::FilePath& service_path, const base::FilePath& data_dir);
+  SamoService(const base::FilePath& node_path, const base::FilePath& service_path, const base::FilePath& data_dir, std::vector<std::string> extra_args = {});
   SamoService(const SamoService&) = delete;
   SamoService& operator=(const SamoService&) = delete;
   ~SamoService();
@@ -62,6 +63,7 @@ class SamoService {
   const base::FilePath node_path_;
   const base::FilePath service_path_;
   const base::FilePath data_dir_;
+  const std::vector<std::string> extra_args_;  // 如 --cdp-port <port>
   base::Process process_;
   int stdin_fd_ = -1;
   int stdout_fd_ = -1;

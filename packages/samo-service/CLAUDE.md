@@ -1,13 +1,15 @@
 # packages/samo-service/
 > L2 | 父级: ../../CLAUDE.md
 
-Samo 服务进程：Chromium fork 里，浏览器进程（samo-chromium/src/samo/service）以 `node dist/index.js --data-dir <dir>` 拉起它，stdin/stdout 上跑 JSON 行协议。它装配的是 samo-app 主进程里**本来就宿主无关**的业务模块——对话（chat/*：ChatStore、ChatService、Claude AgentProvider、密钥配置）、应用扫描（apps/scanner）、agent 脚本运行器——并用宿主无关的方式重写了应用/工作区两块的指挥逻辑（标签与目录选择器交给浏览器做，经 host 请求）。协议契约与 Electron 时代的 preload 桥相同：Command / Query / Snapshot。
+Samo 服务进程：Chromium fork 里，浏览器进程（samo-chromium/src/samo/service）以 `node dist/index.js --data-dir <dir>` 拉起它，stdin/stdout 上跑 JSON 行协议。它装配的是 samo-app 主进程里**本来就宿主无关**的业务模块——agent 网关（引擎换成 Chromium 的真 CDP，需 --cdp-port）、对话（chat/*：ChatStore、ChatService、Claude AgentProvider、密钥配置）、应用扫描（apps/scanner）、agent 脚本运行器——并用宿主无关的方式重写了应用/工作区两块的指挥逻辑（标签与目录选择器交给浏览器做，经 host 请求）。协议契约与 Electron 时代的 preload 桥相同：Command / Query / Snapshot。
 
 ## 成员清单
 package.json / tsconfig.json: bun build 把入口连同 samo-app 的 chat/agent 源码打成 dist/index.js（--tsconfig-override 解决 @shared 别名）；依赖 samo-agent（browser 工具的 CLI）。
 src/protocol.ts: Wire——入站 invoke/query/getState/getChat/layout/context/hostReply；出站 应答、state/chat/event 推送、host 请求（openApp/closeApp/pickFolder/reveal/setTheme）。
 src/apps.ts: Apps——扫描与固定项合并（apps.json 同格式），open 请浏览器开带 appId 的标签，消失的应用请浏览器关标签。
 src/workspaces.ts: Workspaces——workspaces.json 同格式，add 请浏览器弹目录选择器，select 切对话线程，reveal 请浏览器显示。
+src/cdp-client.ts: CdpClient——连 Chromium 的浏览器级 CDP（/json/version → WebSocket），send(method, params, sessionId?) 与事件分发。
+src/gateway.ts: AgentGateway + AgentSession——samo-browser CLI 的接入点（回环 ws + token + 指针文件，与 Electron 同款路径、pid 守卫）；ego 宿主方法与 CDP 透传，浏览器级 Target.* 按任务空间过滤；任务空间 = 服务里的一组标签，以 Identity 形状随快照推给浏览器。
 src/index.ts: 装配根：数据目录、对话（提供者按密钥切换）、应用、工作区，命令分发。
 
 ## 债

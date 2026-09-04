@@ -14,6 +14,9 @@ export interface ServiceState {
   activeAppId: string | null;
   workspaces: unknown[];
   activeWorkspaceId: string | null;
+  identities: unknown[]; // agent 任务空间（Identity 形状）
+  tabSpaces: Record<string, number>; // targetId → 任务空间 id
+  activeTabBySpace: Record<string, string | null>;
 }
 export interface BrowserContext {
   activeUrl: string | null;
