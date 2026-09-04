@@ -1,0 +1,18 @@
+# [INPUT]: 无
+# [OUTPUT]: out/Samo 的 GN 参数（开发构建：component build 让增量链接快数倍；非 official，不做 LTO/PGO）
+# [POS]: samo-chromium 的构建配置；发布构建另起 args-release.gn（is_official_build=true，数小时）
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+target_cpu = "arm64"
+is_debug = false
+is_component_build = true
+symbol_level = 0
+blink_symbol_level = 0
+v8_symbol_level = 0
+dcheck_always_on = false
+treat_warnings_as_errors = false
+use_remoteexec = false
+chrome_pgo_phase = 0
+enable_nacl = false
+proprietary_codecs = true
+ffmpeg_branding = "Chrome"
+enable_widevine = true
