@@ -28,11 +28,11 @@ scripts/bootstrap.sh - 一键：fetch → link-samo → apply-patches → build�
 scripts/fetch.sh - 拿源码：模式 git（GitHub 镜像浅克隆到 CHROMIUM_VERSION → 远端切回 googlesource → gclient sync 拉 DEPS → runhooks）或 tarball（官方 5.9GB 源码包，可续传，再跑 toolchain.sh）；googlesource 直接浅克隆经用户的 Clash 隧道必断，故不用
 scripts/toolchain.sh - 源码包路线补工具链：clang / rust / gn（cipd）/ node / LASTCHANGE
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
-scripts/apply-patches.sh - 把 patches/ 打到检出上（git am --3way，幂等）
+scripts/apply-patches.sh - 把 patches/ 打到树上（git 树 git apply --3way，源码包树 patch -p1；幂等）
 scripts/run.sh - 启动构建产物，开 CDP 9222
 scripts/link-samo.sh - 把仓库内 src/samo 符号链接进 ~/chromium/src/samo（源码受版本控制，树只是挂载点）
 src/samo/ - Samo 在 Chromium 树里的独立目录：chrome://samo WebUI（控制器 + 消息处理器 + BUILD.gn），见其 CLAUDE.md
-webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）：壳与新标签页的静态资源 + manifest.txt（GN 读它生成 grd）
+src/samo/webui/dist/ - samo-app `bun run build:webui` 的产物（git 忽略）：壳与新标签页的静态资源 + manifest.txt（GN 读它生成 grd）
 patches/ - Samo 补丁（见其 README）
 
 ## 状态

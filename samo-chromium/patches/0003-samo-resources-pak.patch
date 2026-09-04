@@ -1,0 +1,11 @@
+--- a/chrome/chrome_paks.gni
++++ b/chrome/chrome_paks.gni
+@@ -188,6 +188,8 @@
+       "//ui/resources:ui_lottie_resources_grd",
+       "//ui/webui/resources",
+     ]
++    sources += [ "$root_gen_dir/samo/samo_resources.pak" ]  # Samo 壳资源
++    deps += [ "//samo:resources" ]
+     if (defined(invoker.deps)) {
+       deps += invoker.deps
+     }

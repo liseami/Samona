@@ -23,19 +23,20 @@ class SamoUIHandler : public content::WebUIMessageHandler {
   void OnJavascriptDisallowed() override;
 
   // 浏览器进程侧状态变化时调用：推快照给壳（对应 bridge.onState / onChat / onEvent）
-  void PushState(base::Value::Dict snapshot);
-  void PushChat(base::Value::Dict snapshot);
-  void PushEvent(base::Value::Dict event);
+  void PushState(base::DictValue snapshot);
+  void PushChat(base::DictValue snapshot);
+  void PushEvent(base::DictValue event);
 
  private:
   // args[0] = callback id（sendWithPromise 约定），args[1] = 负载（Command / Query）
-  void HandleInvoke(const base::Value::List& args);
-  void HandleQuery(const base::Value::List& args);
-  void HandleGetState(const base::Value::List& args);
-  void HandleGetChat(const base::Value::List& args);
+  // Chromium 152：base::Value::List/Dict 已更名为 base::ListValue/DictValue
+  void HandleInvoke(const base::ListValue& args);
+  void HandleQuery(const base::ListValue& args);
+  void HandleGetState(const base::ListValue& args);
+  void HandleGetChat(const base::ListValue& args);
 
-  base::Value::Dict CurrentState();
-  base::Value::Dict CurrentChat();
+  base::DictValue CurrentState();
+  base::DictValue CurrentChat();
 };
 
 }  // namespace samo

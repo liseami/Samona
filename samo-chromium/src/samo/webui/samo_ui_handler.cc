@@ -32,59 +32,59 @@ void SamoUIHandler::RegisterMessages() {
 void SamoUIHandler::OnJavascriptAllowed() {}
 void SamoUIHandler::OnJavascriptDisallowed() {}
 
-void SamoUIHandler::PushState(base::Value::Dict snapshot) {
+void SamoUIHandler::PushState(base::DictValue snapshot) {
   if (IsJavascriptAllowed())
     FireWebUIListener("samo.state", snapshot);
 }
-void SamoUIHandler::PushChat(base::Value::Dict snapshot) {
+void SamoUIHandler::PushChat(base::DictValue snapshot) {
   if (IsJavascriptAllowed())
     FireWebUIListener("samo.chat", snapshot);
 }
-void SamoUIHandler::PushEvent(base::Value::Dict event) {
+void SamoUIHandler::PushEvent(base::DictValue event) {
   if (IsJavascriptAllowed())
     FireWebUIListener("samo.event", event);
 }
 
-void SamoUIHandler::HandleInvoke(const base::Value::List& args) {
+void SamoUIHandler::HandleInvoke(const base::ListValue& args) {
   AllowJavascript();
-  const std::string& callback_id = args[0].GetString();
+  const std::string& callback_id = args.front().GetString();
   // TODO(samo): 按 payload["type"]（Command 联合）分发到浏览器进程的 Samo 服务
   ResolveJavascriptCallback(base::Value(callback_id), base::Value());
 }
 
-void SamoUIHandler::HandleQuery(const base::Value::List& args) {
+void SamoUIHandler::HandleQuery(const base::ListValue& args) {
   AllowJavascript();
-  const std::string& callback_id = args[0].GetString();
+  const std::string& callback_id = args.front().GetString();
   // TODO(samo): suggest / thumbnails
-  ResolveJavascriptCallback(base::Value(callback_id), base::Value(base::Value::List()));
+  ResolveJavascriptCallback(base::Value(callback_id), base::ListValue());
 }
 
-void SamoUIHandler::HandleGetState(const base::Value::List& args) {
+void SamoUIHandler::HandleGetState(const base::ListValue& args) {
   AllowJavascript();
-  const std::string& callback_id = args[0].GetString();
+  const std::string& callback_id = args.front().GetString();
   ResolveJavascriptCallback(base::Value(callback_id), CurrentState());
 }
 
-void SamoUIHandler::HandleGetChat(const base::Value::List& args) {
+void SamoUIHandler::HandleGetChat(const base::ListValue& args) {
   AllowJavascript();
-  const std::string& callback_id = args[0].GetString();
+  const std::string& callback_id = args.front().GetString();
   ResolveJavascriptCallback(base::Value(callback_id), CurrentChat());
 }
 
 // 最小可挂起的快照：与 shared/model.ts BrowserSnapshot 同形；真实数据接入后由 Samo 服务填充
-base::Value::Dict SamoUIHandler::CurrentState() {
-  base::Value::Dict layout;
+base::DictValue SamoUIHandler::CurrentState() {
+  base::DictValue layout;
   layout.Set("module", "browser");
   layout.Set("sidebarWidth", 264);
   layout.Set("sidebarCollapsed", false);
   layout.Set("overview", false);
-  base::Value::Dict snapshot;
-  snapshot.Set("identities", base::Value::List());
-  snapshot.Set("tabs", base::Value::List());
-  snapshot.Set("folders", base::Value::List());
-  snapshot.Set("downloads", base::Value::List());
-  snapshot.Set("apps", base::Value::List());
-  snapshot.Set("workspaces", base::Value::List());
+  base::DictValue snapshot;
+  snapshot.Set("identities", base::ListValue());
+  snapshot.Set("tabs", base::ListValue());
+  snapshot.Set("folders", base::ListValue());
+  snapshot.Set("downloads", base::ListValue());
+  snapshot.Set("apps", base::ListValue());
+  snapshot.Set("workspaces", base::ListValue());
   snapshot.Set("layout", std::move(layout));
   snapshot.Set("dark", false);
   snapshot.Set("hoverUrl", base::Value());
@@ -92,9 +92,9 @@ base::Value::Dict SamoUIHandler::CurrentState() {
   return snapshot;
 }
 
-base::Value::Dict SamoUIHandler::CurrentChat() {
-  base::Value::Dict snapshot;
-  snapshot.Set("threads", base::Value::List());
+base::DictValue SamoUIHandler::CurrentChat() {
+  base::DictValue snapshot;
+  snapshot.Set("threads", base::ListValue());
   snapshot.Set("mode", "closed");
   return snapshot;
 }

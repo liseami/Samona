@@ -1,0 +1,10 @@
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -934,6 +934,7 @@
+     "//components/webui/chrome_urls",
+     "//components/webui/flags",
+     "//components/webui/version",
++    "//samo:webui",
+     "//components/zoom",
+     "//content/public/common",
+     "//crypto",
