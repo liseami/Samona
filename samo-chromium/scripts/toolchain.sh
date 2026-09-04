@@ -23,6 +23,8 @@ if ! third_party/ninja/ninja --version >/dev/null 2>&1; then
 fi
 echo "[toolchain] DEPS binaries (node mac_arm64, angle-metal shader cache) via deps-fetch.py"
 CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" src/third_party/node/mac_arm64 src/ui/gl/resources/angle-metal
+# devtools-frontend 自带的 DEPS：esbuild（源码包里是 Linux 二进制）
+DEPS_FILE="$CHROMIUM_SRC/third_party/devtools-frontend/src/DEPS" DEPS_ROOT="$CHROMIUM_SRC/third_party/devtools-frontend/src" CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" third_party/esbuild
 [ -f build/util/LASTCHANGE ] || { echo "[toolchain] LASTCHANGE"; python3 build/util/lastchange.py -o build/util/LASTCHANGE; }
 "$DEPOT_TOOLS/ensure_bootstrap" >/dev/null 2>&1 || true  # depot_tools 的 python/ninja 包装需要一次 bootstrap
 echo "[toolchain] done"
