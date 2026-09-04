@@ -24,6 +24,8 @@ if ! third_party/ninja/ninja --version >/dev/null 2>&1; then
 fi
 echo "[toolchain] DEPS binaries (node mac_arm64, angle-metal shader cache) via deps-fetch.py"
 CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" src/third_party/node/mac_arm64 src/ui/gl/resources/angle-metal
+# dawn 自带的 DEPS：Go 工具链（generate-sources-gn.py 用它生成 tint 源码）
+DEPS_FILE="$CHROMIUM_SRC/third_party/dawn/DEPS" DEPS_ROOT="$CHROMIUM_SRC/third_party/dawn" CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" tools/golang/mac-arm64
 # devtools-frontend 自带的 DEPS：esbuild（源码包里是 Linux 二进制）
 DEPS_FILE="$CHROMIUM_SRC/third_party/devtools-frontend/src/DEPS" DEPS_ROOT="$CHROMIUM_SRC/third_party/devtools-frontend/src" CHROMIUM_SRC="$CHROMIUM_SRC" DEPOT_TOOLS="$DEPOT_TOOLS" python3 "$(dirname "$0")/deps-fetch.py" third_party/esbuild
 [ -f build/util/LASTCHANGE ] || { echo "[toolchain] LASTCHANGE"; python3 build/util/lastchange.py -o build/util/LASTCHANGE; }
