@@ -13,7 +13,8 @@ webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState /
 ## 上游触点（将成为 patches/ 的前三个补丁）
 1. `chrome/browser/ui/webui/chrome_web_ui_configs.cc`：`map.AddWebUIConfig(std::make_unique<samo::SamoUIConfig>());`
 2. `chrome/browser/ui/BUILD.gn`：`deps += [ "//samo:webui" ]`
-3. `chrome/browser/resources/BUILD.gn`（或 chrome_paks.gni 的 resources pak 列表）：把 `$root_gen_dir/samo/samo_resources.pak` 合进 resources.pak
+3. `chrome/chrome_paks.gni`：把 `$root_gen_dir/samo/samo_resources.pak` 合进 resources.pak
+4. `tools/gritsettings/resource_ids.spec`：登记 `<(SHARED_INTERMEDIATE_DIR)/samo/resources.grd` 的 ID 段（includes 从 10240 起，50 个）
 
 ## 里程碑 3 设计：壳铺满整窗（对照 Chromium 152 源码，2026-09-04）
 目标：用户看到的整扇窗都是 Samo 壳，Chrome 顶栏零残留；网页由 Views 原生摆进壳指定的矩形并裁圆角；弹层用 Views 气泡。对应今天 Electron 的 shellView + contentBounds + 子窗口。
