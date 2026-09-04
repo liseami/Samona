@@ -22,10 +22,11 @@ Electron 版 main/ 里只有 browser/engine（标签与视图）和 shell/window
 - 需替换的耦合点：chat/{launcher-window,window}.ts（Electron 子窗口宿主 → WebUI 侧栏/浮层，删除）；workspace/service.ts（dialog 选目录、shell 揭示 → 经 SamoUIHandler 调 chrome 的文件对话框与 platform_util）；agent/{cdp-bridge,session,snapshot}.ts（WebContents.debugger → 连 Chromium `--remote-debugging-port` 的 CDP WebSocket 后端）；agent/gateway.ts（app.getPath 的用户数据目录 → 服务进程启动参数）；agent/presence.ts（光标层子窗口 → 扩展 content script 或 WebUI 覆盖层）；ipc/handlers.ts（ipcMain → SamoUIHandler 的 samo.invoke 分发）。
 
 ## 目录
-env.sh - 路径约定（depot_tools、~/chromium/src、out/Samo），source 之
+env.sh - 路径约定（depot_tools、~/chromium/src、out/Samo）与钉住的上游版本 CHROMIUM_VERSION，source 之
 args.gn - 开发构建 GN 参数（component build、无符号、专有编解码、Widevine）
 scripts/bootstrap.sh - 一键：fetch → link-samo → apply-patches → build（SAMO_SKIP_FETCH=1 跳过拉取）；日志 ~/chromium/{fetch,build}.log
-scripts/fetch.sh - 拉 depot_tools + 浅检出 Chromium + runhooks（首次数十分钟到数小时，取决于网络）
+scripts/fetch.sh - 拿源码：模式 git（GitHub 镜像浅克隆到 CHROMIUM_VERSION → 远端切回 googlesource → gclient sync 拉 DEPS → runhooks）或 tarball（官方 5.9GB 源码包，可续传，再跑 toolchain.sh）；googlesource 直接浅克隆经用户的 Clash 隧道必断，故不用
+scripts/toolchain.sh - 源码包路线补工具链：clang / rust / gn（cipd）/ node / LASTCHANGE
 scripts/build.sh - gn gen + autoninja chrome（首次 4–8 小时，增量分钟级；要求 ≥120GB 空闲）
 scripts/apply-patches.sh - 把 patches/ 打到检出上（git am --3way，幂等）
 scripts/run.sh - 启动构建产物，开 CDP 9222
