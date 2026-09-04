@@ -79,13 +79,13 @@ base::DictValue SamoUIHandler::CurrentState() {
   layout.Set("sidebarCollapsed", false);
   layout.Set("overview", false);
   base::DictValue snapshot;
-  snapshot.Set("identities", base::ListValue());
-  snapshot.Set("tabs", base::ListValue());
-  snapshot.Set("folders", base::ListValue());
-  snapshot.Set("downloads", base::ListValue());
-  snapshot.Set("apps", base::ListValue());
-  snapshot.Set("workspaces", base::ListValue());
-  snapshot.Set("layout", std::move(layout));
+  snapshot.Set("identities", base::Value(base::ListValue()));
+  snapshot.Set("tabs", base::Value(base::ListValue()));
+  snapshot.Set("folders", base::Value(base::ListValue()));
+  snapshot.Set("downloads", base::Value(base::ListValue()));
+  snapshot.Set("apps", base::Value(base::ListValue()));
+  snapshot.Set("workspaces", base::Value(base::ListValue()));
+  snapshot.Set("layout", base::Value(std::move(layout)));
   snapshot.Set("dark", false);
   snapshot.Set("hoverUrl", base::Value());
   snapshot.Set("find", base::Value());
@@ -94,7 +94,7 @@ base::DictValue SamoUIHandler::CurrentState() {
 
 base::DictValue SamoUIHandler::CurrentChat() {
   base::DictValue snapshot;
-  snapshot.Set("threads", base::ListValue());
+  snapshot.Set("threads", base::Value(base::ListValue()));
   snapshot.Set("mode", "closed");
   return snapshot;
 }

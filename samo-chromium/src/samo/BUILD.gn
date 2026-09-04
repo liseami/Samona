@@ -2,6 +2,7 @@
 # [OUTPUT]: :resources（samo_resources.pak + IDR_SAMO_* 常量）、:webui（SamoUI 控制器 + 消息处理器）
 # [POS]: Samo 在 Chromium 树里的根（检出后以 src/samo 存在，Brave 式：功能放独立目录，上游只打三处小补丁）
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+import("//chrome/common/features.gni")
 import("//tools/grit/grit_rule.gni")
 import("//ui/webui/resources/tools/generate_grd.gni")
 
@@ -13,7 +14,9 @@ generate_grd("build_grd") {
 }
 
 grit("resources") {
+  defines = chrome_grit_defines
   source = "$target_gen_dir/resources.grd"
+  output_dir = "$root_gen_dir/samo"  # 头文件 samo/grit/…，pak 在 $root_gen_dir/samo/samo_resources.pak（chrome_paks.gni 补丁按此合入）
   enable_input_discovery_for_gn_analyze = false
   deps = [ ":build_grd" ]
   outputs = [
