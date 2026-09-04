@@ -18,12 +18,13 @@ if [ ! -x "$DEPOT_TOOLS/fetch" ]; then
 fi
 mkdir -p "$CHROMIUM_ROOT"
 cd "$CHROMIUM_ROOT"
-if [ ! -d src/.git ]; then
+# fetch 只在空目录里能跑：它写下 .gclient 后就交给 gclient sync；失败重来时 .gclient 已在，直接 sync
+if [ ! -f .gclient ]; then
   echo "[fetch] fetch --nohooks --no-history chromium  ($(date))"
   fetch --nohooks --no-history chromium
 else
-  echo "[fetch] existing checkout, gclient sync ($(date))"
-  gclient sync --nohooks --no-history
+  echo "[fetch] .gclient present, gclient sync --nohooks --no-history ($(date))"
+  gclient sync --nohooks --no-history -D
 fi
 echo "[fetch] runhooks ($(date))"
 gclient runhooks
