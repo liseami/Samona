@@ -1,3 +1,11 @@
+/* ---- 字体随包自带（WebUI 的 CSP 不允许外链；Electron 也因此离线可用）：Inter / Montserrat 400·500·600，latin 子集，CJK 回退系统字体 ---- */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('./assets/fonts/inter-400.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('./assets/fonts/inter-500.woff2') format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('./assets/fonts/inter-600.woff2') format('woff2'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 400; font-display: swap; src: url('./assets/fonts/montserrat-400.woff2') format('woff2'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 500; font-display: swap; src: url('./assets/fonts/montserrat-500.woff2') format('woff2'); }
+@font-face { font-family: 'Montserrat'; font-style: normal; font-weight: 600; font-display: swap; src: url('./assets/fonts/montserrat-600.woff2') format('woff2'); }
+
 /* ============ Samo 壳的设计体系：配色为用户的 oklch 体系（原样），阴影/圆角/密度/交互取自 Laper index.css ============ */
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';

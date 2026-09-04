@@ -32,8 +32,9 @@ src/agent/AgentLayer.tsx: agent 的「手」——临界阻尼弹簧跟随的光
 src/newtab/main.tsx: 新标签页引导。
 src/newtab/NewTab.tsx: 极简 NTP——品牌标 + 自动聚焦的地址框，回车用 shared/url 的 resolveInput 在本标签导航；带 ?error= 时是加载失败页（主进程在主框架失败时导到这里，Try again 重试）。
 
+src/assets/fonts/: Inter / Montserrat 400·500·600 的 latin woff2，styles.css 顶部 @font-face 引用——字体随包自带，六张页面不再外链 Google Fonts（WebUI 的 CSP 不允许，Electron 也因此离线可用）。
 src/webui/: 第二宿主（Chromium fork 的 chrome://samo）——bridge.ts 用 chrome://resources/js/cr.js 的 sendWithPromise/addWebUiListener 装出与 preload 同契约的 window.samo；boot.ts 先于一切求值；shell.tsx / newtab.tsx 是 webui.html / webui-newtab.html 的入口，复用同一份 main.tsx；chrome-resources.d.ts 类型垫片。壳代码不知道自己跑在哪个宿主里。
-webui.html / webui-newtab.html: WebUI 宿主的页模板（无外链字体：WebUI CSP 不允许，字体待随包自带）。
+webui.html / webui-newtab.html: WebUI 宿主的页模板。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
