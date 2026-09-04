@@ -1,6 +1,6 @@
 """
 [INPUT]: 依赖 Pillow；源图 build/icon-source.png（正方形位图，任意尺寸）
-[OUTPUT]: 生成 build/icon.png（1024 画布：824 圆角方 22.5% 半径 + 柔和投影，macOS Dock 形态）与 src/renderer/src/assets/logo.png（256 圆角方，无留白无投影，rail 里按 24px 渲染）
+[OUTPUT]: 生成 build/icon.png（1024 画布：824 圆角方 22.5% 半径 + 柔和投影，macOS Dock 形态）
 [POS]: samo-app 的图标配方脚本；换 logo = 换 icon-source.png 再跑一次，永远不要直接提交满幅方形图标（Dock 会没圆角）
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
@@ -10,7 +10,6 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'build' / 'icon-source.png'
 DOCK = ROOT / 'build' / 'icon.png'
-RAIL = ROOT / 'src' / 'renderer' / 'src' / 'assets' / 'logo.png'
 RADIUS = 0.225  # macOS 圆角方形的半径比例
 
 
@@ -41,5 +40,4 @@ if __name__ == '__main__':
         side = min(src.size)
         src = src.crop(((src.width - side) // 2, (src.height - side) // 2, (src.width + side) // 2, (src.height + side) // 2))
     dock_icon(src).save(DOCK)
-    rounded(src, 256).save(RAIL)
-    print(f'icon → {DOCK.relative_to(ROOT)} 1024, {RAIL.relative_to(ROOT)} 256')
+    print(f'icon → {DOCK.relative_to(ROOT)} 1024')

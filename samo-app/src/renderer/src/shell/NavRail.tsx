@@ -1,18 +1,17 @@
 /**
- * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip，../assets/logo.png
- * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；底部是账户入口 UserButton（未登录显示 Sign in；菜单打开期间 rail 保持展开）；顶部 logo 行（HEADER_HEIGHT）与侧栏卡头部对齐
- * [POS]: shell 的第一层：切换「维度」（浏览器 / 邮件 / 知识库 / 网盘）；模块的侧栏与面板由 modules/registry 决定
+ * [INPUT]: 依赖 react 的 useState，@shared/model 的 MODULES/ModuleId，../icons 的 MODULE_ICON，../lib/utils 的 cn，../store/browser 的 useBrowser/send，../components/ui/tooltip 的 Tip
+ * [OUTPUT]: 对外提供 NavRail 组件：左缘 40px 的模块导航（icon navi）——悬停 150ms ease-snap 展开到 240px 并换成 panel 表面 + 边线 + 阴影（Laper ProjectNavRail），选中即收回；底部是账户入口 UserButton（未登录显示 Sign in；菜单打开期间 rail 保持展开）；无 logo 行，模块列表从顶部自然排下
+ * [POS]: shell 的第一层：切换「维度」（浏览器 / 工作区 / 应用 / 应用商店 / 邮件 / 资产）；模块的侧栏与面板由 modules/registry 决定
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { useState } from 'react';
-import { HEADER_HEIGHT, MODULES, type ModuleId } from '@shared/model';
+import { MODULES, type ModuleId } from '@shared/model';
 import { MODULE_ICON } from '../icons';
 import { cn } from '../lib/utils';
 import { send, useBrowser } from '../store/browser';
 import { Tip } from '../components/ui/tooltip';
 import { sidebarButtonClass } from '../components/ui/sidebar-button';
 import { UserButton } from './UserButton';
-import logo from '../assets/logo.png';
 
 export function NavRail() {
   const active = useBrowser((s) => s.snapshot?.layout.module ?? 'browser');
@@ -35,14 +34,7 @@ export function NavRail() {
           expanded ? 'w-60 border border-border bg-panel shadow-lg' : 'w-10 bg-sidebar',
         )}
       >
-        {/* ---- logo 行：与侧栏卡头部同高（Laper：mt-px h-12 pl-2，Samo 压到 40） ---- */}
-        <div className="mt-px flex shrink-0 items-center pl-2 pr-0" style={{ height: HEADER_HEIGHT }}>
-          <span className="flex w-8 shrink-0 items-center justify-center">
-            <img src={logo} alt="" width={24} height={24} className="size-6 select-none" draggable={false} />
-          </span>
-          <span className={cn('truncate pl-1 text-base font-semibold text-foreground transition-opacity duration-100', expanded ? 'opacity-100' : 'opacity-0')}>Samo</span>
-        </div>
-        <nav className={cn('flex min-h-0 flex-1 flex-col gap-1 pl-2 pt-1', expanded ? 'pr-2' : 'pr-0')}>
+        <nav className={cn('flex min-h-0 flex-1 flex-col gap-1 pl-2 pt-2', expanded ? 'pr-2' : 'pr-0')}>
           {MODULES.filter((m) => !m.dev || import.meta.env.DEV).map((m) => {
             const Icon = MODULE_ICON[m.id];
             const isActive = m.id === active;
