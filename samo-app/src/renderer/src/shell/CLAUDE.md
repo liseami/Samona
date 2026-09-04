@@ -14,6 +14,7 @@ Resizer.tsx: 侧栏卡与面板卡之间 8px 空档上的拖拽热区（rAF 节�
 EdgePeek.tsx: 折叠态 rail 与面板卡之间空档上的贴边条（悬停 peek），从控制条下方（top-12）开始。
 DockResizer.tsx: 停靠对话卡左缘的拖宽热区。
 UserButton.tsx: rail 底部的账户入口——折叠态 20px 头像占图标位（Laper CollapsedUserButton），展开态项目页极简用户卡（Laper ProjectUserButton：bg-background 圆角卡 + 36px 头像 + 昵称 + 等级 · 积分 + 下拉箭头）；未登录折叠态灰头像、展开态 Sign in。点击按当下按钮位置算锚点、发 userMenu.open 把菜单开进 overlay 子窗口，主进程收起时发 overlayClosed 复位，打开期间通知 rail 保持展开；登录暂为本地 mock。
+ContentHole.tsx: 面板体里「网页该出现的位置」——铺满的空元素，ResizeObserver 量出矩形发 layout.contentBounds；Electron 宿主忽略（自己算），Chromium fork 宿主据此摆放 contents 容器。
 UserMenuOverlay.tsx: 住在 overlay 子窗口（overlay.html）里的用户菜单宿主——收到 openUserMenu 在锚点弹出 UserMenu，全窗透明幕/Esc/菜单动作即关（palette.close）。为什么在子窗口：网页是原生视图、永远盖住壳的 DOM，壳里 Portal 的菜单/子菜单一进网页区域（子菜单右飞、或侧栏折叠时）就点不到，z-index 无解。
 UserMenu.tsx: Laper UserMenu 的 Samo 版——账户卡（头像 + 昵称 + 等级键帽 + Upgrade）/ Credits / Add credits / Invite friends / Samo docs / Contact us / Language（悬停子菜单）/ Appearance（悬停子菜单，真的切 nativeTheme）/ Settings / Log out；menu-pop 入场、submenu-slide 子菜单（间隙用 padding 桥，指针穿过时不收起）；在 UserMenuOverlay 里渲染；账号体系接上前多数动作是占位。
 
