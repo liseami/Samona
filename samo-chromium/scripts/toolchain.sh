@@ -7,6 +7,7 @@ set -euo pipefail
 source "$(dirname "$0")/../env.sh"
 cd "$CHROMIUM_SRC"
 echo "[toolchain] clang"; python3 tools/clang/scripts/update.py
+echo "[toolchain] clang objdump package (llvm-otool/llvm-nm for the mac linker driver)"; python3 tools/clang/scripts/update.py --package=objdump
 echo "[toolchain] rust"; python3 tools/rust/update_rust.py
 if [ ! -x buildtools/mac/gn ]; then
   echo "[toolchain] gn via cipd"
