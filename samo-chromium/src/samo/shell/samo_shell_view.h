@@ -36,6 +36,9 @@ class SamoShellView : public views::WebView,
   // WebUIContentsWrapper::Host
   void ShowUI() override;
   void CloseUI() override;
+  void DraggableRegionsChanged(
+      const std::vector<blink::mojom::DraggableRegionPtr>& regions,
+      content::WebContents* contents) override;
 
   // SamoUI::ShellDelegate
   void OnContentBounds(const gfx::Rect& bounds) override;

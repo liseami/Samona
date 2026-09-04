@@ -1,0 +1,69 @@
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -170,6 +170,7 @@
+ #include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+ #include "chrome/browser/ui/views/frame/top_container_view.h"
+ #include "samo/shell/samo_shell_view.h"
++#include "ui/gfx/geometry/rounded_corners_f.h"
+ #include "chrome/browser/ui/views/frame/top_controls_slide_controller.h"
+ #include "chrome/browser/ui/views/frame/vertical_tab_strip_background_blur_backdrop.h"
+ #include "chrome/browser/ui/views/frame/vertical_tab_strip_region_view.h"
+@@ -4470,6 +4471,17 @@
+ bool BrowserView::ShouldDescendIntoChildForEventHandling(
+     gfx::NativeView child,
+     const gfx::Point& location) {
++  // Samo：壳头部的可拖拽区由窗口接管（同 PWA 的 window-controls-overlay 逻辑）
++  if (samo_shell_view_ && samo_draggable_region_.has_value()) {
++    gfx::Point point_in_shell(location);
++    views::View::ConvertPointToTarget(GetWidget()->GetRootView(),
++                                      samo_shell_view_, &point_in_shell);
++    if (samo_draggable_region_->contains(point_in_shell.x(),
++                                         point_in_shell.y())) {
++      return WidgetOwnedByAnchorContainsPoint(point_in_shell);
++    }
++  }
++
+   // Window for PWAs with window-controls-overlay display override should claim
+   // mouse events that fall within the draggable region.
+   web_app::AppBrowserController* controller =
+@@ -4704,6 +4716,18 @@
+     }
+   }
+ 
++  // Samo：壳头部的可拖拽区 → HTCAPTION（拖动窗口）
++  if (samo_shell_view_ && samo_draggable_region_.has_value()) {
++    gfx::Point point_in_shell(point_in_browser_view_coords);
++    views::View::ConvertPointToTarget(this, samo_shell_view_, &point_in_shell);
++    if (samo_draggable_region_->contains(point_in_shell.x(),
++                                         point_in_shell.y())) {
++      return WidgetOwnedByAnchorContainsPoint(point_in_browser_view_coords)
++                 ? HTCLIENT
++                 : HTCAPTION;
++    }
++  }
++
+   // For apps with window-controls-overlay or unframed display mode, see if
+   // we're in an app defined draggable region so we can return `HTCAPTION`.
+   web_app::AppBrowserController* controller =
+@@ -4771,6 +4795,10 @@
+     return;
+   samo_content_bounds_ = bounds;
+   InvalidateLayout();
++}
++
++void BrowserView::SetSamoDraggableRegion(std::optional<SkRegion> region) {
++  samo_draggable_region_ = std::move(region);
+ }
+ 
+ void BrowserView::Layout(PassKey) {
+@@ -4818,6 +4846,10 @@
+     samo_shell_view_->SetBoundsRect(GetLocalBounds());
+     if (!samo_content_bounds_.IsEmpty())
+       contents_container_->SetBoundsRect(samo_content_bounds_);
++    if (multi_contents_view_) {
++      if (auto* active = multi_contents_view_->GetActiveContentsContainerView())
++        active->SetRoundedCorners(gfx::RoundedCornersF(13.0f));
++    }
+   }
+ 
+   // TODO(jamescook): Why was this in the middle of layout code?

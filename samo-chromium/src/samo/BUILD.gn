@@ -31,6 +31,8 @@ source_set("webui") {
   sources = [
     "webui/samo_ui.cc",
     "webui/samo_ui.h",
+    "webui/samo_ui_dev.cc",
+    "webui/samo_ui_dev.h",
     "webui/samo_ui_handler.cc",
     "webui/samo_ui_handler.h",
   ]

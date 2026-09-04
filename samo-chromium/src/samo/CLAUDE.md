@@ -7,7 +7,7 @@ Samo 在 Chromium 源码树里的独立目录（检出后位于 `src/samo/`，�
 BUILD.gn: :build_grd（读 webui/dist/manifest.txt 生成 grd）→ :resources（grit → samo_resources.pak + IDR_SAMO_*）→ :webui（源码集）。
 webui/samo_ui.h/.cc: SamoUI（TopChromeWebUIController，enable_chrome_send=true；数据源、默认页 webui.html、CSP 放宽内联样式、挂处理器；持 ShellDelegate 与 handler 指针）、SamoUI::ShellDelegate（OnContentBounds / BuildState / HandleCommand，SamoShellView 实现）与 SamoUIConfig（DefaultTopChromeWebUIConfig，注册入口）。
 shell/samo_shell_view.h/.cc: SamoShellView（views::WebView + WebUIContentsWrapper::Host + SamoUI::ShellDelegate + TabStripModelObserver）——把 chrome://samo 装进 BrowserView 的全窗子视图（索引 0，网页容器在其上）；壳量出的网页洞矩形 → BrowserView::SetSamoContentBounds；Chrome 的 TabStripModel → BrowserSnapshot.tabs（id 用 SessionID，favicon 走 chrome://favicon2）并在变化时 PushState；tab.create/activate/close/navigate/back/forward/reload/stop/pin 落到 TabStripModel。编进 //chrome/browser/ui（补丁 0006/0007）。
-webui/samo_ui_dev.h/.cc: 开发态旁路——命令行 --samo-webui-dir=<dir> 时壳资源从磁盘读（vite build --watch 的产物），改壳不重编 Chromium；草稿，首次构建后接入。
+webui/samo_ui_dev.h/.cc: 开发态旁路——命令行 --samo-webui-dir=<dir> 时壳资源从磁盘读（vite build --watch 的产物），改壳不重编 Chromium；已接入 samo_ui.cc（SetupWebUIDataSource 之后）。
 webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState / getChat 四个请求 + samo.state / event / chat 三个推送；有宿主时快照与命令都走 ShellDelegate，无宿主（chrome://samo 开在标签里）用 EmptyState 占位（与 shared/model.ts 逐字段同形）。
 
 ## 上游触点（将成为 patches/ 的前三个补丁）
@@ -28,7 +28,8 @@ webui/samo_ui_handler.h/.cc: SamoUIHandler——samo.invoke / query / getState /
 ## 状态
 - 里程碑 2（18:41）：chrome://samo 在 fork 里渲染出完整壳。
 - **里程碑 3 核心（2026-09-04 18:57）**：壳作为 BrowserView 的全窗子视图承载（CDP 里是 browser_ui 类型的 chrome://samo target），Chrome 顶栏隐藏；网页容器按壳汇报的矩形摆放；侧栏标签来自 Chrome 的 TabStripModel，tab.* 命令回路打通（scripts/verify-shell.mjs 通过）。
-- 未完：原生红绿灯与壳头部重叠、壳头部拖窗（DraggableRegions）、网页容器圆角、弹层（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
+- 19:04：壳头部可拖窗（DraggableRegions → BrowserView 命中测试 HTCAPTION）、网页容器裁圆角（13）、壳在 Chromium 宿主下为原生红绿灯留位（bridge.host）、开发态磁盘数据源已接。
+- 未完：弹层（对话/⌘T/用户菜单）改 WebUI 气泡、新标签页换成我们的 newtab、apps/workspace/chat/assets 接 Samo 服务进程、品牌（名字/图标/bundle id）、开发态磁盘数据源。
 
 法则: 成员完整·一行一文件·父级链接·技术词前置
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -11,6 +11,7 @@ import type { ChatSnapshot } from '@shared/chat';
 
 const bridge: SamoBridge = {
   platform: process.platform,
+  host: 'electron',
   invoke: (command: Command) => ipcRenderer.invoke(CHANNELS.invoke, command),
   query: <Q extends Query>(query: Q) => ipcRenderer.invoke(CHANNELS.query, query) as Promise<QueryResult<Q>>,
   getState: () => ipcRenderer.invoke(CHANNELS.getState) as Promise<BrowserSnapshot>,

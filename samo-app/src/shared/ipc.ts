@@ -130,6 +130,7 @@ export type ShellEvent =
 // ============ preload 暴露给渲染层的桥 ============
 export interface SamoBridge {
   platform: NodeJS.Platform;
+  host: 'electron' | 'chromium'; // 宿主：Electron 主进程 或 Chromium fork（壳据此决定原生红绿灯等由谁画）
   invoke(command: Command): Promise<void>;
   query<Q extends Query>(query: Q): Promise<QueryResult<Q>>;
   getState(): Promise<BrowserSnapshot>;

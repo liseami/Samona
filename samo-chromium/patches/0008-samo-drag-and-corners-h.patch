@@ -1,0 +1,27 @@
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -15,6 +15,7 @@
+ #include "base/containers/enum_set.h"
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/raw_ptr.h"
++#include "third_party/skia/include/core/SkRegion.h"
+ #include "base/scoped_observation.h"
+ #include "base/task/cancelable_task_tracker.h"
+ #include "base/time/time.h"
+@@ -196,6 +197,8 @@
+ 
+   // Samo：壳汇报的网页洞矩形（BrowserView 坐标），下一次布局据此摆放 contents_container_
+   void SetSamoContentBounds(const gfx::Rect& bounds);
++  // Samo：壳的可拖拽区（壳视图坐标；-webkit-app-region: drag），命中即 HTCAPTION
++  void SetSamoDraggableRegion(std::optional<SkRegion> region);
+ 
+   const TopControlsSlideController* top_controls_slide_controller() const {
+     return top_controls_slide_controller_.get();
+@@ -1228,6 +1231,7 @@
+   // Samo：铺满整窗的壳视图与壳量出的网页洞矩形（见 //samo/shell）
+   raw_ptr<samo::SamoShellView> samo_shell_view_ = nullptr;
+   gfx::Rect samo_content_bounds_;
++  std::optional<SkRegion> samo_draggable_region_;
+ 
+   // The view responsible for housing the contents of the vertical tab strip.
+   raw_ptr<VerticalTabStripRegionView> vertical_tab_strip_region_view_ = nullptr;

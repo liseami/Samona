@@ -23,6 +23,8 @@
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents.h"
 #include "samo/webui/samo_ui_handler.h"
+#include "third_party/blink/public/mojom/page/draggable_region.mojom.h"
+#include "third_party/skia/include/core/SkRegion.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "url/gurl.h"
 
@@ -92,6 +94,21 @@ void SamoShellView::ShowUI() {
 
 void SamoShellView::CloseUI() {
   // 壳永远在；Esc 已关闭，这里无事可做
+}
+
+// 壳里 -webkit-app-region: drag 的区域 → SkRegion（同 AppBrowserController::UpdateDraggableRegion）→ BrowserView 的命中测试
+void SamoShellView::DraggableRegionsChanged(
+    const std::vector<blink::mojom::DraggableRegionPtr>& regions,
+    content::WebContents* contents) {
+  SkRegion sk_region;
+  for (const auto& region : regions) {
+    sk_region.op(
+        SkIRect::MakeXYWH(region->bounds.x(), region->bounds.y(),
+                          region->bounds.width(), region->bounds.height()),
+        region->draggable ? SkRegion::kUnion_Op : SkRegion::kDifference_Op);
+  }
+  if (browser_view_)
+    browser_view_->SetSamoDraggableRegion(std::move(sk_region));
 }
 
 void SamoShellView::OnContentBounds(const gfx::Rect& bounds) {

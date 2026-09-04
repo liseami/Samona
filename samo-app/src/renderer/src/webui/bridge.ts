@@ -30,6 +30,7 @@ function listen<T>(name: string, listener: (payload: T) => void): () => void {
 export function installWebUiBridge(): SamoBridge {
   const bridge: SamoBridge = {
     platform: 'darwin',
+    host: 'chromium',
     invoke: (command: Command) => sendWithPromise<void>(WEBUI_MESSAGES.invoke, command),
     query: <Q extends Query>(query: Q) => sendWithPromise<QueryResult<Q>>(WEBUI_MESSAGES.query, query),
     getState: () => sendWithPromise<BrowserSnapshot>(WEBUI_MESSAGES.getState),

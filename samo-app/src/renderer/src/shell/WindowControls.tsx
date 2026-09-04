@@ -14,6 +14,7 @@ const LIGHTS = [
 ] as const;
 
 export function WindowControls() {
+  if (window.samo.host === 'chromium') return <div aria-hidden="true" className="w-[52px] shrink-0" />; // 原生红绿灯在同一位置，壳只留位
   const focused = useBrowser((s) => s.snapshot?.windowFocused ?? true);
   const act = (key: (typeof LIGHTS)[number]['key'], alt: boolean) => {
     if (key === 'close') send({ type: 'window.close' });
